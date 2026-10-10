@@ -66,6 +66,7 @@ export const GuardWarningKindSchema = z.enum([
   "invalid_fact_id",
   "unsupported_claim",
   "unverified_segment",
+  "ai_cliche",
 ]);
 export type GuardWarningKind = z.infer<typeof GuardWarningKindSchema>;
 
@@ -134,11 +135,23 @@ export const RewriteRequestSchema = z.object({
 });
 export type RewriteRequest = z.infer<typeof RewriteRequestSchema>;
 
-export const RewriteResponseSchema = z.object({
-  source: ResultSourceSchema,
+/** Two voices from the same confirmed facts. */
+export const RewriteStyleSchema = z.enum(["direct", "narrative"]);
+export type RewriteStyle = z.infer<typeof RewriteStyleSchema>;
+
+export const RewriteVariationSchema = z.object({
+  style: RewriteStyleSchema,
   rewrite: RewriteSchema,
   /** Output of deterministic FactCheck. Empty means "no unsupported concrete claims detected". */
   warnings: z.array(GuardWarningSchema),
+  /** Banned AI-cliche words/phrases found (kind "ai_cliche"). Style only; separate from FactCheck. */
+  styleWarnings: z.array(GuardWarningSchema),
+});
+export type RewriteVariation = z.infer<typeof RewriteVariationSchema>;
+
+export const RewriteResponseSchema = z.object({
+  source: ResultSourceSchema,
+  variations: z.array(RewriteVariationSchema).min(1).max(2),
 });
 export type RewriteResponse = z.infer<typeof RewriteResponseSchema>;
 
@@ -190,8 +203,14 @@ export const ModelEvaluateSchema = z.object({
   ),
 });
 
-export const ModelRewriteSchema = z.object({
+const ModelRewriteVariantSchema = z.object({
   content: z.string(),
   usedFactIds: z.array(z.string()),
   changeSummary: z.array(z.string()),
+});
+
+/** Fixed keys (not an array) so strict JSON-schema mode guarantees exactly one of each. */
+export const ModelRewriteSchema = z.object({
+  direct: ModelRewriteVariantSchema,
+  narrative: ModelRewriteVariantSchema,
 });

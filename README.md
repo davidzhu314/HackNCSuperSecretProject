@@ -7,7 +7,7 @@
 PERSONA helps you improve your LinkedIn profile without inventing anything about yourself. You paste your profile, confirm which facts about you are true, and get:
 
 1. **Simulated audience feedback** from a startup founder, a technical recruiter, and a research or hiring lead. Every critique links to the exact sentence it is about.
-2. **A rewrite that only uses facts you confirmed**, checked by **FactCheck**, a deterministic layer that flags made-up numbers, names, and inflated verbs.
+2. **Two rewrites (direct and narrative) that only use facts you confirmed**, checked by **FactCheck**, a deterministic layer that flags made-up numbers, names, and inflated verbs, plus a lint for AI clichés ("leverage", "delve", emoji bullets).
 
 Principle: improve expression, not invent identity.
 
@@ -33,6 +33,8 @@ When FactCheck finds nothing, the app says "No unsupported concrete claims detec
 | Clickable evidence (segment IDs checked on the server) | Implemented |
 | FactCheck (numbers, names, verbs, fact IDs, loose claims) | Implemented, with unit tests |
 | FactCheck re-runs when you edit the rewrite | Implemented |
+| Two rewrite styles (Option A: Direct, Option B: Narrative) | Implemented |
+| AI-cliché lint (banned words, phrases, emoji bullets) | Implemented, shown as style suggestions |
 | Consent before anything is sent to the AI | Implemented (enforced in the UI and by the API) |
 | Sample mode for the demo persona | Cached demo data, always labeled "Sample result" |
 | "FactCheck demo" (the "95% at Google" rewrite) | Cached, labeled "Intentional test case" |
@@ -52,14 +54,14 @@ Paste profile ──> split into numbered sentences (s1, s2, ...)
       │
 /api/evaluate ──> critiques citing sentence IDs ──> server drops unknown IDs
       │
-/api/rewrite ──> rewrite from confirmed facts only ──> FactCheck ──> warnings shown with the text
+/api/rewrite ──> 2 versions from confirmed facts only ──> FactCheck + cliché lint on each
 ```
 
 - **AI provider:** [OpenRouter](https://openrouter.ai), called only from the server. Extract and evaluate use `anthropic/claude-haiku-5.5`; the rewrite uses `anthropic/claude-sonnet-5.5`. We picked these after comparing four models on the same inputs.
 - **Structured output:** every AI response must match a strict JSON schema, is validated with zod, and is retried once if it doesn't.
 - **Privacy:** profile text is not stored or logged. The API key never reaches the browser.
 
-Key files: `src/lib/fact-guard.ts` (FactCheck), `src/lib/schemas.ts` (data shapes), `src/lib/llm.ts` (AI client), `src/lib/prompts.ts`, `src/app/api/*`, `src/components/PersonaFlow.tsx` (the page flow).
+Key files: `src/lib/fact-guard.ts` (FactCheck), `src/lib/style-check.ts` (cliché lint), `src/lib/schemas.ts` (data shapes), `src/lib/llm.ts` (AI client), `src/lib/prompts.ts`, `src/app/api/*`, `src/components/PersonaFlow.tsx` (the page flow).
 
 ## Run it locally
 

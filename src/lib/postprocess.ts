@@ -1,16 +1,21 @@
-import { checkSegmentCitations } from "./fact-guard";
+import { checkRewrite, checkSegmentCitations } from "./fact-guard";
 import { LlmError } from "./llm";
 import {
   EvaluateResponseSchema,
   LIMITS,
+  RewriteSchema,
+  RewriteStyleSchema,
   type AudienceCritique,
+  type Platform,
+  type RewriteVariation,
   type EvaluateResponse,
   type GuardWarning,
   type IdentityFact,
   type Segment,
 } from "./schemas";
 import type { z } from "zod";
-import type { ModelEvaluateSchema } from "./schemas";
+import type { ModelEvaluateSchema, ModelRewriteSchema } from "./schemas";
+import { checkStyle } from "./style-check";
 
 // Server-side cleanup of model output. The model is never trusted: ids are checked,
 // strings are clamped, and unrequested audience/trait combinations are dropped.
@@ -65,4 +70,34 @@ export function buildCritiques(
   const parsed = EvaluateResponseSchema.safeParse({ source: "live", critiques, warnings });
   if (!parsed.success) throw new LlmError("invalid_model_output", "The AI returned an unusable evaluation. Please try again.");
   return parsed.data;
+}
+
+/**
+ * Clamp each model version, then run FactCheck (against the original text and confirmed
+ * facts only) and the AI-cliche lint on it. The model's usedFactIds are never trusted.
+ */
+export function buildVariations(
+  model: z.infer<typeof ModelRewriteSchema>,
+  platform: Platform,
+  segments: Segment[],
+  confirmedFacts: IdentityFact[],
+): RewriteVariation[] {
+  return RewriteStyleSchema.options.map((style) => {
+    const v = model[style];
+    const parsed = RewriteSchema.safeParse({
+      platform,
+      content: v.content.trim().slice(0, LIMITS.maxRewriteChars),
+      usedFactIds: v.usedFactIds.slice(0, LIMITS.maxFacts),
+      changeSummary: v.changeSummary.slice(0, 8).map((s) => s.slice(0, 300)),
+    });
+    if (!parsed.success) {
+      throw new LlmError("invalid_model_output", "The AI returned an unusable rewrite. Please try again.");
+    }
+    return {
+      style,
+      rewrite: parsed.data,
+      warnings: checkRewrite({ rewrite: parsed.data, segments, facts: confirmedFacts }),
+      styleWarnings: checkStyle(parsed.data.content),
+    };
+  });
 }

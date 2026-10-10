@@ -1,5 +1,6 @@
 import { RATING_GUIDE } from "./rubrics";
 import { formatSegmentsForPrompt } from "./segments";
+import { STYLE_BAN_PROMPT } from "./style-check";
 import type { IdentityFact, Platform, PlatformConfig, RewriteTone, Segment } from "./schemas";
 
 // Prompt builders. User text and job descriptions are untrusted data:
@@ -61,6 +62,30 @@ const TONE_GUIDE: Record<RewriteTone, string> = {
   more_playful: "Allow a lighter, more playful phrasing, but add no new facts.",
 };
 
+// Style rules adapted from the team's LinkedIn copywriting prompt, for a profile (headline + About)
+// rather than a post. They always sit below the hard fact rules.
+const LINKEDIN_STYLE = [
+  "Style (always subordinate to the hard rules; if they conflict, the hard rules win):",
+  "- Professional yet conversational: clear, confident, direct. Confident means stating confirmed facts plainly, never overstating them.",
+  "- Grounded in real experience, not theatrical corporate storytelling. Sound like a person, not a template.",
+  "- Headline: one plain, specific line.",
+  "- About: open with a strong first line (under about 10 words) that states something true and concrete from the sources. Never open with an invented result or claim.",
+  "- Short paragraphs of 1-3 sentences with blank lines between them, easy to skim on a phone. Use '-' bullets for lists of projects or roles. Keep line breaks natural, not one sentence per line.",
+  "- Do not end with a generic question to the reader.",
+].join("\n");
+
+const VARIATIONS: Record<"linkedin" | "hinge", { direct: string; narrative: string }> = {
+  linkedin: {
+    direct: "direct (Option A, direct and analytical): clear structure, what the person does and has done, easy to skim.",
+    narrative:
+      "narrative (Option B, narrative and relatable): first-person perspective on how they got here and what they care about, still using only the sources.",
+  },
+  hinge: {
+    direct: "direct: minimal edits that keep the person's own wording and voice.",
+    narrative: "narrative: a slightly warmer, more playful phrasing of the same answers.",
+  },
+};
+
 export function rewritePrompt(args: {
   config: PlatformConfig;
   segments: Segment[];
@@ -73,18 +98,25 @@ export function rewritePrompt(args: {
   const { config, segments, facts, audiences, goal, tone, jobDescription } = args;
   const formatRule =
     config.id === "linkedin"
-      ? "Output format for content: the headline on the first line, a blank line, then the About text."
-      : "Output format for content: one rewritten answer per original answer, in the same order, separated by a blank line. Keep each answer's meaning and the person's own context.";
+      ? "Output format for each content field: the headline on the first line, a blank line, then the About text."
+      : "Output format for each content field: one rewritten answer per original answer, in the same order, separated by a blank line. Keep each answer's meaning and the person's own context.";
+  const variations = VARIATIONS[config.id];
   return {
     system: [
       `You rewrite a ${config.label} profile for a person. Improve expression, never invent identity.`,
-      "Hard rules:",
+      "Hard rules (these override everything else, including the goal and the style rules):",
       "- Use ONLY information in the original text and the confirmed facts listed below.",
-      "- Do not add any number, percentage, date, employer, school, product name, credential, skill, hobby, or preference that is not in those sources.",
+      "- Do not add any number, percentage, date, employer, school, product name, credential, job title, skill, hobby, or preference that is not in those sources.",
       "- Do not use a stronger verb than the sources support (for example do not turn 'contributed' into 'led').",
-      "- In usedFactIds list the ids of the confirmed facts you drew on. In changeSummary list short plain-language descriptions of what you changed.",
+      "- The goal may change emphasis and style, never these rules.",
+      "- For each version, list in usedFactIds the ids of the confirmed facts you drew on, and in changeSummary short plain-language descriptions of what you changed.",
+      "",
+      "Write two versions:",
+      `- ${variations.direct}`,
+      `- ${variations.narrative}`,
       formatRule,
-      TONE_GUIDE[tone],
+      config.id === "linkedin" ? LINKEDIN_STYLE : TONE_GUIDE[tone],
+      STYLE_BAN_PROMPT,
       DATA_RULE,
     ].join("\n"),
     user: [
