@@ -5,7 +5,6 @@ import { Backdrop, BrandMark, WorldFooter, Wordmark } from "@/components/Chrome"
 import { Button } from "@/components/ui/button";
 import { DEMO_LINKEDIN_FACTS, DEMO_LINKEDIN_PROFILE, DEMO_PERSONA } from "@/lib/demo-data";
 import { factCoverage } from "@/lib/profile";
-import { profileSectionList } from "@/lib/persona-ui";
 
 export const metadata: Metadata = {
   title: "Identity Hub — Personify",
@@ -17,10 +16,9 @@ export const metadata: Metadata = {
 export default function HubPage() {
   const profile = DEMO_LINKEDIN_PROFILE;
   const facts = DEMO_LINKEDIN_FACTS.filter((f) => f.confirmed);
-  const sections = profileSectionList(profile);
   const coverage = factCoverage(profile, facts);
-  const factsIn = (key: string) => coverage.perFact.filter((f) => f.sectionKeys.includes(key)).length;
-  const labelOf = new Map(sections.map((s) => [s.key, s.label]));
+  const sections = coverage.bySection;
+  const labelOf = new Map(sections.map((s) => [s.sectionKey, s.label]));
   const missing = coverage.perFact.filter((f) => !f.sectionKeys.length);
   const name = DEMO_PERSONA.name.replace(/\s*\(.*\)$/, "");
   const initials = name
@@ -81,7 +79,7 @@ export default function HubPage() {
                 </span>
                 <span>
                   <span className="platform-name">LinkedIn</span>
-                  <span className="platform-description">Headline and About · feedback and rewrites</span>
+                  <span className="platform-description">Your profile by section · feedback and rewrites</span>
                 </span>
                 <ArrowRight className="hub-arrow" aria-hidden="true" />
               </Link>
@@ -108,9 +106,9 @@ export default function HubPage() {
             </p>
             <ul className="hub-bars">
               {sections.map((s) => {
-                const n = factsIn(s.key);
+                const n = s.factIds.length;
                 return (
-                  <li key={s.key} className="hub-bar-row" data-empty={n === 0}>
+                  <li key={s.sectionKey} className="hub-bar-row" data-empty={n === 0}>
                     <span className="hub-bar-label">{s.label}</span>
                     <span className="hub-bar-track" aria-hidden="true">
                       <span

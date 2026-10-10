@@ -44,7 +44,7 @@ export default function HomePage() {
               </span>
               <div>
                 <h3>LinkedIn</h3>
-                <p>Headline and About. Feedback from recruiter, founder, and research-lead viewpoints.</p>
+                <p>Your profile by section, or import LinkedIn’s PDF. Feedback from up to 3 of 8 audiences.</p>
               </div>
             </div>
             <div className="home-platform">
