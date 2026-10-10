@@ -1,12 +1,18 @@
+import { checkRewrite } from "./fact-guard";
+import { factCheckSegments } from "./profile";
 import type {
   AudienceCritique,
   EvaluateResponse,
   ExtractFactsResponse,
   IdentityFact,
+  LinkedInProfile,
   RewriteResponse,
+  RewriteSectionResponse,
+  RewriteStyle,
   Segment,
 } from "./schemas";
 import { segmentHinge, segmentLinkedIn } from "./segments";
+import { checkStyle } from "./style-check";
 
 // Fictitious persona. Nothing here describes a real person.
 // Every "sample" output below must be labeled "sample result" in the UI, never shown as a live run.
@@ -15,10 +21,64 @@ export const DEMO_PERSONA = { name: "Priya Nair (fictitious demo persona)" };
 
 // ---------- LinkedIn ----------
 
-export const DEMO_LINKEDIN_INPUT = {
+/** The persona's profile by sections. Organizations are invented. */
+export const DEMO_LINKEDIN_PROFILE: LinkedInProfile = {
   headline: "Aspiring tech professional | Passionate about innovation",
   about:
     "I am a motivated team player who is passionate about technology. I have experience with various projects and love learning new things. Looking for opportunities to grow and make an impact.",
+  experience: [
+    {
+      id: "exp1",
+      title: "Software Engineering Intern",
+      organization: "Tallowtree Analytics",
+      dates: "June 2026 - August 2026 (3 months)",
+      location: "Remote",
+      description:
+        "- Worked on data cleaning scripts in Python\n- Helped the team with various tasks\n- Attended meetings and learned a lot",
+    },
+    {
+      id: "exp2",
+      title: "Teaching Assistant",
+      organization: "Calder Valley University",
+      dates: "January 2025 - Present (1 year 10 months)",
+      description: "- Helped students in an intro programming course\n- Held office hours and answered questions",
+    },
+    {
+      id: "exp3",
+      title: "Open-Source Contributor",
+      organization: "Vizbloom",
+      dates: "2024 - Present",
+      description: "- Contributed bug fixes and documentation to an open-source data visualization library",
+    },
+  ],
+  education: [
+    { id: "edu1", title: "B.S. Computer Science", organization: "Calder Valley University", dates: "2023 - 2027", description: "" },
+  ],
+  projects: [
+    {
+      id: "proj1",
+      title: "Course planner",
+      organization: "Class project",
+      description: "- Made a web app for planning courses using Python and React",
+    },
+  ],
+  volunteering: [
+    {
+      id: "vol1",
+      title: "Volunteer Tutor",
+      organization: "Maple Street Library Coding Club",
+      dates: "2024 - Present",
+      description: "Teaching kids coding on weekends.",
+    },
+  ],
+  skills: ["Python", "React", "Git", "Technical writing"],
+  honors: ["Dean's List"],
+};
+
+/** Legacy one-block LinkedIn input (headline + About), used by the current flow. */
+export const DEMO_LINKEDIN_INPUT = {
+  headline: DEMO_LINKEDIN_PROFILE.headline,
+  about: DEMO_LINKEDIN_PROFILE.about,
 };
 
 export const DEMO_LINKEDIN_SEGMENTS: Segment[] = segmentLinkedIn(DEMO_LINKEDIN_INPUT);
@@ -126,6 +186,62 @@ export const SAMPLE_EVALUATE: EvaluateResponse = {
   ],
 };
 
+/** Sectioned sample for the 3 default lenses, citing DEMO_LINKEDIN_PROFILE segment ids. */
+export const SAMPLE_PROFILE_EVALUATE: EvaluateResponse = {
+  source: "sample",
+  warnings: [],
+  critiques: [
+    // Technical recruiter
+    critique("technical_recruiter", "clarity", "weak", ["headline-s1"],
+      "\"Aspiring tech professional\" doesn't say a role or level, so it's hard to match to an opening.",
+      "Put your field and stage in the headline, e.g. computer science student and the tools you use."),
+    critique("technical_recruiter", "technical_specificity", "strong", ["skills-s1", "exp1-s2", "proj1-s2"],
+      "Python and React show up in your skills, internship, and project, so the stack is easy to find.",
+      "Mention the same tools in your headline too, since that's what shows in search."),
+    critique("technical_recruiter", "ownership_impact", "weak", ["exp1-s3"],
+      "\"Helped the team with various tasks\" doesn't say what you were responsible for.",
+      "Replace it with the specific task you did, or drop it."),
+    critique("technical_recruiter", "relevance", "weak", ["about-s3"],
+      "\"Looking for opportunities\" doesn't say which roles you want, so there's nothing to match against.",
+      "Name the kind of role you want next, or paste a job description."),
+    critique("technical_recruiter", "approachability", "moderate", ["about-s1"],
+      "Friendly and positive, though generic.",
+      "Fine as is; specificity matters more for this reader."),
+    // Hiring manager
+    critique("hiring_manager", "clarity", "moderate", ["exp1-s1", "exp2-s1"],
+      "Your entries make your roles clear even though the headline and About don't.",
+      "Bring the internship and TA role up into your About."),
+    critique("hiring_manager", "technical_specificity", "moderate", ["exp1-s2"],
+      "Data-cleaning scripts in Python is real work, but it's the only technical detail in the internship.",
+      "Say what the scripts cleaned or who used them, if you know."),
+    critique("hiring_manager", "ownership_impact", "weak", ["exp1-s3", "exp1-s4"],
+      "Two of three internship bullets describe being present rather than what you did.",
+      "Keep the bullet about the scripts and cut or replace the other two."),
+    critique("hiring_manager", "relevance", "not_evident", [],
+      "Without a target role or job description, there's nothing to judge fit against.",
+      "Paste a job description to get feedback against a real team's needs."),
+    critique("hiring_manager", "approachability", "strong", ["exp2-s3", "vol1-s2"],
+      "Office hours and weekend tutoring suggest you're patient and good with people.",
+      "Keep both; they say more than \"team player\" does."),
+    // Research lead
+    critique("research_lead", "clarity", "weak", ["headline-s1", "about-s1"],
+      "The headline and opening use general phrases (\"passionate\", \"innovation\") that could describe anyone.",
+      "Lead with your field and one concrete thing you have done."),
+    critique("research_lead", "technical_specificity", "weak", ["exp1-s2", "proj1-s2"],
+      "Tools are named but not the problems: what data, what the app had to handle.",
+      "Describe one technical problem you worked on and how you approached it."),
+    critique("research_lead", "ownership_impact", "moderate", ["exp3-s2"],
+      "Bug fixes and documentation for an open-source library are concrete and checkable.",
+      "Keep it; this is the most verifiable item on the profile."),
+    critique("research_lead", "relevance", "not_evident", [],
+      "Nothing points to a research area or question you care about.",
+      "If you have an area of interest, name it."),
+    critique("research_lead", "approachability", "moderate", ["about-s2"],
+      "Enthusiasm for learning comes through and reads as genuine.",
+      "Keep it, and back it up with something you learned or built."),
+  ],
+};
+
 /** Both sample versions use only the demo facts and pass FactCheck and the cliche lint (tested). */
 export const SAMPLE_REWRITE: RewriteResponse = {
   source: "sample",
@@ -163,6 +279,114 @@ export const SAMPLE_REWRITE: RewriteResponse = {
       },
     },
   ],
+};
+
+/** Build a sample section response; warnings come from running the real checks, never typed by hand. */
+function sampleSection(sectionKey: string, style: RewriteStyle, content: string, changeSummary: string[]): RewriteSectionResponse {
+  const usedFactIds = DEMO_LINKEDIN_FACTS.map((f) => f.id);
+  return {
+    source: "sample",
+    sectionKey,
+    style,
+    rewrite: { platform: "linkedin", content, usedFactIds, changeSummary },
+    warnings: checkRewrite({
+      rewrite: { content, usedFactIds },
+      segments: factCheckSegments(DEMO_LINKEDIN_PROFILE, sectionKey) ?? [],
+      facts: DEMO_LINKEDIN_FACTS,
+    }),
+    styleWarnings: checkStyle(content),
+  };
+}
+
+/** One sample rewrite per rewritable section per style. Tests require empty warnings on all of them. */
+export const SAMPLE_SECTION_REWRITES: Record<string, Record<RewriteStyle, RewriteSectionResponse>> = {
+  headline: {
+    direct: sampleSection("headline", "direct", "Computer science senior | Python and React | Teaching assistant", [
+      "States your field, tools, and role instead of \"aspiring\" and \"passionate\".",
+    ]),
+    narrative: sampleSection(
+      "headline",
+      "narrative",
+      "Computer science senior who enjoys explaining technical ideas to non-technical people",
+      ["Leads with what you study and what you enjoy, in a sentence."],
+    ),
+  },
+  about: {
+    direct: sampleSection(
+      "about",
+      "direct",
+      "Computer science senior at Calder Valley University. I work in Python and React, and I enjoy explaining technical ideas to non-technical people.\n\nI'm looking for opportunities to grow.",
+      ["Replaced \"motivated team player\" with your field and tools.", "No numbers, employers, or dates were added."],
+    ),
+    narrative: sampleSection(
+      "about",
+      "narrative",
+      "I'm a computer science senior at Calder Valley University, and I enjoy explaining technical ideas to non-technical people.\n\nI've been a teaching assistant for an introductory programming course, contributed bug fixes and documentation to an open-source data visualization library, and wrote data-cleaning scripts in Python as a software engineering intern.\n\nI love learning new things, and I'm looking for opportunities to grow.",
+      ["Told your experience as a short sequence: teaching, open source, internship.", "Kept \"love learning new things\" from your original text."],
+    ),
+  },
+  exp1: {
+    direct: sampleSection("exp1", "direct", "- Wrote data-cleaning scripts in Python\n- Helped the team with day-to-day tasks\n- Attended team meetings", [
+      "Led with the concrete work.",
+      "Kept the same three bullets; added no results.",
+    ]),
+    narrative: sampleSection(
+      "exp1",
+      "narrative",
+      "- Wrote data-cleaning scripts in Python for the team\n- Helped with other tasks and learned a lot from the meetings I attended",
+      ["Merged the two vaguer bullets into one."],
+    ),
+  },
+  exp2: {
+    direct: sampleSection(
+      "exp2",
+      "direct",
+      "- Teaching assistant for an introductory programming course\n- Held office hours and answered student questions",
+      ["Spelled out \"intro\" and named the role."],
+    ),
+    narrative: sampleSection(
+      "exp2",
+      "narrative",
+      "- Helped students work through an introductory programming course\n- Held office hours and answered their questions",
+      ["Kept your wording, slightly more personal."],
+    ),
+  },
+  exp3: {
+    direct: sampleSection(
+      "exp3",
+      "direct",
+      "- Contributed bug fixes and documentation to Vizbloom, an open-source data visualization library",
+      ["Named the library."],
+    ),
+    narrative: sampleSection(
+      "exp3",
+      "narrative",
+      "- Contributed bug fixes and documentation to Vizbloom, an open-source library for data visualization",
+      ["Named the library; kept \"contributed\"."],
+    ),
+  },
+  proj1: {
+    direct: sampleSection("proj1", "direct", "- Built a course-planning web app with Python and React for a class project", [
+      "Said what it is and what it's built with.",
+    ]),
+    narrative: sampleSection(
+      "proj1",
+      "narrative",
+      "- For a class project, built a web app for planning courses with Python and React",
+      ["Opened with the context, then what you built."],
+    ),
+  },
+  vol1: {
+    direct: sampleSection("vol1", "direct", "Volunteer tutor at a library coding club, teaching kids to code on weekends.", [
+      "Said where you tutor.",
+    ]),
+    narrative: sampleSection(
+      "vol1",
+      "narrative",
+      "On weekends, I volunteer as a tutor at a library coding club and teach kids to code.",
+      ["First person, same facts."],
+    ),
+  },
 };
 
 /**

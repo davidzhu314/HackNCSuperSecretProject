@@ -364,3 +364,10 @@ export function checkSegmentCitations(ids: string[], segments: Segment[]): Guard
     explanation: "The model cited a source segment that does not exist, so it was not highlighted.",
   }));
 }
+
+/** Stemmed content words (stopwords and short words dropped). Shared with factCoverage. */
+export function contentStems(text: string): string[] {
+  return words(text)
+    .filter((w) => !STOPWORDS.has(w.toLowerCase()) && w.length > 2)
+    .map(stem);
+}
