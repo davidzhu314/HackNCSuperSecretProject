@@ -1,106 +1,143 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ErrorNotice } from "@/components/labels";
-import { LIMITS, type IdentityFact } from "@/lib/schemas";
+import { ArrowRight, Dna, LoaderCircle, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { factTextSchema } from "@/lib/persona-ui";
+import { LIMITS, type IdentityFact } from "@/lib/schemas";
 
 export function IdentityFacts(props: {
   facts: IdentityFact[];
-  onChange: (facts: IdentityFact[]) => void;
+  /** Facts that came preloaded with the fictitious demo persona, labeled as such. */
+  demoFactIds: string[];
   loading: boolean;
-  error: string | null;
-  onRetry: () => void;
+  onChange: (facts: IdentityFact[]) => void;
   onContinue: () => void;
 }) {
-  const { facts, onChange, loading, error, onRetry, onContinue } = props;
-  const [draft, setDraft] = useState("");
+  const { facts, demoFactIds, loading, onChange, onContinue } = props;
+  const [newFact, setNewFact] = useState("");
+  const [error, setError] = useState("");
 
-  const update = (id: string, patch: Partial<IdentityFact>) =>
-    onChange(facts.map((f) => (f.id === id ? { ...f, ...patch } : f)));
+  function addFact() {
+    const parsed = factTextSchema.safeParse(newFact);
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message ?? "Check your fact.");
+      return;
+    }
+    if (facts.length >= LIMITS.maxFacts) {
+      setError(`You can keep up to ${LIMITS.maxFacts} facts.`);
+      return;
+    }
+    // "u" prefix keeps user-added ids distinct from extracted f1, f2, ... Facts you type are yours, so they start confirmed.
+    onChange([...facts, { id: `u${Date.now().toString(36)}`, text: parsed.data, confirmed: true, source: "user" }]);
+    setNewFact("");
+    setError("");
+  }
 
-  const add = () => {
-    const text = draft.trim();
-    if (!text || facts.length >= LIMITS.maxFacts) return;
-    // "u" prefix keeps user-added ids distinct from extracted f1, f2, ...
-    const id = `u${Date.now().toString(36)}`;
-    onChange([...facts, { id, text, confirmed: true, source: "user" }]);
-    setDraft("");
-  };
-
-  const confirmedCount = facts.filter((f) => f.confirmed).length;
+  const invalid = facts.some((fact) => !factTextSchema.safeParse(fact.text).success);
 
   return (
-    <section className="space-y-4">
-      <div>
-        <h2 className="text-lg font-semibold">Identity DNA</h2>
-        <p className="text-sm text-muted-foreground">
-          Tick the facts that are true about you. Only ticked facts can be used in a rewrite.
-        </p>
-      </div>
-
-      {loading && <p className="text-sm text-muted-foreground" aria-live="polite">Finding facts in your text...</p>}
-      {error && <ErrorNotice message={error} onRetry={onRetry} />}
-
-      {!loading && !error && facts.length === 0 && (
-        <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
-          No concrete facts found in your text. Add a few true facts about yourself.
-        </p>
+    <section className="flow-section fade-in">
+      <h2 className="flow-title">
+        <Dna /> Identity DNA
+      </h2>
+      <p className="flow-description">
+        Tick the facts that are true about you. Only ticked facts can be used in a rewrite.
+      </p>
+      {loading && (
+        <div role="status" aria-live="polite">
+          <p className="loading-row">
+            <LoaderCircle className="animate-spin" size={14} />
+            Finding facts in your text…
+          </p>
+          <div className="loading-skeleton">
+            <span />
+            <span />
+            <span />
+          </div>
+        </div>
       )}
-
-      <ul className="space-y-2">
-        {facts.map((f) => (
-          <li key={f.id} className="flex items-start gap-2 rounded-lg border p-2">
-            <Checkbox
-              className="mt-2"
-              aria-label={`Confirm: ${f.text}`}
-              checked={f.confirmed}
-              onCheckedChange={(c) => update(f.id, { confirmed: c === true })}
+      {!loading && !facts.length && (
+        <p className="empty-note">No concrete facts found in your text. Add a few true facts about yourself.</p>
+      )}
+      <div className="identity-list">
+        {facts.map((fact, index) => (
+          <div className="identity-row" key={fact.id}>
+            <input
+              aria-label={`Confirm fact ${index + 1}`}
+              type="checkbox"
+              checked={fact.confirmed}
+              onChange={(event) =>
+                onChange(facts.map((item) => (item.id === fact.id ? { ...item, confirmed: event.target.checked } : item)))
+              }
             />
-            <div className="min-w-0 flex-1">
+            <div className="flex-1 min-w-0">
               <textarea
-                aria-label="Fact text"
-                value={f.text}
+                className="fact-edit"
+                rows={2}
+                aria-label={`Fact ${index + 1}`}
                 maxLength={LIMITS.factText}
-                rows={1}
-                onChange={(e) => update(f.id, { text: e.target.value })}
-                className="field-sizing-content w-full resize-none rounded-md bg-transparent px-2 py-1 text-sm"
+                value={fact.text}
+                // Editing a fact un-confirms it, so a changed statement is never used without a fresh tick.
+                onChange={(event) =>
+                  onChange(
+                    facts.map((item) => (item.id === fact.id ? { ...item, text: event.target.value, confirmed: false } : item)),
+                  )
+                }
               />
-              <span className="px-2 text-xs text-muted-foreground">
-                {f.source === "extracted" ? "Suggested by AI" : "Added by you"}
+              <span className="source-tag">
+                {demoFactIds.includes(fact.id)
+                  ? "Demo persona fact"
+                  : fact.source === "extracted"
+                    ? "Suggested by AI"
+                    : "Added by you"}
               </span>
             </div>
-            <button
-              type="button"
-              aria-label="Remove fact"
-              className="shrink-0 px-1 pt-1 text-muted-foreground hover:text-foreground"
-              onClick={() => onChange(facts.filter((x) => x.id !== f.id))}
+            <Button
+              variant="ghost"
+              size="icon"
+              title="Remove fact"
+              aria-label={`Remove fact ${index + 1}`}
+              onClick={() => onChange(facts.filter((item) => item.id !== fact.id))}
             >
-              ×
-            </button>
-          </li>
+              <Trash2 />
+            </Button>
+          </div>
         ))}
-      </ul>
-
-      <div className="flex gap-2">
+      </div>
+      <div className="add-fact-row">
+        <label className="sr-only" htmlFor="new-fact">
+          Add a fact
+        </label>
         <input
-          aria-label="New fact"
-          value={draft}
+          id="new-fact"
+          className="goal-input"
           maxLength={LIMITS.factText}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && add()}
-          placeholder="Add a true fact, e.g. I built a budgeting app in Swift."
-          className="min-w-0 flex-1 rounded-lg border bg-background px-3 py-2 text-sm"
+          value={newFact}
+          onChange={(event) => setNewFact(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") addFact();
+          }}
+          placeholder="A project, role, or skill that’s really yours…"
         />
-        <Button type="button" variant="outline" onClick={add} disabled={!draft.trim() || facts.length >= LIMITS.maxFacts}>
-          Add
+        <Button variant="glass" disabled={facts.length >= LIMITS.maxFacts} onClick={addFact}>
+          <Plus />
+          Add a fact
         </Button>
       </div>
-
-      <Button type="button" onClick={onContinue} disabled={loading}>
-        Continue with {confirmedCount} confirmed {confirmedCount === 1 ? "fact" : "facts"}
-      </Button>
+      {error && (
+        <p className="error-message" role="alert">
+          {error}
+        </p>
+      )}
+      <div className="action-band">
+        <span className="empty-note">
+          {facts.filter((fact) => fact.confirmed).length} of {facts.length} facts confirmed
+        </span>
+        <Button variant="aero" disabled={invalid || loading} onClick={onContinue}>
+          Continue <ArrowRight />
+        </Button>
+      </div>
     </section>
   );
 }

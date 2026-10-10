@@ -1,279 +1,501 @@
 "use client";
 
+import { ArrowLeft, Check, ChevronRight, CircleHelp, Heart, House, RotateCcw, ShieldCheck, Sparkles, TriangleAlert } from "lucide-react";
+import Link from "next/link";
+import { useMemo, useRef, useState } from "react";
 import { AudienceClash } from "@/components/AudienceClash";
-import { AudiencePicker } from "@/components/AudiencePicker";
-import { ConsentStep } from "@/components/ConsentStep";
+import { AudienceSelection } from "@/components/AudienceSelection";
+import { Backdrop, BrandMark, WorldFooter, Wordmark } from "@/components/Chrome";
+import { ConsentScreen } from "@/components/ConsentScreen";
 import { IdentityFacts } from "@/components/IdentityFacts";
-import { InputStep, type LinkedInInput } from "@/components/InputStep";
-import { ErrorNotice } from "@/components/labels";
+import { ProfileInput, type LinkedInInput } from "@/components/ProfileInput";
 import { RewriteComparison } from "@/components/RewriteComparison";
 import { Button } from "@/components/ui/button";
 import { errorMessage, evaluateProfile, extractFacts, rewriteProfile } from "@/lib/api-client";
-import { DEMO_LINKEDIN_FACTS, DEMO_LINKEDIN_INPUT } from "@/lib/demo-data";
-import { LINKEDIN_CONFIG } from "@/lib/rubrics";
-import type { EvaluateResponse, IdentityFact, RewriteResponse } from "@/lib/schemas";
-import { segmentLinkedIn } from "@/lib/segments";
-import { useMemo, useRef, useState } from "react";
+import { DEMO_HINGE_FACTS, DEMO_HINGE_INPUT, DEMO_LINKEDIN_FACTS, DEMO_LINKEDIN_INPUT } from "@/lib/demo-data";
+import { emptyHingePairs, HINGE_PROMPTS, MAX_HINGE_ANSWER, MAX_HINGE_PROMPTS, type HingePair } from "@/lib/persona-ui";
+import { PLATFORM_CONFIGS } from "@/lib/rubrics";
+import { LIMITS, type EvaluateResponse, type IdentityFact, type Platform, type RewriteResponse } from "@/lib/schemas";
+import { segmentHinge, segmentLinkedIn } from "@/lib/segments";
 
-// Owns the whole flow and its state. Each step is a props-only component, so
-// a redesigned version (e.g. from Lovable) can replace it without touching this logic.
-// Rules enforced here: nothing is sent to the AI before consent, only confirmed
-// facts reach the rewrite, and sample mode is only offered for the demo persona.
+// Owns the whole studio: state, API calls, and the Lovable page layout. Screens are props-only.
+// Rules enforced here: nothing is sent to the AI before consent, only confirmed facts reach the
+// rewrite, and sample mode is only offered for the LinkedIn demo persona (the only one with cached results).
 
-const STEPS = ["input", "consent", "facts", "audiences", "clash", "rewrite"] as const;
-type Step = (typeof STEPS)[number];
-const STEP_LABEL: Record<Step, string> = {
-  input: "Profile",
-  consent: "Consent",
-  facts: "Facts",
-  audiences: "Audiences",
-  clash: "Feedback",
-  rewrite: "Rewrite",
-};
+const STEPS = ["Your profile", "Consent", "Identity DNA", "Audience lenses", "Audience Clash", "Rewrite + FactCheck"];
+const [INPUT, CONSENT, FACTS, AUDIENCES, CLASH, REWRITE] = [0, 1, 2, 3, 4, 5];
 
-type Async<T> = { status: "idle" | "loading" | "done" | "error"; data: T | null; error: string | null };
-const idle = <T,>(): Async<T> => ({ status: "idle", data: null, error: null });
+const EMPTY_LINKEDIN: LinkedInInput = { headline: "", about: "", jobDescription: "" };
 
-const EMPTY_INPUT: LinkedInInput = { headline: "", about: "", jobDescription: "" };
+/** The Hinge demo has two answers; fill the third slot with an unused prompt. */
+function demoHingePairs(): HingePair[] {
+  const pairs = DEMO_HINGE_INPUT.map((p) => ({ ...p }));
+  const unused = HINGE_PROMPTS.filter((prompt) => !pairs.some((p) => p.prompt === prompt));
+  while (pairs.length < MAX_HINGE_PROMPTS) pairs.push({ prompt: unused[pairs.length] ?? HINGE_PROMPTS[0], answer: "" });
+  return pairs;
+}
+
+const defaultAudiences = (p: Platform) => PLATFORM_CONFIGS[p].audiences.map((a) => a.id);
+const defaultTraits = (p: Platform) => PLATFORM_CONFIGS[p].traits.slice(0, 3).map((t) => t.id);
+
+type FlowError = { message: string; retry?: () => void };
 
 export function PersonaFlow() {
-  const config = LINKEDIN_CONFIG;
-  const [step, setStep] = useState<Step>("input");
-  const [input, setInput] = useState<LinkedInInput>(EMPTY_INPUT);
+  const [platform, setPlatform] = useState<Platform>("linkedin");
+  const config = PLATFORM_CONFIGS[platform];
+  const [step, setStep] = useState(INPUT);
+  const [furthest, setFurthest] = useState(INPUT);
+  const [error, setError] = useState<FlowError | null>(null);
+  const [help, setHelp] = useState(false);
+
+  const [linkedin, setLinkedIn] = useState<LinkedInInput>(EMPTY_LINKEDIN);
+  const [hinge, setHinge] = useState<HingePair[]>(emptyHingePairs);
   const [usingDemo, setUsingDemo] = useState(false);
   const [sampleMode, setSampleMode] = useState(false);
   const [consent, setConsent] = useState(false);
 
   const [facts, setFacts] = useState<IdentityFact[]>([]);
-  const [extract, setExtract] = useState<Async<true>>(idle());
+  const [extracting, setExtracting] = useState(false);
   const extractedFor = useRef<string | null>(null);
 
-  const [audiences, setAudiences] = useState<string[]>(config.audiences.map((a) => a.id));
-  const [traits, setTraits] = useState<string[]>(config.traits.slice(0, 3).map((t) => t.id));
-  const [evaluation, setEvaluation] = useState<Async<EvaluateResponse>>(idle());
+  const [audiences, setAudiences] = useState(defaultAudiences("linkedin"));
+  const [traits, setTraits] = useState(defaultTraits("linkedin"));
+  const [evaluating, setEvaluating] = useState(false);
+  const [evaluation, setEvaluation] = useState<EvaluateResponse | null>(null);
 
   const [goal, setGoal] = useState("");
-  const [rewrite, setRewrite] = useState<Async<RewriteResponse>>(idle());
+  const [rewriting, setRewriting] = useState(false);
+  const [rewrite, setRewrite] = useState<RewriteResponse | null>(null);
+  const [adversarial, setAdversarial] = useState<RewriteResponse | null>(null);
 
-  // Ignore responses from requests that were superseded.
+  // Ignore responses from requests that were superseded (new input, platform switch, reset).
   const requestId = useRef(0);
 
-  const segments = useMemo(() => segmentLinkedIn(input), [input]);
-  const original = [input.headline.trim(), input.about.trim()].filter(Boolean).join("\n\n");
+  const segments = useMemo(
+    () => (platform === "linkedin" ? segmentLinkedIn(linkedin) : segmentHinge(hinge)),
+    [platform, linkedin, hinge],
+  );
+  const original =
+    platform === "linkedin"
+      ? [linkedin.headline.trim(), linkedin.about.trim()].filter(Boolean).join("\n\n")
+      : hinge.map((p) => p.answer.trim()).filter(Boolean).join("\n\n");
+  const sourceKey = `${platform}|${original}`;
   const confirmedFacts = facts.filter((f) => f.confirmed && f.text.trim());
-  const sample = usingDemo && sampleMode;
+  const canUseSample = usingDemo && platform === "linkedin";
+  const sample = canUseSample && sampleMode;
+  const loading = extracting || evaluating || rewriting;
 
-  const resetResults = () => {
-    setEvaluation(idle());
-    setRewrite(idle());
-  };
+  const inputError = (() => {
+    if (platform === "linkedin") {
+      if (!linkedin.about.trim()) return "Add your About text before continuing.";
+      if (linkedin.headline.length + linkedin.about.length > LIMITS.profileText) return "Keep your profile under 4,000 characters.";
+      return null;
+    }
+    if (!hinge.some((p) => p.answer.trim())) return "Add at least one prompt answer before continuing.";
+    if (hinge.some((p) => p.answer.length > MAX_HINGE_ANSWER)) return "Keep each Hinge answer under 300 characters.";
+    return null;
+  })();
 
-  const changeInput = (next: LinkedInInput) => {
-    setInput(next);
-    const isDemo =
-      next.headline === DEMO_LINKEDIN_INPUT.headline && next.about === DEMO_LINKEDIN_INPUT.about;
-    setUsingDemo(isDemo);
-    if (!isDemo) setSampleMode(false);
+  function go(next: number) {
+    setStep(next);
+    setFurthest((prev) => Math.max(prev, next));
+    setError(null);
+  }
+
+  /** New text means new consent, new suggestions, and new results. Facts the user typed are kept. */
+  function resetResults() {
+    requestId.current++;
+    setExtracting(false);
+    setEvaluating(false);
+    setRewriting(false);
+    setConsent(false);
+    setFurthest(INPUT);
+    setEvaluation(null);
+    setRewrite(null);
+    setAdversarial(null);
+  }
+
+  function reset() {
     resetResults();
-  };
+    setLinkedIn(EMPTY_LINKEDIN);
+    setHinge(emptyHingePairs());
+    setFacts([]);
+    extractedFor.current = null;
+    setUsingDemo(false);
+    setSampleMode(false);
+    setStep(INPUT);
+    setError(null);
+  }
 
-  const loadDemo = () => {
-    setInput({ ...DEMO_LINKEDIN_INPUT, jobDescription: "" });
+  function switchPlatform(next: Platform) {
+    if (next === platform) return;
+    reset();
+    setPlatform(next);
+    setAudiences(defaultAudiences(next));
+    setTraits(defaultTraits(next));
+  }
+
+  function changeLinkedIn(next: LinkedInInput) {
+    setLinkedIn(next);
+    setUsingDemo(next.headline === DEMO_LINKEDIN_INPUT.headline && next.about === DEMO_LINKEDIN_INPUT.about);
+    // The job description isn't profile text, so editing it alone keeps consent and facts.
+    if (next.headline !== linkedin.headline || next.about !== linkedin.about) resetResults();
+    else {
+      setEvaluation(null);
+      setRewrite(null);
+      setAdversarial(null);
+    }
+  }
+
+  function changeHinge(next: HingePair[]) {
+    setHinge(next);
+    setUsingDemo(false);
+    resetResults();
+  }
+
+  function loadDemo() {
+    resetResults();
+    if (platform === "linkedin") {
+      setLinkedIn({ ...DEMO_LINKEDIN_INPUT, jobDescription: "" });
+      setFacts(DEMO_LINKEDIN_FACTS.map((f) => ({ ...f })));
+      extractedFor.current = `linkedin|${DEMO_LINKEDIN_INPUT.headline.trim()}\n\n${DEMO_LINKEDIN_INPUT.about.trim()}`;
+    } else {
+      const pairs = demoHingePairs();
+      setHinge(pairs);
+      setFacts(DEMO_HINGE_FACTS.map((f) => ({ ...f })));
+      extractedFor.current = `hinge|${pairs.map((p) => p.answer.trim()).filter(Boolean).join("\n\n")}`;
+    }
     setUsingDemo(true);
-    setFacts(DEMO_LINKEDIN_FACTS);
-    // Demo facts are preloaded, so no extraction is needed for this text.
-    extractedFor.current = `${DEMO_LINKEDIN_INPUT.headline}\n\n${DEMO_LINKEDIN_INPUT.about}`;
-    setExtract({ status: "done", data: true, error: null });
-    resetResults();
-  };
+    setStep(INPUT);
+    setError(null);
+  }
 
-  // `consented` is passed explicitly on the consent click, before React has applied setConsent(true).
-  const runExtract = async (consented = consent) => {
+  // `consented` is passed explicitly from the consent click, before React has applied setConsent(true).
+  async function runExtract(consented = consent) {
     if (!consented) return;
     const id = ++requestId.current;
-    setExtract({ status: "loading", data: null, error: null });
+    setExtracting(true);
+    setError(null);
     try {
-      const res = await extractFacts({ consent: true, platform: "linkedin", segments }, { sample });
+      const res = await extractFacts({ consent: true, platform, segments }, { sample });
       if (id !== requestId.current) return;
       // Keep facts the user added; replace earlier AI suggestions.
-      setFacts((prev) => [...prev.filter((f) => f.source === "user"), ...res.facts]);
-      extractedFor.current = original;
-      setExtract({ status: "done", data: true, error: null });
+      setFacts((prev) => [...prev.filter((f) => f.source === "user"), ...res.facts].slice(0, LIMITS.maxFacts));
+      extractedFor.current = sourceKey;
     } catch (err) {
       if (id !== requestId.current) return;
-      setExtract({ status: "error", data: null, error: errorMessage(err) });
+      setError({ message: errorMessage(err), retry: () => void runExtract() });
+    } finally {
+      if (id === requestId.current) setExtracting(false);
     }
-  };
+  }
 
-  const runEvaluate = async () => {
-    if (!consent) return;
+  function goToFacts(consented = consent) {
+    go(FACTS);
+    if (extractedFor.current !== sourceKey) void runExtract(consented);
+  }
+
+  function continueFromInput() {
+    if (inputError) {
+      setError({ message: inputError });
+      return;
+    }
+    if (consent) goToFacts();
+    else go(CONSENT);
+  }
+
+  async function runEvaluate() {
+    if (!consent || !audiences.length || !traits.length) {
+      setError({ message: "Confirm consent and choose at least one audience and trait." });
+      return;
+    }
     const id = ++requestId.current;
-    setStep("clash");
-    setEvaluation({ status: "loading", data: null, error: null });
+    setEvaluating(true);
+    setError(null);
     try {
       const res = await evaluateProfile(
         {
           consent: true,
-          platform: "linkedin",
+          platform,
           segments,
           audiences,
           traits,
-          jobDescription: input.jobDescription.trim() || undefined,
+          jobDescription: platform === "linkedin" ? linkedin.jobDescription.trim() || undefined : undefined,
         },
         { sample },
       );
       if (id !== requestId.current) return;
-      setEvaluation({ status: "done", data: res, error: null });
+      setEvaluation(res);
+      go(CLASH);
     } catch (err) {
       if (id !== requestId.current) return;
-      setEvaluation({ status: "error", data: null, error: errorMessage(err) });
+      setError({ message: errorMessage(err), retry: () => void runEvaluate() });
+    } finally {
+      if (id === requestId.current) setEvaluating(false);
     }
-  };
+  }
 
-  const runRewrite = async (adversarial = false) => {
-    if (!consent) return;
+  async function runRewrite(mode: "normal" | "adversarial" = "normal") {
+    if (!consent || !confirmedFacts.length) {
+      setError({ message: "Confirm at least one fact and agree to continue first." });
+      return;
+    }
     const id = ++requestId.current;
-    setRewrite({ status: "loading", data: null, error: null });
+    setRewriting(true);
+    setError(null);
     try {
       const res = await rewriteProfile(
         {
           consent: true,
-          platform: "linkedin",
+          platform,
           segments,
           facts: confirmedFacts.map((f) => ({ ...f, confirmed: true as const })),
           audiences,
           goal: goal.trim() || undefined,
-          tone: "balanced", // LinkedIn offers two styles instead of a tone control
-          jobDescription: input.jobDescription.trim() || undefined,
+          tone: "balanced", // the two rewrite versions (direct, narrative) replace a tone control
+          jobDescription: platform === "linkedin" ? linkedin.jobDescription.trim() || undefined : undefined,
         },
-        { sample, adversarial },
+        { sample, adversarial: mode === "adversarial" },
       );
       if (id !== requestId.current) return;
-      setRewrite({ status: "done", data: res, error: null });
+      if (mode === "adversarial") setAdversarial(res);
+      else {
+        setRewrite(res);
+        setAdversarial(null);
+      }
     } catch (err) {
       if (id !== requestId.current) return;
-      setRewrite({ status: "error", data: null, error: errorMessage(err) });
+      setError({ message: errorMessage(err), retry: () => void runRewrite(mode) });
+    } finally {
+      if (id === requestId.current) setRewriting(false);
     }
-  };
-
-  const goToFacts = (consented = consent) => {
-    setStep("facts");
-    if (extractedFor.current !== original) void runExtract(consented);
-  };
-
-  const stepIndex = STEPS.indexOf(step);
-  const back = () => setStep(STEPS[Math.max(0, stepIndex - 1)]);
+  }
 
   return (
-    <div className="space-y-6">
-      <nav aria-label="Progress">
-        <ol className="flex flex-wrap gap-1 text-xs">
-          {STEPS.map((s, i) => (
-            <li
-              key={s}
-              aria-current={s === step ? "step" : undefined}
-              className={`rounded-md px-2 py-1 ${
-                s === step ? "bg-primary text-primary-foreground" : i < stepIndex ? "bg-muted" : "text-muted-foreground"
-              }`}
-            >
-              {i + 1}. {STEP_LABEL[s]}
-            </li>
-          ))}
-        </ol>
-      </nav>
+    <div className="app-root" data-theme={platform}>
+      <Backdrop />
+      <header className="site-header">
+        <Wordmark />
+        <nav className="header-nav" aria-label="Main navigation">
+          <Link href="/" className="studio-link">
+            Home
+          </Link>
+          <span className="session-label">One identity. Every platform.</span>
+          <span className="header-avatar">You</span>
+        </nav>
+      </header>
+      <main className="studio-shell">
+        <div className="studio-topbar">
+          <div className="breadcrumb">
+            <Link href="/" aria-label="Home">
+              <House size={13} />
+            </Link>
+            <ChevronRight size={11} />
+            <span>Profile studio</span>
+          </div>
+          <span className="privacy-badge">
+            <ShieldCheck size={13} />
+            {sample ? "Sample mode · nothing sent or stored" : "Sent only after consent · nothing stored"}
+          </span>
+        </div>
+        <div className="studio-body">
+          <div className="welcome-row">
+            <div>
+              <div className="eyebrow">
+                <Sparkles size={12} />
+                Authentically you
+              </div>
+              <h1>You, in your best light.</h1>
+              <p className="welcome-copy">One identity. Every platform. Authentically you.</p>
+              <p className="principle-copy">Improve expression, not invent identity.</p>
+            </div>
+            {step > INPUT && (
+              <Button variant="glass" onClick={reset} title="Clear this session">
+                <RotateCcw />
+                Start over
+              </Button>
+            )}
+          </div>
 
-      {sample && step !== "input" && step !== "consent" && (
-        <p className="rounded-lg border border-dashed p-2 text-xs text-muted-foreground">
-          Sample mode: results are cached demo data, not a live AI run.
-        </p>
-      )}
+          <div className="platform-grid" aria-label="Choose a platform">
+            {(["linkedin", "hinge"] as const).map((id) => (
+              <Button
+                variant="platform"
+                key={id}
+                data-platform={id}
+                data-active={platform === id}
+                aria-pressed={platform === id}
+                disabled={loading}
+                onClick={() => switchPlatform(id)}
+              >
+                <span className="platform-icon">
+                  <BrandMark platform={id} />
+                </span>
+                <span>
+                  <span className="platform-name">{id === "linkedin" ? "LinkedIn" : "Hinge"}</span>
+                  <span className="platform-description">
+                    {id === "linkedin" ? "Put your best work forward." : "Make a real connection."}
+                  </span>
+                </span>
+                <span className="platform-check" aria-hidden="true" />
+              </Button>
+            ))}
+          </div>
 
-      {step === "input" && (
-        <InputStep
-          value={input}
-          onChange={changeInput}
-          onLoadDemo={loadDemo}
-          usingDemo={usingDemo}
-          onContinue={() => (consent ? goToFacts() : setStep("consent"))}
-        />
-      )}
+          <nav className="stage-bar expanded-stages" aria-label="Profile workflow">
+            {STEPS.map((label, index) => (
+              <Button
+                variant="stage"
+                key={label}
+                data-active={step === index}
+                aria-current={step === index ? "step" : undefined}
+                disabled={index > furthest || loading}
+                onClick={() => go(index)}
+              >
+                <span className="stage-number">{index < step ? <Check size={11} /> : index + 1}</span>
+                {label}
+              </Button>
+            ))}
+          </nav>
 
-      {step === "consent" && (
-        <ConsentStep
-          sampleMode={sampleMode}
-          onSampleModeChange={setSampleMode}
-          canUseSample={usingDemo}
-          onAgree={() => {
-            setConsent(true);
-            goToFacts(true);
-          }}
-          onBack={back}
-        />
-      )}
-
-      {step === "facts" && (
-        <IdentityFacts
-          facts={facts}
-          onChange={setFacts}
-          loading={extract.status === "loading"}
-          error={extract.error}
-          onRetry={() => void runExtract()}
-          onContinue={() => setStep("audiences")}
-        />
-      )}
-
-      {step === "audiences" && (
-        <AudiencePicker
-          config={config}
-          audiences={audiences}
-          traits={traits}
-          onChange={(sel) => {
-            setAudiences(sel.audiences);
-            setTraits(sel.traits);
-          }}
-          onContinue={() => void runEvaluate()}
-        />
-      )}
-
-      {step === "clash" && (
-        <>
-          {evaluation.status === "loading" && (
-            <p className="text-sm text-muted-foreground" aria-live="polite">Getting simulated feedback...</p>
+          {sample && step >= FACTS && (
+            <p className="prototype-notice">
+              <ShieldCheck size={15} />
+              Sample mode: results below are cached demo data for the fictitious persona, not a live AI run.
+            </p>
           )}
-          {evaluation.error && <ErrorNotice message={evaluation.error} onRetry={() => void runEvaluate()} />}
-          {evaluation.data && (
-            <AudienceClash
-              result={evaluation.data}
-              segments={segments}
-              config={config}
-              audienceIds={audiences}
-              traitIds={traits}
-              onRewrite={() => setStep("rewrite")}
+
+          {error && (
+            <div className="flow-error" role="alert">
+              <TriangleAlert />
+              <p>{error.message}</p>
+              {error.retry && (
+                <Button variant="glass" onClick={error.retry}>
+                  Try again
+                </Button>
+              )}
+              <Button variant="ghost" onClick={() => setError(null)}>
+                Dismiss
+              </Button>
+            </div>
+          )}
+
+          {step === INPUT && (
+            <ProfileInput
+              platform={platform}
+              linkedin={linkedin}
+              hinge={hinge}
+              demo={usingDemo}
+              canContinue={!inputError}
+              onLinkedInChange={changeLinkedIn}
+              onHingeChange={changeHinge}
+              onLoadDemo={loadDemo}
+              onContinue={continueFromInput}
+              onError={(message) => setError(message ? { message } : null)}
             />
           )}
-        </>
-      )}
+          {step === CONSENT && (
+            <ConsentScreen
+              canUseSample={canUseSample}
+              sampleMode={sampleMode}
+              onSampleModeChange={setSampleMode}
+              onAgree={() => {
+                setConsent(true);
+                goToFacts(true);
+              }}
+              onBack={() => go(INPUT)}
+            />
+          )}
+          {step === FACTS && (
+            <IdentityFacts
+              facts={facts}
+              demoFactIds={usingDemo ? (platform === "linkedin" ? DEMO_LINKEDIN_FACTS : DEMO_HINGE_FACTS).map((f) => f.id) : []}
+              loading={extracting}
+              onChange={(next) => {
+                setFacts(next);
+                setRewrite(null);
+                setAdversarial(null);
+              }}
+              onContinue={() => go(AUDIENCES)}
+            />
+          )}
+          {step === AUDIENCES && (
+            <AudienceSelection
+              config={config}
+              audiences={audiences}
+              traits={traits}
+              loading={evaluating}
+              onAudiences={(ids) => {
+                setAudiences(ids);
+                setEvaluation(null);
+                setFurthest(AUDIENCES);
+              }}
+              onTraits={(ids) => {
+                setTraits(ids);
+                setEvaluation(null);
+                setFurthest(AUDIENCES);
+              }}
+              onFeedback={() => void runEvaluate()}
+            />
+          )}
+          {step === CLASH && evaluation && (
+            <AudienceClash
+              response={evaluation}
+              config={config}
+              audiences={audiences}
+              traits={traits}
+              segments={segments}
+              onRewrite={() => go(REWRITE)}
+            />
+          )}
+          {step === REWRITE && (
+            <RewriteComparison
+              original={original}
+              segments={segments}
+              confirmedFacts={confirmedFacts}
+              result={adversarial ?? rewrite}
+              goal={goal}
+              loading={rewriting}
+              adversarial={adversarial !== null}
+              onGoal={setGoal}
+              onGenerate={() => void runRewrite()}
+              onAdversarial={(enabled) => (enabled ? void runRewrite("adversarial") : setAdversarial(null))}
+              onError={(message) => setError({ message })}
+            />
+          )}
 
-      {step === "rewrite" && (
-        <RewriteComparison
-          original={original}
-          segments={segments}
-          confirmedFacts={confirmedFacts}
-          goal={goal}
-          onGoalChange={setGoal}
-          onGenerate={() => void runRewrite()}
-          onShowAdversarial={() => void runRewrite(true)}
-          result={rewrite.data}
-          loading={rewrite.status === "loading"}
-          error={rewrite.error}
-        />
-      )}
-
-      {step !== "input" && (
-        <Button type="button" variant="ghost" onClick={back}>
-          Back
-        </Button>
-      )}
+          {step > INPUT && step !== CONSENT && (
+            <div className="back-row">
+              <Button variant="ghost" disabled={loading} onClick={() => go(step - 1)}>
+                <ArrowLeft />
+                Go back
+              </Button>
+            </div>
+          )}
+        </div>
+        <footer className="studio-footer">
+          <span className="footer-message">
+            <ShieldCheck size={12} />
+            Honest words. Real connections. Always you.
+          </span>
+          <span>Made for your next chapter.</span>
+          <Button variant="link" className="sample-link" aria-expanded={help} onClick={() => setHelp(!help)}>
+            <CircleHelp />A little help
+          </Button>
+        </footer>
+        {help && (
+          <p className="help-note">
+            Nothing is sent until you agree on the consent step. After that, your profile text and confirmed facts go
+            to OpenRouter and the underlying AI model provider; nothing is stored by this app. All feedback is
+            simulated AI feedback, not real people. Rewrites may only use facts you confirm, and FactCheck flags
+            numbers, names, and stronger verbs it can&apos;t trace to your words. Sample results are labeled.
+            Refreshing clears your session.
+          </p>
+        )}
+      </main>
+      <WorldFooter>
+        A little clarity. A lot of you. <Heart size={10} />
+      </WorldFooter>
     </div>
   );
 }

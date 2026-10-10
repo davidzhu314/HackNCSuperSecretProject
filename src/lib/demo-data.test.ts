@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { DEMO_LINKEDIN_SEGMENTS, SAMPLE_ADVERSARIAL_REWRITE, SAMPLE_EVALUATE, SAMPLE_REWRITE } from "./demo-data";
+import {
+  DEMO_HINGE_FACTS,
+  DEMO_HINGE_SEGMENTS,
+  DEMO_LINKEDIN_SEGMENTS,
+  SAMPLE_ADVERSARIAL_REWRITE,
+  SAMPLE_EVALUATE,
+  SAMPLE_HINGE_ADVERSARIAL_CONTENT,
+  SAMPLE_REWRITE,
+} from "./demo-data";
+import { checkRewrite } from "./fact-guard";
 import { checkStyle } from "./style-check";
 import { LINKEDIN_CONFIG } from "./rubrics";
 import { EvaluateResponseSchema, RewriteResponseSchema } from "./schemas";
@@ -23,6 +32,20 @@ describe("sample evaluate", () => {
       for (const id of c.segmentIds) expect(ids.has(id)).toBe(true);
       expect(c.missingEvidence).toBe(c.segmentIds.length === 0);
     }
+  });
+});
+
+describe("hinge adversarial sample", () => {
+  it("is flagged by FactCheck against the Hinge demo", () => {
+    const w = checkRewrite({
+      rewrite: { content: SAMPLE_HINGE_ADVERSARIAL_CONTENT, usedFactIds: [] },
+      segments: DEMO_HINGE_SEGMENTS,
+      facts: DEMO_HINGE_FACTS,
+    });
+    const kinds = new Set(w.map((x) => x.kind));
+    expect(kinds.has("unsupported_number")).toBe(true);
+    expect(kinds.has("unsupported_entity")).toBe(true);
+    expect(kinds.has("inflated_verb")).toBe(true);
   });
 });
 
