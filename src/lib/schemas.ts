@@ -179,7 +179,7 @@ export const RewritableSectionSchema = z.object({
   /** "headline" | "about" | an entry id ("exp2"). */
   key: z.string().min(1).max(8),
   kind: LinkedInSectionKindSchema,
-  /** e.g. "Experience · Agxes · Machine Learning Intern". */
+  /** e.g. "Experience · Acme Labs · Machine Learning Intern". */
   label: z.string().max(500),
   text: z.string().min(1).max(LIMITS.sectionText),
 });
