@@ -1,0 +1,55 @@
+{
+  "id": "hg-002",
+  "platform": "hinge",
+  "origin": "synthetic",
+  "status": "draft",
+  "tags": [
+    "average"
+  ],
+  "input": {
+    "platform": "hinge",
+    "answers": [
+      {
+        "prompt": "Together, we could",
+        "answer": "Find the best dumplings in Queens and argue about the dipping sauce."
+      },
+      {
+        "prompt": "I'll fall for you if",
+        "answer": "You laugh at your own jokes before you finish them."
+      },
+      {
+        "prompt": "The way to win me over is",
+        "answer": "Bring me a book you think I'd hate and tell me why."
+      }
+    ]
+  },
+  "goldFacts": [
+    "I want to find good dumplings in Queens.",
+    "I like people who laugh at their own jokes.",
+    "I like being recommended books."
+  ],
+  "traps": [
+    {
+      "text": "I've tried 47 dumpling spots and ranked them all.",
+      "expect": "unsupported_number"
+    },
+    {
+      "text": "My go-to is Joe's Shanghai in Chinatown.",
+      "expect": "unsupported_entity"
+    },
+    {
+      "text": "I'm a lifelong reader and I started my own book club.",
+      "expect": "semantic"
+    }
+  ],
+  "audiences": [
+    "Humor-oriented",
+    "Shared-interests-oriented",
+    "Serious-relationship-oriented"
+  ],
+  "traits": [
+    "Warmth",
+    "Specificity",
+    "Conversational tone"
+  ]
+}

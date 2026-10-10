@@ -66,10 +66,10 @@ describe("legitimate text passes", () => {
     expect(w).toEqual([]);
   });
 
-  it("accepts the labeled sample rewrite with no warnings", () => {
-    expect(
-      checkRewrite({ rewrite: SAMPLE_REWRITE.rewrite, segments, facts }),
-    ).toEqual([]);
+  it("accepts both labeled sample rewrites with no warnings", () => {
+    for (const v of SAMPLE_REWRITE.variations) {
+      expect(checkRewrite({ rewrite: v.rewrite, segments, facts })).toEqual([]);
+    }
   });
 
   it("does not flag generic title-case or heading words, but still flags titles and names", () => {
@@ -117,8 +117,9 @@ describe("fact ids and confirmation", () => {
 
 describe("adversarial sample", () => {
   it("flags everything the labeled demo fallback says it flags", () => {
-    const w = checkRewrite({ rewrite: SAMPLE_ADVERSARIAL_REWRITE.rewrite, segments, facts });
-    for (const expected of SAMPLE_ADVERSARIAL_REWRITE.warnings) {
+    const [sample] = SAMPLE_ADVERSARIAL_REWRITE.variations;
+    const w = checkRewrite({ rewrite: sample.rewrite, segments, facts });
+    for (const expected of sample.warnings) {
       expect(has(w, expected.kind, expected.text)).toBe(true);
     }
   });

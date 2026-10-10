@@ -3,12 +3,15 @@ import {
   DEMO_HINGE_FACTS,
   DEMO_HINGE_SEGMENTS,
   DEMO_LINKEDIN_SEGMENTS,
+  SAMPLE_ADVERSARIAL_REWRITE,
   SAMPLE_EVALUATE,
   SAMPLE_HINGE_ADVERSARIAL_CONTENT,
+  SAMPLE_REWRITE,
 } from "./demo-data";
 import { checkRewrite } from "./fact-guard";
+import { checkStyle } from "./style-check";
 import { LINKEDIN_CONFIG } from "./rubrics";
-import { EvaluateResponseSchema } from "./schemas";
+import { EvaluateResponseSchema, RewriteResponseSchema } from "./schemas";
 
 describe("sample evaluate", () => {
   it("is schema-valid and labeled as a sample", () => {
@@ -43,5 +46,20 @@ describe("hinge adversarial sample", () => {
     expect(kinds.has("unsupported_number")).toBe(true);
     expect(kinds.has("unsupported_entity")).toBe(true);
     expect(kinds.has("inflated_verb")).toBe(true);
+  });
+});
+
+describe("sample rewrites", () => {
+  it("are schema-valid, labeled, and offer both styles", () => {
+    expect(RewriteResponseSchema.safeParse(SAMPLE_REWRITE).success).toBe(true);
+    expect(RewriteResponseSchema.safeParse(SAMPLE_ADVERSARIAL_REWRITE).success).toBe(true);
+    expect(SAMPLE_REWRITE.source).toBe("sample");
+    expect(SAMPLE_REWRITE.variations.map((v) => v.style)).toEqual(["direct", "narrative"]);
+  });
+
+  it("stored style warnings match what the lint actually finds", () => {
+    for (const v of [...SAMPLE_REWRITE.variations, ...SAMPLE_ADVERSARIAL_REWRITE.variations]) {
+      expect(checkStyle(v.rewrite.content)).toEqual(v.styleWarnings);
+    }
   });
 });

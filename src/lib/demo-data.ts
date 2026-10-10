@@ -126,20 +126,43 @@ export const SAMPLE_EVALUATE: EvaluateResponse = {
   ],
 };
 
+/** Both sample versions use only the demo facts and pass FactCheck and the cliche lint (tested). */
 export const SAMPLE_REWRITE: RewriteResponse = {
   source: "sample",
-  warnings: [],
-  rewrite: {
-    platform: "linkedin",
-    content:
-      "Computer science senior | Python and React | Teaching assistant and open-source contributor\n\nI am a computer science senior who builds practical tools and enjoys explaining technical ideas to non-technical people. I built a course-planning web app with Python and React, contributed bug fixes and documentation to an open-source data visualization library, and was a teaching assistant for an introductory programming course.",
-    usedFactIds: ["f1", "f2", "f3", "f4", "f5"],
-    changeSummary: [
-      "Replaced generic phrases with your confirmed projects and roles.",
-      "Headline now states your field and tools instead of \"aspiring\" and \"passionate\".",
-      "No numbers, employers, or dates were added.",
-    ],
-  },
+  variations: [
+    {
+      style: "direct",
+      warnings: [],
+      styleWarnings: [],
+      rewrite: {
+        platform: "linkedin",
+        content:
+          "Computer science senior | Python and React | Teaching assistant\n\nComputer science senior who enjoys explaining technical ideas clearly.\n\n- Built a course-planning web app with Python and React for a class project\n- Contributed bug fixes and documentation to an open-source data visualization library\n- Teaching assistant for an introductory programming course\n\nI enjoy explaining technical ideas to non-technical people, and I'm looking for opportunities to grow.",
+        usedFactIds: ["f1", "f2", "f3", "f4", "f5"],
+        changeSummary: [
+          "Headline now states your field, tools, and role instead of \"aspiring\" and \"passionate\".",
+          "Listed your confirmed projects and roles as bullets.",
+          "No numbers, employers, or dates were added.",
+        ],
+      },
+    },
+    {
+      style: "narrative",
+      warnings: [],
+      styleWarnings: [],
+      rewrite: {
+        platform: "linkedin",
+        content:
+          "Computer science senior | Teaching assistant | Open-source contributor\n\nI'm a computer science senior, and I enjoy explaining technical ideas to non-technical people.\n\nI was a teaching assistant for an introductory programming course. For a class project, I built a course-planning web app with Python and React.\n\nI've also contributed bug fixes and documentation to an open-source data visualization library.\n\nI love learning new things, and I'm looking for opportunities to grow.",
+        usedFactIds: ["f1", "f2", "f3", "f4", "f5"],
+        changeSummary: [
+          "Opened with what you enjoy, in your own first-person voice.",
+          "Told your experience as a short sequence: teaching, building, open source.",
+          "Kept \"love learning new things\" from your original text; added nothing new.",
+        ],
+      },
+    },
+  ],
 };
 
 /**
@@ -148,44 +171,50 @@ export const SAMPLE_REWRITE: RewriteResponse = {
  */
 export const SAMPLE_ADVERSARIAL_REWRITE: RewriteResponse = {
   source: "sample",
-  rewrite: {
-    platform: "linkedin",
-    content:
-      "Software engineer who led the open-source data visualization library and improved model accuracy by 95% at Google. Led a team of 200 students as head teaching assistant.",
-    usedFactIds: ["f2", "f3", "f9"],
-    changeSummary: ["Intentionally embellished test case."],
-  },
-  warnings: [
+  variations: [
     {
-      kind: "unsupported_number",
-      text: "95%",
-      explanation: "This number does not appear in your original text or confirmed facts.",
-    },
-    {
-      kind: "unsupported_number",
-      text: "200",
-      explanation: "This number does not appear in your original text or confirmed facts.",
-    },
-    {
-      kind: "unsupported_entity",
-      text: "Google",
-      explanation: "This name does not appear in your original text or confirmed facts. (Heuristic check.)",
-    },
-    {
-      kind: "inflated_verb",
-      text: "led",
-      explanation: "Your confirmed fact says \"contributed\"; \"led\" claims a stronger role.",
-    },
-    {
-      kind: "invalid_fact_id",
-      text: "f9",
-      explanation: "The model cited a fact ID that does not exist.",
-    },
-    {
-      kind: "unsupported_claim",
-      text: "Software engineer who led the open-source data visualization library and improved model accuracy by 95% at Google",
-      explanation:
-        "Most of this sentence isn't traceable to your original text or confirmed facts. Review it before using it.",
+      style: "direct",
+      styleWarnings: [],
+      rewrite: {
+        platform: "linkedin",
+        content:
+          "Software engineer who led the open-source data visualization library and improved model accuracy by 95% at Google. Led a team of 200 students as head teaching assistant.",
+        usedFactIds: ["f2", "f3", "f9"],
+        changeSummary: ["Intentionally embellished test case."],
+      },
+      warnings: [
+        {
+          kind: "unsupported_number",
+          text: "95%",
+          explanation: "This number does not appear in your original text or confirmed facts.",
+        },
+        {
+          kind: "unsupported_number",
+          text: "200",
+          explanation: "This number does not appear in your original text or confirmed facts.",
+        },
+        {
+          kind: "unsupported_entity",
+          text: "Google",
+          explanation: "This name does not appear in your original text or confirmed facts. (Heuristic check.)",
+        },
+        {
+          kind: "inflated_verb",
+          text: "led",
+          explanation: "Your confirmed fact says \"contributed\"; \"led\" claims a stronger role.",
+        },
+        {
+          kind: "invalid_fact_id",
+          text: "f9",
+          explanation: "The model cited a fact ID that does not exist.",
+        },
+        {
+          kind: "unsupported_claim",
+          text: "Software engineer who led the open-source data visualization library and improved model accuracy by 95% at Google",
+          explanation:
+            "Most of this sentence isn't traceable to your original text or confirmed facts. Review it before using it.",
+        },
+      ],
     },
   ],
 };

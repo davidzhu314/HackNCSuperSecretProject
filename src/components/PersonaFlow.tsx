@@ -15,7 +15,7 @@ import { errorMessage, evaluateProfile, extractFacts, rewriteProfile } from "@/l
 import { DEMO_HINGE_FACTS, DEMO_HINGE_INPUT, DEMO_LINKEDIN_FACTS, DEMO_LINKEDIN_INPUT } from "@/lib/demo-data";
 import { emptyHingePairs, HINGE_PROMPTS, MAX_HINGE_ANSWER, MAX_HINGE_PROMPTS, type HingePair } from "@/lib/persona-ui";
 import { PLATFORM_CONFIGS } from "@/lib/rubrics";
-import { LIMITS, type EvaluateResponse, type IdentityFact, type Platform, type RewriteResponse, type RewriteTone } from "@/lib/schemas";
+import { LIMITS, type EvaluateResponse, type IdentityFact, type Platform, type RewriteResponse } from "@/lib/schemas";
 import { segmentHinge, segmentLinkedIn } from "@/lib/segments";
 
 // Owns the whole studio: state, API calls, and the Lovable page layout. Screens are props-only.
@@ -63,7 +63,6 @@ export function PersonaFlow() {
   const [evaluating, setEvaluating] = useState(false);
   const [evaluation, setEvaluation] = useState<EvaluateResponse | null>(null);
 
-  const [tone, setTone] = useState<RewriteTone>("balanced");
   const [goal, setGoal] = useState("");
   const [rewriting, setRewriting] = useState(false);
   const [rewrite, setRewrite] = useState<RewriteResponse | null>(null);
@@ -253,7 +252,7 @@ export function PersonaFlow() {
           facts: confirmedFacts.map((f) => ({ ...f, confirmed: true as const })),
           audiences,
           goal: goal.trim() || undefined,
-          tone,
+          tone: "balanced", // the two rewrite versions (direct, narrative) replace a tone control
           jobDescription: platform === "linkedin" ? linkedin.jobDescription.trim() || undefined : undefined,
         },
         { sample, adversarial: mode === "adversarial" },
@@ -455,11 +454,9 @@ export function PersonaFlow() {
               segments={segments}
               confirmedFacts={confirmedFacts}
               result={adversarial ?? rewrite}
-              tone={tone}
               goal={goal}
               loading={rewriting}
               adversarial={adversarial !== null}
-              onTone={setTone}
               onGoal={setGoal}
               onGenerate={() => void runRewrite()}
               onAdversarial={(enabled) => (enabled ? void runRewrite("adversarial") : setAdversarial(null))}

@@ -1,15 +1,9 @@
 import { handlePost } from "@/lib/api";
-import { checkRewrite } from "@/lib/fact-guard";
-import { callStructured, getRewriteModel, LlmError } from "@/lib/llm";
+import { callStructured, getRewriteModel } from "@/lib/llm";
+import { buildVariations } from "@/lib/postprocess";
 import { rewritePrompt } from "@/lib/prompts";
 import { PLATFORM_CONFIGS, resolveSelection } from "@/lib/rubrics";
-import {
-  LIMITS,
-  ModelRewriteSchema,
-  RewriteRequestSchema,
-  RewriteSchema,
-  type RewriteResponse,
-} from "@/lib/schemas";
+import { ModelRewriteSchema, RewriteRequestSchema, type RewriteResponse } from "@/lib/schemas";
 
 export async function POST(req: Request) {
   return handlePost(req, RewriteRequestSchema, async (data): Promise<RewriteResponse> => {
@@ -30,22 +24,10 @@ export async function POST(req: Request) {
       schemaName: "rewrite",
       schema: ModelRewriteSchema,
       model: getRewriteModel(),
-      maxTokens: 2500,
+      maxTokens: 4000,
     });
-
-    const parsed = RewriteSchema.safeParse({
-      platform: data.platform,
-      content: out.content.trim().slice(0, LIMITS.maxRewriteChars),
-      usedFactIds: out.usedFactIds.slice(0, LIMITS.maxFacts),
-      changeSummary: out.changeSummary.slice(0, 8).map((s) => s.slice(0, 300)),
-    });
-    if (!parsed.success) {
-      throw new LlmError("invalid_model_output", "The AI returned an unusable rewrite. Please try again.");
-    }
-
-    // Deterministic FactCheck against the original text and confirmed facts. Warnings are
-    // returned with the rewrite; the UI decides whether it may be shown as publish-ready.
-    const warnings = checkRewrite({ rewrite: parsed.data, segments: data.segments, facts: data.facts });
-    return { source: "live", rewrite: parsed.data, warnings };
+    // Each version gets deterministic FactCheck and the AI-cliche lint. Warnings are returned
+    // with the text; the UI decides whether it may be shown as publish-ready.
+    return { source: "live", variations: buildVariations(out, data.platform, data.segments, data.facts) };
   });
 }

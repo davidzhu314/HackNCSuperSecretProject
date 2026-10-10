@@ -31,7 +31,7 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
-.env.local
+.env*
 !.env.example
 
 # vercel
@@ -44,3 +44,6 @@ next-env.d.ts
 # python
 .venv/
 __pycache__/
+
+# eval run outputs (may contain model text about test profiles)
+/evals/runs/

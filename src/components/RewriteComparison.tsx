@@ -1,28 +1,48 @@
 "use client";
 
-import { Check, Clipboard, LoaderCircle, ShieldCheck, Sparkles, TriangleAlert } from "lucide-react";
+import { Check, Clipboard, LoaderCircle, PenLine, ShieldCheck, Sparkles, TriangleAlert } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { checkRewrite } from "@/lib/fact-guard";
 import { WARNING_LABEL, wordDiff } from "@/lib/persona-ui";
-import { LIMITS, type IdentityFact, type RewriteResponse, type RewriteTone, type Segment } from "@/lib/schemas";
+import {
+  LIMITS,
+  type GuardWarning,
+  type IdentityFact,
+  type ResultSource,
+  type RewriteResponse,
+  type RewriteStyle,
+  type RewriteVariation,
+  type Segment,
+} from "@/lib/schemas";
+import { checkStyle } from "@/lib/style-check";
+
+const STYLE_LABEL: Record<RewriteStyle, string> = {
+  direct: "Option A: Direct",
+  narrative: "Option B: Narrative",
+};
+
+/** Warnings whose text literally appears in the rewrite (fact and segment ids don't). */
+const literal = (w: GuardWarning) => w.kind !== "invalid_fact_id" && w.kind !== "unverified_segment" && w.text.trim();
 
 export function RewriteComparison(props: {
   original: string;
   segments: Segment[];
   confirmedFacts: IdentityFact[];
   result: RewriteResponse | null;
-  tone: RewriteTone;
   goal: string;
   loading: boolean;
   adversarial: boolean;
-  onTone: (tone: RewriteTone) => void;
   onGoal: (goal: string) => void;
   onGenerate: () => void;
   onAdversarial: (enabled: boolean) => void;
   onError: (message: string) => void;
 }) {
-  const { result, tone, goal, loading, adversarial, confirmedFacts, onTone, onGoal, onGenerate, onAdversarial } = props;
+  const { result, goal, loading, adversarial, confirmedFacts, onGoal, onGenerate, onAdversarial } = props;
+  const [style, setStyle] = useState<RewriteStyle>("direct");
+  const variations = result?.variations ?? [];
+  const shown = variations.find((v) => v.style === style) ?? variations[0];
+
   return (
     <section className="flow-section fade-in">
       <div className="results-heading">
@@ -32,23 +52,7 @@ export function RewriteComparison(props: {
         </h2>
         {result?.source === "sample" && <span className="sample-badge">Sample result</span>}
       </div>
-      <div className="rewrite-options">
-        <div>
-          <label className="field-label" htmlFor="tone">
-            Your voice
-          </label>
-          <select
-            id="tone"
-            className="audience-select"
-            value={tone}
-            disabled={loading}
-            onChange={(event) => onTone(event.target.value as RewriteTone)}
-          >
-            <option value="closer_to_my_words">Closer to my words</option>
-            <option value="balanced">Balanced</option>
-            <option value="more_playful">More playful</option>
-          </select>
-        </div>
+      <div className="rewrite-options rewrite-options-goal">
         <div>
           <label className="field-label" htmlFor="rewrite-goal">
             Goal <span className="optional">(optional)</span>
@@ -64,76 +68,104 @@ export function RewriteComparison(props: {
         </div>
         <Button variant="aero" disabled={loading || !confirmedFacts.length} onClick={onGenerate}>
           {loading ? <LoaderCircle className="animate-spin" /> : <Sparkles />}
-          {loading ? "Rewriting..." : result ? "Rewrite again" : "Generate rewrite"}
+          {loading ? "Writing two versions..." : result ? "Rewrite again" : "Generate rewrites"}
         </Button>
       </div>
       <p className="empty-note">
         {confirmedFacts.length
-          ? "The rewrite may only use your original text and the facts you confirmed."
+          ? "You’ll get two versions from the same confirmed facts: a direct one and a narrative one. Neither may add anything you haven’t confirmed."
           : "Confirm at least one fact in Identity DNA before rewriting."}
       </p>
-      {result && (
+      {result && shown && (
         <>
           <label className="demo-toggle">
             <input type="checkbox" checked={adversarial} onChange={(event) => onAdversarial(event.target.checked)} />
             Show FactCheck demo {adversarial && <span className="test-badge">Intentional test case</span>}
           </label>
-          {/* Keyed by the result, so edits reset whenever a new rewrite arrives. */}
-          <RewriteResult key={`${result.source}|${result.rewrite.content}`} {...props} result={result} />
+          {variations.length > 1 && (
+            <div className="input-mode variation-tabs" role="tablist" aria-label="Rewrite versions">
+              {variations.map((v) => (
+                <Button
+                  key={v.style}
+                  variant="mode"
+                  role="tab"
+                  aria-selected={v.style === shown.style}
+                  data-active={v.style === shown.style}
+                  onClick={() => setStyle(v.style)}
+                >
+                  {STYLE_LABEL[v.style]}
+                  {v.warnings.length > 0 && <span className="tab-count">{v.warnings.length}</span>}
+                </Button>
+              ))}
+            </div>
+          )}
+          {/* Every version stays mounted so edits survive tab switches; keyed so a new result resets them. */}
+          {variations.map((v) => (
+            <div key={`${result.source}|${v.style}|${v.rewrite.content}`} hidden={v.style !== shown.style}>
+              <VariationResult {...props} variation={v} source={result.source} />
+            </div>
+          ))}
         </>
       )}
     </section>
   );
 }
 
-function RewriteResult(props: {
+function VariationResult(props: {
   original: string;
   segments: Segment[];
   confirmedFacts: IdentityFact[];
-  result: RewriteResponse;
+  variation: RewriteVariation;
+  source: ResultSource;
   onError: (message: string) => void;
 }) {
-  const { original, segments, confirmedFacts, result, onError } = props;
-  const [text, setText] = useState(result.rewrite.content);
+  const { original, segments, confirmedFacts, variation, source, onError } = props;
+  const { rewrite } = variation;
+  const [text, setText] = useState(rewrite.content);
   const [editing, setEditing] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // Unedited: the server's FactCheck. Edited: the same deterministic check, re-run locally.
-  const edited = text !== result.rewrite.content;
+  // Unedited: the server's checks. Edited: the same deterministic checks, re-run locally.
+  const edited = text !== rewrite.content;
   const warnings = useMemo(
     () =>
       edited
-        ? checkRewrite({ rewrite: { content: text, usedFactIds: result.rewrite.usedFactIds }, segments, facts: confirmedFacts })
-        : result.warnings,
-    [edited, text, result, segments, confirmedFacts],
+        ? checkRewrite({ rewrite: { content: text, usedFactIds: rewrite.usedFactIds }, segments, facts: confirmedFacts })
+        : variation.warnings,
+    [edited, text, rewrite, variation, segments, confirmedFacts],
   );
+  const styleWarnings = useMemo(() => (edited ? checkStyle(text) : variation.styleWarnings), [edited, text, variation]);
 
   const diff = useMemo(() => wordDiff(original, text), [original, text]);
-  const warningRanges = useMemo(() => {
+  const rangesFor = (list: GuardWarning[]) => {
     const content = text.toLowerCase();
-    return warnings.flatMap((warning) => {
+    return list.filter(literal).flatMap((warning) => {
       const query = warning.text.toLowerCase();
-      if (!query) return [];
       const ranges: { start: number; end: number }[] = [];
       for (let start = content.indexOf(query); start >= 0; start = content.indexOf(query, start + query.length)) {
         ranges.push({ start, end: start + query.length });
       }
       return ranges;
     });
-  }, [warnings, text]);
-  const revisedOffsets = useMemo(() => {
+  };
+  const factRanges = rangesFor(warnings);
+  const styleRanges = rangesFor(styleWarnings);
+  const offsets = useMemo(() => {
     const starts: number[] = [];
     for (let i = 0, offset = 0; i < diff.revised.length; offset += diff.revised[i].text.length, i++) starts.push(offset);
     return starts;
   }, [diff]);
-  const flagged = (index: number) => {
-    const start = revisedOffsets[index];
+  const classFor = (index: number, changed: boolean) => {
+    const start = offsets[index];
     const end = start + diff.revised[index].text.trimEnd().length;
-    return warningRanges.some((range) => start < range.end && end > range.start);
+    const hits = (ranges: { start: number; end: number }[]) => ranges.some((r) => start < r.end && end > r.start);
+    if (hits(factRanges)) return "diff-flagged";
+    if (hits(styleRanges)) return "diff-style";
+    return changed ? "diff-added" : undefined;
   };
 
   const factText = new Map(confirmedFacts.map((fact) => [fact.id, fact.text]));
-  const usedFacts = [...new Set(result.rewrite.usedFactIds)].filter((id) => factText.has(id));
+  const usedFactIds = [...new Set(rewrite.usedFactIds)];
 
   async function copy() {
     try {
@@ -162,7 +194,7 @@ function RewriteResult(props: {
         </section>
         <section className="profile-panel">
           <div className="panel-header">
-            <h3 className="section-heading">Rewritten</h3>
+            <h3 className="section-heading">Rewritten{edited ? " (edited)" : ""}</h3>
             <Button variant="link" size="sm" onClick={() => setEditing(!editing)}>
               {editing ? "Done editing" : "Edit text"}
             </Button>
@@ -183,7 +215,7 @@ function RewriteResult(props: {
           ) : (
             <div className="diff-body">
               {diff.revised.map((token, index) => (
-                <span key={index} className={flagged(index) ? "diff-flagged" : token.changed ? "diff-added" : undefined}>
+                <span key={index} className={classFor(index, token.changed)}>
                   {token.text}
                 </span>
               ))}
@@ -191,47 +223,18 @@ function RewriteResult(props: {
           )}
         </section>
       </div>
-      <div className="summary-grid">
-        <section>
-          <h3 className="section-heading">What changed</h3>
-          <ul className="change-list">
-            {result.rewrite.changeSummary.map((change, index) => (
-              <li key={index}>{change}</li>
-            ))}
-          </ul>
-        </section>
-        <section>
-          <h3 className="section-heading">
-            Facts used <span className="empty-note">(advisory, as reported by the AI)</span>
-          </h3>
-          <div className="fact-chips">
-            {usedFacts.map((id) => (
-              <span className="fact-chip" key={id}>
-                {factText.get(id)}
-              </span>
-            ))}
-            {!usedFacts.length && <span className="empty-note">None reported.</span>}
-          </div>
-        </section>
-      </div>
-      <section className="factcheck-panel" data-warnings={warnings.length > 0}>
+      <section className="factcheck-panel" data-warnings={warnings.length > 0} aria-live="polite">
         <h3 className="section-heading">
           <ShieldCheck />
           FactCheck
-          {result.source === "sample" && <span className="sample-badge">Sample result</span>}
+          {source === "sample" && <span className="sample-badge">Sample result</span>}
         </h3>
         {edited && <p className="empty-note">Re-checked against your edited text.</p>}
         {warnings.length === 0 ? (
-          <>
-            <p className="status-note">
-              <Check />
-              No unsupported concrete claims detected
-            </p>
-            <p className="empty-note">
-              FactCheck catches concrete claims like numbers, names, and inflated verbs. It can miss subtle
-              exaggeration.
-            </p>
-          </>
+          <p className="status-note">
+            <Check />
+            No unsupported concrete claims detected
+          </p>
         ) : (
           <div className="guard-list">
             {warnings.map((warning, index) => (
@@ -246,7 +249,52 @@ function RewriteResult(props: {
             ))}
           </div>
         )}
+        <p className="empty-note">
+          FactCheck catches concrete claims like numbers, names, and inflated verbs. It can miss subtle exaggeration.
+        </p>
       </section>
+      {styleWarnings.length > 0 && (
+        <section className="style-panel">
+          <h3 className="section-heading">
+            <PenLine />
+            Style suggestions <span className="empty-note">(wording, not truth)</span>
+          </h3>
+          <div className="guard-list">
+            {styleWarnings.map((warning, index) => (
+              <div className="style-item" key={index}>
+                <div>
+                  <strong>{WARNING_LABEL[warning.kind]}</strong>
+                  <q>{warning.text}</q>
+                  <p>{warning.explanation}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+      <div className="summary-grid">
+        <section>
+          <h3 className="section-heading">What changed</h3>
+          <ul className="change-list">
+            {rewrite.changeSummary.map((change, index) => (
+              <li key={index}>{change}</li>
+            ))}
+          </ul>
+        </section>
+        <section>
+          <h3 className="section-heading">
+            Facts the AI says it used <span className="empty-note">(advisory)</span>
+          </h3>
+          <div className="fact-chips">
+            {usedFactIds.map((id) => (
+              <span className="fact-chip" key={id}>
+                {factText.get(id) ?? `${id} (not one of your confirmed facts)`}
+              </span>
+            ))}
+            {!usedFactIds.length && <span className="empty-note">None reported.</span>}
+          </div>
+        </section>
+      </div>
       <div className="action-band">
         <span className="empty-note">Review your words before sharing them.</span>
         <Button variant="aero" onClick={() => void copy()}>

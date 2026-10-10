@@ -17,6 +17,7 @@ export const WARNING_LABEL: Record<GuardWarning["kind"], string> = {
   invalid_fact_id: "Unknown or unconfirmed fact",
   unsupported_claim: "Needs your review",
   unverified_segment: "Unknown source",
+  ai_cliche: "AI cliché",
 };
 
 export const factTextSchema = z

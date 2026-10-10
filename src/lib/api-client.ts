@@ -1,4 +1,5 @@
 import { checkRewrite } from "./fact-guard";
+import { checkStyle } from "./style-check";
 import {
   SAMPLE_ADVERSARIAL_REWRITE,
   SAMPLE_HINGE_ADVERSARIAL_CONTENT,
@@ -112,7 +113,17 @@ export async function rewriteProfile(
       usedFactIds: [],
       changeSummary: ["Intentionally embellished test case."],
     };
-    return { source: "sample", rewrite, warnings: checkRewrite({ rewrite, segments: req.segments, facts: req.facts }) };
+    return {
+      source: "sample",
+      variations: [
+        {
+          style: "direct",
+          rewrite,
+          warnings: checkRewrite({ rewrite, segments: req.segments, facts: req.facts }),
+          styleWarnings: checkStyle(rewrite.content),
+        },
+      ],
+    };
   }
   if (opts.sample) return pause().then(() => SAMPLE_REWRITE);
   return post("/api/rewrite", req, RewriteResponseSchema);

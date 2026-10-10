@@ -339,3 +339,19 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .loading-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted-foreground); margin-bottom: 12px; }
 .sample-toggle { display: flex; gap: 9px; align-items: flex-start; font-size: 12px; line-height: 1.7; color: var(--foreground); margin: 0 0 20px; }
 .sample-toggle input { accent-color: var(--primary); margin-top: 4px; }
+/* Two rewrite versions (direct, narrative). FactCheck flags are red; AI-cliche style suggestions are amber
+   and kept visually separate, because they are about wording, not truth. */
+.rewrite-options-goal { grid-template-columns: 1fr auto; }
+.variation-tabs { display: inline-flex; margin: 0 0 4px; }
+.variation-tabs .mode-btn { height: 30px; font-size: 11px; gap: 6px; }
+.tab-count { min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; display: inline-grid; place-items: center; background: var(--danger-surface); color: var(--destructive); font-size: 10px; font-weight: 700; }
+.diff-flagged { background: var(--danger-surface); color: var(--destructive); text-decoration: underline wavy; text-underline-offset: 4px; }
+.diff-style { background: var(--warning-surface); color: var(--warning); }
+.factcheck-panel[data-warnings=true] { border-color: var(--destructive); }
+.factcheck-panel .guard-item { background: var(--danger-surface); color: var(--destructive); }
+.style-panel { border-top: 2px solid var(--warning); padding: 20px 0; }
+.style-item { display: flex; gap: 10px; padding: 13px; background: var(--warning-surface); color: var(--warning); border: 1px solid var(--border); border-radius: 5px; font-size: 12px; }
+.style-item strong { display: block; margin-bottom: 5px; }
+.style-item q { display: block; font-size: 11px; overflow-wrap: anywhere; }
+.style-item p { font-size: 11px; line-height: 1.8; margin: 6px 0 0; }
+@media (max-width: 680px) { .rewrite-options-goal { grid-template-columns: minmax(0, 1fr); } .variation-tabs { display: flex; } .variation-tabs .mode-btn { flex: 1; } }

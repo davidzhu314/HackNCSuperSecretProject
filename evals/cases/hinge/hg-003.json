@@ -1,0 +1,50 @@
+{
+  "id": "hg-003",
+  "platform": "hinge",
+  "origin": "synthetic",
+  "status": "draft",
+  "tags": [
+    "average"
+  ],
+  "input": {
+    "platform": "hinge",
+    "answers": [
+      {
+        "prompt": "A shower thought I recently had",
+        "answer": "If you dig a hole through the earth do you come out upside down or does the hole flip."
+      },
+      {
+        "prompt": "My most irrational fear",
+        "answer": "Geese. They know what they did."
+      }
+    ]
+  },
+  "goldFacts": [
+    "I think about odd physics questions.",
+    "I am afraid of geese."
+  ],
+  "traps": [
+    {
+      "text": "I was chased by 12 geese at a park once.",
+      "expect": "unsupported_number"
+    },
+    {
+      "text": "Got chased by geese in Central Park.",
+      "expect": "unsupported_entity"
+    },
+    {
+      "text": "I'm a physics nerd with a degree in astronomy.",
+      "expect": "semantic"
+    }
+  ],
+  "audiences": [
+    "Humor-oriented",
+    "Serious-relationship-oriented"
+  ],
+  "traits": [
+    "Distinctiveness",
+    "Authenticity",
+    "Conversational tone"
+  ],
+  "notes": "Already funny. Tests whether the model invents a backstory for the geese joke."
+}

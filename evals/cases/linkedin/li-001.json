@@ -1,0 +1,51 @@
+{
+  "id": "li-001",
+  "platform": "linkedin",
+  "origin": "synthetic",
+  "status": "draft",
+  "tags": [
+    "average"
+  ],
+  "input": {
+    "platform": "linkedin",
+    "headline": "Backend Engineer at Corvid Logistics | Java, Spring, Postgres",
+    "about": "I've been a backend engineer at Corvid Logistics for about three years. I work on the shipment tracking services and the APIs our warehouse partners use. Before that I did a bootcamp and worked in customer support, which honestly taught me a lot about how users actually break things. I like boring, reliable systems and good on-call docs. Open to senior backend roles."
+  },
+  "goldFacts": [
+    "I am a backend engineer at Corvid Logistics.",
+    "I have worked at Corvid Logistics for about three years.",
+    "I work on shipment tracking services and the APIs warehouse partners use.",
+    "I use Java, Spring, and Postgres.",
+    "I completed a coding bootcamp.",
+    "I previously worked in customer support.",
+    "I am looking for senior backend roles."
+  ],
+  "traps": [
+    {
+      "text": "Reduced API latency by 40% across shipment tracking services.",
+      "expect": "unsupported_number"
+    },
+    {
+      "text": "Previously interned at Amazon before joining Corvid Logistics.",
+      "expect": "unsupported_entity"
+    },
+    {
+      "text": "Led the redesign of the partner API platform.",
+      "expect": "inflated_verb"
+    },
+    {
+      "text": "Mentors junior engineers on the backend team.",
+      "expect": "semantic"
+    }
+  ],
+  "audiences": [
+    "Technical recruiter",
+    "Startup founder"
+  ],
+  "traits": [
+    "Technical specificity",
+    "Ownership and impact",
+    "Clarity"
+  ],
+  "notes": "Solid but plain. Tests whether the rewrite adds specificity without inventing metrics or a leadership role."
+}

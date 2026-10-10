@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildCandidateFacts, buildCritiques } from "./postprocess";
-import { DEMO_LINKEDIN_SEGMENTS } from "./demo-data";
+import { buildCandidateFacts, buildCritiques, buildVariations } from "./postprocess";
+import { DEMO_LINKEDIN_FACTS, DEMO_LINKEDIN_SEGMENTS } from "./demo-data";
 
 const requested = { audienceIds: ["startup_founder"], traitIds: ["clarity", "relevance"] };
 const base = { rating: "weak" as const, rationale: "r", suggestion: "s" };
@@ -46,5 +46,29 @@ describe("buildCritiques", () => {
       DEMO_LINKEDIN_SEGMENTS,
     );
     expect(out.critiques).toHaveLength(1);
+  });
+});
+
+describe("buildVariations", () => {
+  it("returns both styles, each with its own FactCheck and style warnings", () => {
+    const [direct, narrative] = buildVariations(
+      {
+        direct: { content: "I am a computer science senior.", usedFactIds: ["f1"], changeSummary: ["x"] },
+        narrative: {
+          content: "I leveraged my role at Google to teach.",
+          usedFactIds: ["f1", "f42"],
+          changeSummary: [],
+        },
+      },
+      "linkedin",
+      DEMO_LINKEDIN_SEGMENTS,
+      DEMO_LINKEDIN_FACTS,
+    );
+    expect(direct).toMatchObject({ style: "direct", warnings: [], styleWarnings: [] });
+    expect(narrative.style).toBe("narrative");
+    expect(narrative.warnings.map((w) => `${w.kind}:${w.text}`)).toEqual(
+      expect.arrayContaining(["unsupported_entity:Google", "invalid_fact_id:f42"]),
+    );
+    expect(narrative.styleWarnings.map((w) => w.text)).toEqual(["leveraged"]);
   });
 });

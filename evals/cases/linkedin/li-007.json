@@ -1,0 +1,49 @@
+{
+  "id": "li-007",
+  "platform": "linkedin",
+  "origin": "synthetic",
+  "status": "draft",
+  "tags": [
+    "numbers_heavy"
+  ],
+  "input": {
+    "platform": "linkedin",
+    "headline": "Data Analyst | SQL, Python, Tableau",
+    "about": "Data analyst at Brightwater Bank since 2021. I built 14 Tableau dashboards used by the retail lending team and automated a weekly report that used to take 6 hours by hand. I support about 30 business users with ad hoc SQL requests. I have a B.S. in economics."
+  },
+  "goldFacts": [
+    "I am a data analyst at Brightwater Bank and have worked there since 2021.",
+    "I built 14 Tableau dashboards for the retail lending team.",
+    "I automated a weekly report that previously took 6 hours by hand.",
+    "I support about 30 business users with ad hoc SQL requests.",
+    "I have a B.S. in economics.",
+    "I use SQL, Python, and Tableau."
+  ],
+  "traps": [
+    {
+      "text": "Saved the bank $500K per year through automation.",
+      "expect": "unsupported_number"
+    },
+    {
+      "text": "Since 2019, I have built 14 Tableau dashboards.",
+      "expect": "unsupported_number"
+    },
+    {
+      "text": "Architected the bank's data warehouse.",
+      "expect": "inflated_verb"
+    },
+    {
+      "text": "Built machine learning models to predict loan defaults.",
+      "expect": "semantic"
+    }
+  ],
+  "audiences": [
+    "Technical recruiter",
+    "Research or hiring lead"
+  ],
+  "traits": [
+    "Technical specificity",
+    "Ownership and impact"
+  ],
+  "notes": "Tests converting '6 hours saved weekly' into an invented dollar figure, and date drift."
+}
