@@ -2,6 +2,8 @@
 
 **One identity. Every platform. Authentically you.**
 
+**Live:** https://hackathon-app-nu.vercel.app (no login needed; click **Load demo persona** to try it)
+
 PERSONA helps you improve your LinkedIn profile without inventing anything about yourself. You paste your profile, confirm which facts about you are true, and get:
 
 1. **Simulated audience feedback** from a startup founder, a technical recruiter, and a research or hiring lead. Every critique links to the exact sentence it is about.
