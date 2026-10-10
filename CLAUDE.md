@@ -39,6 +39,8 @@ Start with [HANDOFF.md](HANDOFF.md) (current state and next steps), then the ful
 
 ## Environment variables
 - `OPENROUTER_API_KEY`: server-side OpenRouter key
+- `OPENROUTER_REWRITE_MODEL`: optional model for `/api/rewrite` only (default `anthropic/claude-sonnet-5.5`; picked after a one-sample comparison against haiku-5.5, gemini-3.1-flash-lite, gemini-3.8-flash). Extract and evaluate use `OPENROUTER_MODEL`.
+- `OPENROUTER_TEMPERATURE`: optional. Unset by default because `anthropic/claude-haiku-5.5` has no OpenRouter endpoint that accepts `temperature` (with `require_parameters` it 404s). Set only for models that support it.
 - `OPENROUTER_MODEL`: model id (default `anthropic/claude-haiku-5.5`, ~$0.10 in / $0.50 out per 1M tokens; must support structured output; fallback `google/gemini-3.1-flash-lite`)
 
 ## Status
@@ -49,9 +51,10 @@ Start with [HANDOFF.md](HANDOFF.md) (current state and next steps), then the ful
 - [x] Vercel project linked and hello-world deployed (https://hackathon-app-nu.vercel.app). Still need `OPENROUTER_API_KEY` / `OPENROUTER_MODEL` added to Vercel env.
 - [x] OpenRouter key in `.env.local` and verified (`scripts/llm_check.py` passes with `anthropic/claude-haiku-5.5`). Switched from Gemini direct: the Google AI Studio key returned 401 on every endpoint.
 - [x] shadcn/ui (button, card, tabs, checkbox, badge, textarea, label), zod, `openai`, `diff`, lucide-react installed
-- [ ] Schemas agreed (`schemas.ts`) and demo persona (`demo-data.ts`)
+- [x] Schemas (`schemas.ts`) and demo persona (`demo-data.ts`)
 - [ ] LinkedIn flow end to end (hour 12 checkpoint)
-- [ ] FactCheck with tests
+- [x] FactCheck with tests (`fact-guard.ts`, vitest: `npm test`)
+- [x] LLM client, rubrics, prompts, and API routes `facts/extract`, `evaluate`, `rewrite` (verified live against OpenRouter with the demo persona)
 - [ ] Hinge mode
 - [ ] Blind A/B (stretch)
 - [ ] Demo rehearsed and backup video recorded
