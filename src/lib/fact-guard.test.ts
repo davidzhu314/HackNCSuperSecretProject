@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  DEMO_HINGE_FACTS,
+  DEMO_HINGE_SEGMENTS,
   DEMO_LINKEDIN_FACTS,
   DEMO_LINKEDIN_SEGMENTS,
   SAMPLE_ADVERSARIAL_REWRITE,
@@ -130,5 +132,21 @@ describe("segment citations", () => {
     const w = checkSegmentCitations(["s1", "s99"], segments);
     expect(w).toHaveLength(1);
     expect(w[0]).toMatchObject({ kind: "unverified_segment", text: "s99" });
+  });
+});
+
+describe("hinge", () => {
+  const hinge = (content: string) =>
+    checkRewrite({ rewrite: { content, usedFactIds: [] }, segments: DEMO_HINGE_SEGMENTS, facts: DEMO_HINGE_FACTS });
+
+  it("counts the prompt question as source text", () => {
+    // "Sunday" appears only in the prompt "A perfect Sunday", not in the answer.
+    expect(hinge("Pancakes first, then a long Sunday walk with no plan.")).toEqual([]);
+  });
+
+  it("still flags a new place or number in an answer", () => {
+    const w = hinge("Finding the best food truck in Austin, all 12 of them.");
+    expect(has(w, "unsupported_entity", "Austin")).toBe(true);
+    expect(has(w, "unsupported_number", "12")).toBe(true);
   });
 });

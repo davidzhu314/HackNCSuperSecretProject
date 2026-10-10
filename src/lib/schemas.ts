@@ -50,9 +50,20 @@ export const AudienceCritiqueSchema = z.object({
 });
 export type AudienceCritique = z.infer<typeof AudienceCritiqueSchema>;
 
+/** Hinge: one rewritten answer per original answer, keyed by the original segment id. */
+export const HingeAnswerSchema = z.object({
+  segmentId: z.string().min(1).max(16),
+  prompt: z.string().max(200).optional(),
+  text: z.string().min(1).max(LIMITS.segmentText),
+});
+export type HingeAnswer = z.infer<typeof HingeAnswerSchema>;
+
 export const RewriteSchema = z.object({
   platform: PlatformSchema,
+  /** LinkedIn: headline, blank line, About. Hinge: the answers joined by blank lines, in original order. */
   content: z.string().min(1).max(LIMITS.maxRewriteChars),
+  /** Hinge only: the same answers as `content`, one per original segment, in order. */
+  answers: z.array(HingeAnswerSchema).max(LIMITS.maxSegments).optional(),
   /** Advisory only. FactCheck never trusts this. */
   usedFactIds: z.array(z.string().max(16)).max(LIMITS.maxFacts),
   changeSummary: z.array(z.string().max(300)).max(8),
@@ -192,6 +203,12 @@ export const ModelEvaluateSchema = z.object({
 
 export const ModelRewriteSchema = z.object({
   content: z.string(),
+  usedFactIds: z.array(z.string()),
+  changeSummary: z.array(z.string()),
+});
+
+export const ModelHingeRewriteSchema = z.object({
+  answers: z.array(z.object({ segmentId: z.string(), text: z.string() })),
   usedFactIds: z.array(z.string()),
   changeSummary: z.array(z.string()),
 });

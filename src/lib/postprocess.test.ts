@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildCandidateFacts, buildCritiques } from "./postprocess";
-import { DEMO_LINKEDIN_SEGMENTS } from "./demo-data";
+import { buildCandidateFacts, buildCritiques, buildHingeAnswers } from "./postprocess";
+import { DEMO_HINGE_SEGMENTS, DEMO_LINKEDIN_SEGMENTS } from "./demo-data";
 
 const requested = { audienceIds: ["startup_founder"], traitIds: ["clarity", "relevance"] };
 const base = { rating: "weak" as const, rationale: "r", suggestion: "s" };
@@ -46,5 +46,39 @@ describe("buildCritiques", () => {
       DEMO_LINKEDIN_SEGMENTS,
     );
     expect(out.critiques).toHaveLength(1);
+  });
+});
+
+describe("buildHingeAnswers", () => {
+  it("returns one answer per segment in original order, with prompts", () => {
+    const out = buildHingeAnswers(
+      { answers: [{ segmentId: "s2", text: " Pancakes, then a walk. " }, { segmentId: "s1", text: "Food trucks." }] },
+      DEMO_HINGE_SEGMENTS,
+    );
+    expect(out.answers.map((a) => [a.segmentId, a.text])).toEqual([
+      ["s1", "Food trucks."],
+      ["s2", "Pancakes, then a walk."],
+    ]);
+    expect(out.answers[0].prompt).toBe(DEMO_HINGE_SEGMENTS[0].prompt);
+    expect(out.content).toBe("Food trucks.\n\nPancakes, then a walk.");
+    expect(out.warnings).toEqual([]);
+    expect(out.keptOriginal).toEqual([]);
+  });
+
+  it("keeps the original for a missing or empty answer and flags unknown ids", () => {
+    const out = buildHingeAnswers(
+      {
+        answers: [
+          { segmentId: "s1", text: "  " },
+          { segmentId: "s9", text: "A made-up answer." },
+          { segmentId: "s2", text: "First." },
+          { segmentId: "s2", text: "Duplicate." },
+        ],
+      },
+      DEMO_HINGE_SEGMENTS,
+    );
+    expect(out.answers.map((a) => a.text)).toEqual([DEMO_HINGE_SEGMENTS[0].text, "First."]);
+    expect(out.keptOriginal.map((s) => s.id)).toEqual(["s1"]);
+    expect(out.warnings).toEqual([expect.objectContaining({ kind: "unverified_segment", text: "s9" })]);
   });
 });

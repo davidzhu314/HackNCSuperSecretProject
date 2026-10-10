@@ -39,10 +39,14 @@ function words(text: string): string[] {
   return text.match(WORD_RE) ?? [];
 }
 
-/** Text that may support the rewrite: the user's original segments plus confirmed facts. */
+/**
+ * Text that may support the rewrite: the user's original segments plus confirmed facts.
+ * Hinge prompt questions count too: the user chose them, so echoing "Sunday" from
+ * "A perfect Sunday" is not an invented claim.
+ */
 function buildCorpus(segments: Segment[], facts: IdentityFact[]): string {
   return [
-    ...segments.map((s) => s.text),
+    ...segments.flatMap((s) => (s.prompt ? [s.prompt, s.text] : [s.text])),
     ...facts.filter((f) => f.confirmed).map((f) => f.text),
   ].join("\n");
 }

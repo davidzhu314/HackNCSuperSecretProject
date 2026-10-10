@@ -6,11 +6,12 @@ import {
   type AudienceCritique,
   type EvaluateResponse,
   type GuardWarning,
+  type HingeAnswer,
   type IdentityFact,
   type Segment,
 } from "./schemas";
 import type { z } from "zod";
-import type { ModelEvaluateSchema } from "./schemas";
+import type { ModelEvaluateSchema, ModelHingeRewriteSchema } from "./schemas";
 
 // Server-side cleanup of model output. The model is never trusted: ids are checked,
 // strings are clamped, and unrequested audience/trait combinations are dropped.
@@ -65,4 +66,27 @@ export function buildCritiques(
   const parsed = EvaluateResponseSchema.safeParse({ source: "live", critiques, warnings });
   if (!parsed.success) throw new LlmError("invalid_model_output", "The AI returned an unusable evaluation. Please try again.");
   return parsed.data;
+}
+
+/**
+ * Hinge rewrite: exactly one answer per original segment, in original order. A missing answer
+ * keeps the user's original text (and says so); answers for unknown segment ids are dropped and flagged.
+ */
+export function buildHingeAnswers(
+  model: Pick<z.infer<typeof ModelHingeRewriteSchema>, "answers">,
+  segments: Segment[],
+): { answers: HingeAnswer[]; content: string; warnings: GuardWarning[]; keptOriginal: Segment[] } {
+  const byId = new Map<string, string>();
+  for (const a of model.answers) {
+    const text = a.text.trim().slice(0, LIMITS.segmentText);
+    if (text && !byId.has(a.segmentId)) byId.set(a.segmentId, text);
+  }
+  const warnings = checkSegmentCitations([...byId.keys()], segments);
+  const keptOriginal: Segment[] = [];
+  const answers = segments.map((seg) => {
+    const text = byId.get(seg.id);
+    if (!text) keptOriginal.push(seg);
+    return { segmentId: seg.id, ...(seg.prompt ? { prompt: seg.prompt } : {}), text: text ?? seg.text };
+  });
+  return { answers, content: answers.map((a) => a.text).join("\n\n"), warnings, keptOriginal };
 }
