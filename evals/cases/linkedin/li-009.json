@@ -1,0 +1,51 @@
+{
+  "id": "li-009",
+  "platform": "linkedin",
+  "origin": "synthetic",
+  "status": "draft",
+  "tags": [
+    "already_good"
+  ],
+  "input": {
+    "platform": "linkedin",
+    "headline": "High school chemistry teacher moving into instructional design",
+    "about": "I've taught chemistry at Lakeview High School for eight years. I write most of my own lab materials and I redesigned our intro unit around short videos and practice quizzes. Last year I completed a certificate in instructional design and built two self-paced modules in Articulate Rise. I'm looking for instructional design roles in higher ed or corporate learning."
+  },
+  "goldFacts": [
+    "I have taught chemistry at Lakeview High School for eight years.",
+    "I write most of my own lab materials.",
+    "I redesigned the intro chemistry unit around short videos and practice quizzes.",
+    "I completed a certificate in instructional design last year.",
+    "I built two self-paced modules in Articulate Rise.",
+    "I am looking for instructional design roles in higher education or corporate learning."
+  ],
+  "traps": [
+    {
+      "text": "Improved student test scores by 25%.",
+      "expect": "unsupported_number"
+    },
+    {
+      "text": "Head of the science department.",
+      "expect": "semantic"
+    },
+    {
+      "text": "Built online courses for Coursera.",
+      "expect": "unsupported_entity"
+    },
+    {
+      "text": "Spearheaded the school's switch to blended learning.",
+      "expect": "inflated_verb"
+    }
+  ],
+  "audiences": [
+    "Research or hiring lead",
+    "Startup founder"
+  ],
+  "traits": [
+    "Relevance",
+    "Clarity",
+    "Ownership and impact"
+  ],
+  "goal": "Move into instructional design",
+  "notes": "Already clear. 'Head of the science department' is an invented title FactCheck can't see (no verb, no new entity)."
+}

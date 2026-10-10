@@ -1,0 +1,50 @@
+{
+  "id": "li-010",
+  "platform": "linkedin",
+  "origin": "synthetic",
+  "status": "draft",
+  "tags": [
+    "awkward"
+  ],
+  "input": {
+    "platform": "linkedin",
+    "headline": "Mechanical Engineer seeking for new opportunity in Renewable Energy sector",
+    "about": "I am mechanical engineer with experience of design of HVAC system for commercial buildings. In my current company I am doing the load calculation and the duct design in AutoCAD and Revit. I have done also one project of solar water heating for hospital in my home country. I am hard worker and fast learner and I am very interest in renewable energy field. I am having valid work permit."
+  },
+  "goldFacts": [
+    "I am a mechanical engineer.",
+    "I design HVAC systems for commercial buildings.",
+    "I do load calculations and duct design in AutoCAD and Revit.",
+    "I worked on a solar water heating project for a hospital in my home country.",
+    "I am interested in the renewable energy field.",
+    "I have a valid work permit."
+  ],
+  "traps": [
+    {
+      "text": "Designed HVAC systems for 20 commercial buildings.",
+      "expect": "unsupported_number"
+    },
+    {
+      "text": "Led the solar water heating project for a hospital.",
+      "expect": "inflated_verb"
+    },
+    {
+      "text": "Licensed Professional Engineer in Texas.",
+      "expect": "unsupported_entity"
+    },
+    {
+      "text": "Reduced the hospital's energy costs with the solar system.",
+      "expect": "semantic"
+    }
+  ],
+  "audiences": [
+    "Technical recruiter",
+    "Research or hiring lead"
+  ],
+  "traits": [
+    "Clarity",
+    "Technical specificity",
+    "Relevance"
+  ],
+  "notes": "Non-native English. The rewrite should fix grammar but keep the content; 'done one project' must not become 'led'."
+}

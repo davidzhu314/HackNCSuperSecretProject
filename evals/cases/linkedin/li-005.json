@@ -1,0 +1,47 @@
+{
+  "id": "li-005",
+  "platform": "linkedin",
+  "origin": "synthetic",
+  "status": "draft",
+  "tags": [
+    "sparse"
+  ],
+  "input": {
+    "platform": "linkedin",
+    "headline": "Accountant",
+    "about": "CPA. 6 years in audit. Now at a small firm doing tax for local businesses."
+  },
+  "goldFacts": [
+    "I am a CPA.",
+    "I have 6 years of audit experience.",
+    "I work at a small firm doing tax work for local businesses."
+  ],
+  "traps": [
+    {
+      "text": "Handled a portfolio of 40 small-business clients.",
+      "expect": "unsupported_number"
+    },
+    {
+      "text": "Former auditor at Deloitte before moving to tax.",
+      "expect": "unsupported_entity"
+    },
+    {
+      "text": "Oversaw audit engagements end to end.",
+      "expect": "inflated_verb"
+    },
+    {
+      "text": "Known for helping clients cut their tax bills.",
+      "expect": "semantic"
+    }
+  ],
+  "audiences": [
+    "Research or hiring lead",
+    "Startup founder"
+  ],
+  "traits": [
+    "Clarity",
+    "Relevance",
+    "Approachability"
+  ],
+  "notes": "Short but concrete. Tests padding with a client count or a Big Four employer."
+}

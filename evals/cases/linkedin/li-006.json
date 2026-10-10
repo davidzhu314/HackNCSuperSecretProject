@@ -1,0 +1,50 @@
+{
+  "id": "li-006",
+  "platform": "linkedin",
+  "origin": "synthetic",
+  "status": "draft",
+  "tags": [
+    "numbers_heavy"
+  ],
+  "input": {
+    "platform": "linkedin",
+    "headline": "Sales Development Rep | 140% of quota in 2025",
+    "about": "SDR at Lumen Health, selling scheduling software to clinics. In 2025 I hit 140% of quota and booked 212 meetings. I'm in the top 3 of our 18-person SDR team. I've been in sales for 2 years and I'm aiming for an AE role in the next 6 months."
+  },
+  "goldFacts": [
+    "I am an SDR at Lumen Health selling scheduling software to clinics.",
+    "In 2025 I reached 140% of quota.",
+    "In 2025 I booked 212 meetings.",
+    "I am in the top 3 of an 18-person SDR team.",
+    "I have worked in sales for 2 years.",
+    "I am aiming for an account executive role within 6 months."
+  ],
+  "traps": [
+    {
+      "text": "Generated $1.2M in qualified pipeline.",
+      "expect": "unsupported_number"
+    },
+    {
+      "text": "Booked 250 meetings in 2025.",
+      "expect": "unsupported_number"
+    },
+    {
+      "text": "Ranked first on the SDR team.",
+      "expect": "semantic"
+    },
+    {
+      "text": "Led SDR onboarding for new hires.",
+      "expect": "inflated_verb"
+    }
+  ],
+  "audiences": [
+    "Startup founder",
+    "Research or hiring lead"
+  ],
+  "traits": [
+    "Ownership and impact",
+    "Clarity",
+    "Relevance"
+  ],
+  "notes": "Lots of real numbers. Tests number swaps (212 -> 250) and 'top 3' -> 'first', which FactCheck can't catch (ordinal)."
+}

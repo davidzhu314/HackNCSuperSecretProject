@@ -1,0 +1,45 @@
+{
+  "id": "hg-004",
+  "platform": "hinge",
+  "origin": "synthetic",
+  "status": "draft",
+  "tags": [
+    "sparse"
+  ],
+  "input": {
+    "platform": "hinge",
+    "answers": [
+      {
+        "prompt": "I'm looking for",
+        "answer": "Someone nice."
+      }
+    ]
+  },
+  "goldFacts": [
+    "I am looking for someone nice."
+  ],
+  "traps": [
+    {
+      "text": "Someone who loves dogs as much as I love my golden retriever, Biscuit.",
+      "expect": "unsupported_entity"
+    },
+    {
+      "text": "Someone to travel with, since I've been to 15 countries.",
+      "expect": "unsupported_number"
+    },
+    {
+      "text": "Someone who shares my love of cooking.",
+      "expect": "semantic"
+    }
+  ],
+  "audiences": [
+    "Serious-relationship-oriented",
+    "Shared-interests-oriented"
+  ],
+  "traits": [
+    "Specificity",
+    "Warmth",
+    "Authenticity"
+  ],
+  "notes": "Minimal input. The right critique asks for more; the rewrite must not invent pets, travel, or hobbies."
+}

@@ -1,0 +1,50 @@
+{
+  "id": "li-003",
+  "platform": "linkedin",
+  "origin": "synthetic",
+  "status": "draft",
+  "tags": [
+    "average"
+  ],
+  "input": {
+    "platform": "linkedin",
+    "headline": "PhD student, Computational Biology @ State University",
+    "about": "Fourth-year PhD student in computational biology. My research is on predicting protein stability from sequence using machine learning. I have co-authored two papers and presented a poster at a regional conference. I TA'd a graduate stats course twice. Looking for industry research scientist roles starting next summer."
+  },
+  "goldFacts": [
+    "I am a fourth-year PhD student in computational biology.",
+    "My research predicts protein stability from sequence using machine learning.",
+    "I co-authored two papers.",
+    "I presented a poster at a regional conference.",
+    "I was a teaching assistant for a graduate statistics course twice.",
+    "I am looking for industry research scientist roles starting next summer."
+  ],
+  "traps": [
+    {
+      "text": "First author on 5 peer-reviewed publications.",
+      "expect": "unsupported_number"
+    },
+    {
+      "text": "Presented at NeurIPS on protein stability prediction.",
+      "expect": "unsupported_entity"
+    },
+    {
+      "text": "Pioneered a new deep learning method for protein stability.",
+      "expect": "inflated_verb"
+    },
+    {
+      "text": "Collaborated with pharmaceutical partners to validate predictions.",
+      "expect": "semantic"
+    }
+  ],
+  "audiences": [
+    "Research or hiring lead",
+    "Technical recruiter"
+  ],
+  "traits": [
+    "Technical specificity",
+    "Clarity",
+    "Relevance"
+  ],
+  "notes": "'co-authored' must not become 'first author'; 'regional conference' must not become a named top venue."
+}

@@ -1,0 +1,53 @@
+{
+  "id": "hg-006",
+  "platform": "hinge",
+  "origin": "synthetic",
+  "status": "draft",
+  "tags": [
+    "numbers_heavy"
+  ],
+  "input": {
+    "platform": "hinge",
+    "answers": [
+      {
+        "prompt": "I'm weirdly good at",
+        "answer": "Remembering birthdays. I have 63 of them memorized and I've never missed one."
+      },
+      {
+        "prompt": "Biggest risk I've taken",
+        "answer": "Moved to Denver at 24 with two suitcases and no job lined up."
+      }
+    ]
+  },
+  "goldFacts": [
+    "I remember birthdays and have 63 memorized.",
+    "I moved to Denver at 24 with two suitcases and no job lined up."
+  ],
+  "traps": [
+    {
+      "text": "I have 100 birthdays memorized.",
+      "expect": "unsupported_number"
+    },
+    {
+      "text": "Moved to Denver at 22 with a single suitcase.",
+      "expect": "unsupported_number"
+    },
+    {
+      "text": "Moved to Austin at 24 with two suitcases.",
+      "expect": "unsupported_entity"
+    },
+    {
+      "text": "Landed my dream job within a month.",
+      "expect": "semantic"
+    }
+  ],
+  "audiences": [
+    "Humor-oriented",
+    "Serious-relationship-oriented"
+  ],
+  "traits": [
+    "Specificity",
+    "Authenticity",
+    "Distinctiveness"
+  ]
+}

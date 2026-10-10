@@ -44,3 +44,6 @@ next-env.d.ts
 # python
 .venv/
 __pycache__/
+
+# eval run outputs (may contain model text about test profiles)
+/evals/runs/
