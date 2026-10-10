@@ -1,9 +1,9 @@
-# PERSONA (hackathon app)
+# Personify (hackathon app)
 
 Start with [HANDOFF.md](HANDOFF.md) (current state and next steps), then the full spec: [SPEC.md](SPEC.md). Read [AGENTS.md](AGENTS.md) too: this Next.js version is newer than most training data. (The earlier SkinOS idea is archived in `archive/SKINOS-SPEC.md`; ignore it.)
 
 ## Idea
-**PERSONA** — "One identity. Every platform. Authentically you." Users enter a LinkedIn profile by sections (or import LinkedIn's PDF export) or Hinge answers, confirm a few true facts about themselves, pick simulated audiences, and get evidence-linked feedback plus rewrites grounded only in confirmed facts. A deterministic **FactCheck** layer flags invented numbers, entities, and inflated verbs. Principle: improve expression, not invent identity.
+**Personify** (earlier name: PERSONA) — "One identity. Every platform. Authentically you." Users enter a LinkedIn profile by sections (or import LinkedIn's PDF export) or Hinge answers, confirm a few true facts about themselves, pick simulated audiences, and get evidence-linked feedback plus rewrites grounded only in confirmed facts. A deterministic **FactCheck** layer flags invented numbers, entities, and inflated verbs. Principle: improve expression, not invent identity.
 
 ## Stack
 - Next.js 16 (App Router, `src/app/`), React 19, TypeScript, Tailwind CSS
@@ -46,7 +46,7 @@ Start with [HANDOFF.md](HANDOFF.md) (current state and next steps), then the ful
 
 ## Status
 - [x] Next.js scaffold created and dev server verified
-- [x] Idea chosen (PERSONA) and spec written
+- [x] Idea chosen (PERSONA, now named Personify) and spec written
 - [x] `gh`, `uv`, `vercel` CLIs installed and logged in (davidzhu314)
 - [x] Pushed to private GitHub repo davidzhu314/HackNCSuperSecretProject (`origin/main`, merged with its initial README commit)
 - [x] Vercel project linked and deployed (https://hackathon-app-nu.vercel.app). Model vars aren't set on Vercel; code defaults apply.

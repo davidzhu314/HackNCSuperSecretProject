@@ -1,13 +1,13 @@
-# PERSONA
+# Personify
 
 **One identity. Every platform. Authentically you.**
 
-**Live:** https://hackathon-app-nu.vercel.app (no login needed; click **Load demo persona** to try it)
+**Live:** https://hackathon-app-nu.vercel.app (no login needed; click **Load demo persona** to try it). The live site runs the version from before the LinkedIn-by-sections work described below as in progress.
 
-PERSONA helps you improve your LinkedIn profile without inventing anything about yourself. You paste your profile, confirm which facts about you are true, and get:
+Personify helps you improve your LinkedIn or Hinge profile without inventing anything about yourself. You enter your profile, confirm which facts about you are true, and get:
 
-1. **Simulated audience feedback** from a startup founder, a technical recruiter, and a research or hiring lead. Every critique links to the exact sentence it is about.
-2. **Two rewrites (direct and narrative) that only use facts you confirmed**, checked by **FactCheck**, a deterministic layer that flags made-up numbers, names, and inflated verbs, plus a lint for AI clichés ("leverage", "delve", emoji bullets).
+1. **Audience feedback** from up to 3 of 8 simulated LinkedIn lenses (recruiters, hiring managers and technical leads, research and admissions reviewers, founders and industry peers), or 3 Hinge lenses. Every critique links to the exact sentence it is about.
+2. **Rewrites (direct or narrative) that only use facts you confirmed**, checked by **FactCheck**, a deterministic layer that flags made-up numbers, names, and inflated verbs, plus a lint for AI clichés ("leverage", "delve", emoji bullets).
 
 Principle: improve expression, not invent identity.
 
@@ -39,7 +39,11 @@ When FactCheck finds nothing, the app says "No unsupported concrete claims detec
 | Sample mode for the demo persona | Cached demo data, always labeled "Sample result" |
 | "FactCheck demo" (the "95% at Google" rewrite) | Cached, labeled "Intentional test case" |
 | Job-description targeting | Implemented (optional field) |
-| Hinge mode | Backend supports it; UI not built |
+| Hinge mode (prompt answers, rewritten answer by answer) | Implemented |
+| 8 LinkedIn audience lenses in 4 categories | Implemented |
+| LinkedIn by sections (headline, About, each entry), per-section rewrites with a Direct / Narrative choice | API and data layer implemented (`/api/rewrite-section`); UI in progress |
+| Import LinkedIn's "Save to PDF" export (parsed in the browser) | Parser implemented and tested; upload UI in progress |
+| Demo Identity Hub with real fact-coverage counts | Data (`factCoverage`) implemented; page in progress |
 | Blind A/B comparison | Not built |
 | Accounts, saving profiles, auto-posting | Out of scope by design |
 
@@ -54,14 +58,17 @@ Paste profile ──> split into numbered sentences (s1, s2, ...)
       │
 /api/evaluate ──> critiques citing sentence IDs ──> server drops unknown IDs
       │
-/api/rewrite ──> 2 versions from confirmed facts only ──> FactCheck + cliché lint on each
+/api/rewrite ──> 2 versions from confirmed facts only ──> FactCheck + cliché lint on each   (Hinge)
+/api/rewrite-section ──> one LinkedIn section, one style ──> FactCheck against that section's sources
 ```
+
+For a LinkedIn entry (one job, school, or project), FactCheck accepts only that entry's own text plus your confirmed facts, so a number or name from one job can't move into another. Headline and About may draw on the whole profile.
 
 - **AI provider:** [OpenRouter](https://openrouter.ai), called only from the server. Extract and evaluate use `anthropic/claude-haiku-5.5`; the rewrite uses `anthropic/claude-sonnet-5.5`. We picked these after comparing four models on the same inputs.
 - **Structured output:** every AI response must match a strict JSON schema, is validated with zod, and is retried once if it doesn't.
 - **Privacy:** profile text is not stored or logged. The API key never reaches the browser.
 
-Key files: `src/lib/fact-guard.ts` (FactCheck), `src/lib/style-check.ts` (cliché lint), `src/lib/schemas.ts` (data shapes), `src/lib/llm.ts` (AI client), `src/lib/prompts.ts`, `src/app/api/*`, `src/components/PersonaFlow.tsx` (the page flow).
+Key files: `src/lib/fact-guard.ts` (FactCheck), `src/lib/profile.ts` (profile sections and segment ids), `src/lib/linkedin-pdf.ts` (PDF import), `src/lib/style-check.ts` (cliché lint), `src/lib/schemas.ts` (data shapes), `src/lib/llm.ts` (AI client), `src/lib/prompts.ts`, `src/app/api/*`, `src/components/PersonaFlow.tsx` (the page flow).
 
 ## Run it locally
 
@@ -81,13 +88,13 @@ Get an OpenRouter API key at https://openrouter.ai/keys. Without a key, the app 
 |---|---|---|
 | `OPENROUTER_API_KEY` | Yes, for live AI | none |
 | `OPENROUTER_MODEL` | No | `anthropic/claude-haiku-5.5` (extract, evaluate) |
-| `OPENROUTER_REWRITE_MODEL` | No | `anthropic/claude-sonnet-5.5` (rewrite) |
+| `OPENROUTER_REWRITE_MODEL` | No | `anthropic/claude-sonnet-5.5` (rewrite, rewrite-section) |
 | `OPENROUTER_TEMPERATURE` | No | unset. Anthropic models on OpenRouter don't accept it, so leave it empty for them. |
 
 ## Tests and checks
 
 ```bash
-npm test          # FactCheck, AI client, post-processing, sample data
+npm test          # FactCheck, PDF parser, profile sections, AI client, post-processing, sample data
 npm run lint
 npm run build
 ```

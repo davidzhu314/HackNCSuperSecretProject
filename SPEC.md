@@ -1,4 +1,6 @@
-# PERSONA — Spec
+# Personify — Spec
+
+(Earlier name: PERSONA.)
 
 **Tagline:** One identity. Every platform. Authentically you.
 **Principle:** Improve expression, not invent identity.
