@@ -33,11 +33,6 @@ export function AudienceClash(props: {
         </h2>
         {response.source === "sample" && <span className="sample-badge">Sample result</span>}
       </div>
-      <p className="feedback-label">Simulated AI feedback</p>
-      <p className="flow-description">
-        Different lenses. Different impressions. These viewpoints are simulated, not real people reviewing you, and
-        they don&apos;t predict how anyone will respond.
-      </p>
       <div className="matrix-scroll">
         <table className="feedback-matrix">
           <caption className="sr-only">Audience and trait feedback matrix</caption>
@@ -135,7 +130,7 @@ export function AudienceClash(props: {
         </aside>
       </div>
       <div className="action-band">
-        <span className="empty-note">Every point stays tied to your words.</span>
+        <span className="empty-note">Click a comment to highlight the sentence it’s about.</span>
         <Button variant="aero" onClick={onRewrite}>
           Rewrite my profile <ArrowRight />
         </Button>

@@ -27,7 +27,7 @@ export function ConsentScreen(props: {
         </div>
         <div>
           <dt>Who receives it</dt>
-          <dd>OpenRouter and the underlying AI model provider, to generate simulated feedback and rewrites.</dd>
+          <dd>OpenRouter and the underlying AI model provider, to generate feedback and rewrites.</dd>
         </div>
         <div>
           <dt>What is stored</dt>

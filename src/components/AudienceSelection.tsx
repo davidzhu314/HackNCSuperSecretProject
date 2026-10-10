@@ -24,7 +24,7 @@ export function AudienceSelection(props: {
         <Eye /> Choose your audience lens
       </h2>
       <p className="flow-description">
-        Who is your profile for? These are simulated viewpoints, not real recruiters or people reviewing you.
+        Who is your profile for?
       </p>
       <div className="selection-grid">
         <div>
@@ -77,16 +77,15 @@ export function AudienceSelection(props: {
             ))}
           </div>
           <p className="empty-note">
-            Choose 1–{LIMITS.maxAudiences} audience lenses and 1–{maxTraits} traits. Each lens can notice something
-            different in the same words.
+            Pick up to {LIMITS.maxAudiences} audiences and up to {maxTraits} traits.
           </p>
         </div>
       </div>
       <div className="action-band">
-        <span className="empty-note">Simulated AI feedback, not a prediction of how real people will react.</span>
+        <span className="empty-note" />
         <Button variant="aero" disabled={!audiences.length || !traits.length || loading} onClick={onFeedback}>
           {loading ? <LoaderCircle className="animate-spin" /> : <Sparkles />}
-          {loading ? "Getting simulated feedback..." : "Get feedback"}
+          {loading ? "Getting feedback..." : "Get feedback"}
         </Button>
       </div>
       {loading && (

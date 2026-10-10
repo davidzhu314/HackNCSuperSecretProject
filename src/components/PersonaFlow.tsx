@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Check, ChevronRight, CircleHelp, Heart, House, RotateCcw, ShieldCheck, Sparkles, TriangleAlert } from "lucide-react";
+import { ArrowLeft, Check, ChevronRight, CircleHelp, House, RotateCcw, ShieldCheck, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import { AudienceClash } from "@/components/AudienceClash";
@@ -290,7 +290,6 @@ export function PersonaFlow() {
           <Link href="/" className="studio-link">
             Home
           </Link>
-          <span className="session-label">One identity. Every platform.</span>
           <span className="header-avatar">You</span>
         </nav>
       </header>
@@ -311,13 +310,8 @@ export function PersonaFlow() {
         <div className="studio-body">
           <div className="welcome-row">
             <div>
-              <div className="eyebrow">
-                <Sparkles size={12} />
-                Authentically you
-              </div>
-              <h1>You, in your best light.</h1>
-              <p className="welcome-copy">One identity. Every platform. Authentically you.</p>
-              <p className="principle-copy">Improve expression, not invent identity.</p>
+              <h1>Profile studio</h1>
+              <p className="welcome-copy">Paste a profile, confirm your facts, get feedback, then rewrite.</p>
             </div>
             {step > INPUT && (
               <Button variant="glass" onClick={reset} title="Clear this session">
@@ -344,7 +338,7 @@ export function PersonaFlow() {
                 <span>
                   <span className="platform-name">{id === "linkedin" ? "LinkedIn" : "Hinge"}</span>
                   <span className="platform-description">
-                    {id === "linkedin" ? "Put your best work forward." : "Make a real connection."}
+                    {id === "linkedin" ? "Headline and About" : "Prompt answers"}
                   </span>
                 </span>
                 <span className="platform-check" aria-hidden="true" />
@@ -486,26 +480,23 @@ export function PersonaFlow() {
         <footer className="studio-footer">
           <span className="footer-message">
             <ShieldCheck size={12} />
-            Honest words. Real connections. Always you.
+            Nothing is stored. Refreshing clears your session.
           </span>
-          <span>Made for your next chapter.</span>
           <Button variant="link" className="sample-link" aria-expanded={help} onClick={() => setHelp(!help)}>
-            <CircleHelp />A little help
+            <CircleHelp />Help
           </Button>
         </footer>
         {help && (
           <p className="help-note">
             Nothing is sent until you agree on the consent step. After that, your profile text and confirmed facts go
-            to OpenRouter and the underlying AI model provider; nothing is stored by this app. All feedback is
-            simulated AI feedback, not real people. Rewrites may only use facts you confirm, and FactCheck flags
+            to OpenRouter and the underlying AI model provider; nothing is stored by this app. Feedback is written
+            by an AI model, not real people. Rewrites may only use facts you confirm, and FactCheck flags
             numbers, names, and stronger verbs it can&apos;t trace to your words. Sample results are labeled.
             Refreshing clears your session.
           </p>
         )}
       </main>
-      <WorldFooter>
-        A little clarity. A lot of you. <Heart size={10} />
-      </WorldFooter>
+      <WorldFooter />
     </div>
   );
 }

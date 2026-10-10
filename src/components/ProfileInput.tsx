@@ -176,7 +176,7 @@ export function ProfileInput(props: {
                   className="goal-input"
                   value={linkedin.headline}
                   maxLength={MAX_HEADLINE}
-                  placeholder="Your field, your focus, your next chapter…"
+                  placeholder="e.g. Computer science senior | Python and React"
                   onChange={(event) => onLinkedInChange({ ...linkedin, headline: event.target.value })}
                 />
                 <label className="field-label mt-4" htmlFor="about">
@@ -208,9 +208,9 @@ export function ProfileInput(props: {
         <div className="perspective-panel">
           <h2 className="section-heading">
             <Sparkles />
-            Start with the real you
+            Try it with a demo
           </h2>
-          <p className="section-subtitle">Improve expression, not invent identity.</p>
+          <p className="section-subtitle">Loads a made-up profile so you can see every step.</p>
           <Button
             variant="glass"
             onClick={() => {
@@ -240,12 +240,12 @@ export function ProfileInput(props: {
             </details>
           )}
           {platform === "hinge" && (
-            <p className="flow-description">A good conversation starts with something genuinely yours.</p>
+            <p className="flow-description">Pick a prompt and paste your answer for each one you use.</p>
           )}
         </div>
       </div>
       <div className="action-band">
-        <span className="empty-note">Your identity comes first. Your audience comes next.</span>
+        <span className="empty-note">Next: agree to send your text to the AI.</span>
         <Button variant="aero" disabled={!canContinue} onClick={onContinue}>
           Continue <ArrowRight />
         </Button>

@@ -6,9 +6,9 @@ import "./globals.css";
 const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-jakarta" });
 
 export const metadata: Metadata = {
-  title: "Personify — One identity. Every platform.",
+  title: "Personify",
   description:
-    "Simulated audience feedback and fact-checked rewrites for LinkedIn and Hinge profiles. Improve expression, not invent identity.",
+    "Audience feedback and fact-checked rewrites for LinkedIn and Hinge profiles.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

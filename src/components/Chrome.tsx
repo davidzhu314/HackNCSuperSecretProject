@@ -45,11 +45,10 @@ export function BrandMark({ platform }: { platform: Platform }) {
   );
 }
 
-export function WorldFooter({ children }: { children: React.ReactNode }) {
+export function WorldFooter() {
   return (
     <footer className="world-footer">
-      <span>personify · a brighter kind of first impression</span>
-      <span className="flex items-center gap-1">{children}</span>
+      <span>personify</span>
     </footer>
   );
 }
