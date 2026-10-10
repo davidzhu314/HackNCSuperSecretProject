@@ -1,6 +1,6 @@
 import { handlePost } from "@/lib/api";
 import { checkRewrite } from "@/lib/fact-guard";
-import { callStructured } from "@/lib/llm";
+import { callStructured, getRewriteModel, LlmError } from "@/lib/llm";
 import { rewritePrompt } from "@/lib/prompts";
 import { PLATFORM_CONFIGS, resolveSelection } from "@/lib/rubrics";
 import {
@@ -10,7 +10,6 @@ import {
   RewriteSchema,
   type RewriteResponse,
 } from "@/lib/schemas";
-import { LlmError } from "@/lib/llm";
 
 export async function POST(req: Request) {
   return handlePost(req, RewriteRequestSchema, async (data): Promise<RewriteResponse> => {
@@ -30,6 +29,7 @@ export async function POST(req: Request) {
       user,
       schemaName: "rewrite",
       schema: ModelRewriteSchema,
+      model: getRewriteModel(),
       maxTokens: 2500,
     });
 

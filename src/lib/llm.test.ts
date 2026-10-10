@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { callStructured, LlmError, type ChatClient } from "./llm";
+import { callStructured, DEFAULT_REWRITE_MODEL, getRewriteModel, LlmError, type ChatClient } from "./llm";
 import { ModelExtractSchema } from "./schemas";
 
 function fakeClient(replies: (string | Error)[]) {
@@ -65,5 +65,18 @@ describe("callStructured", () => {
     delete process.env.OPENROUTER_API_KEY;
     await expect(callStructured(base)).rejects.toBeInstanceOf(LlmError);
     await expect(callStructured(base)).rejects.toMatchObject({ code: "missing_api_key" });
+  });
+});
+
+describe("getRewriteModel", () => {
+  it("defaults to sonnet and can be overridden by env", () => {
+    const saved = process.env.OPENROUTER_REWRITE_MODEL;
+    delete process.env.OPENROUTER_REWRITE_MODEL;
+    expect(getRewriteModel()).toBe(DEFAULT_REWRITE_MODEL);
+    expect(DEFAULT_REWRITE_MODEL).toBe("anthropic/claude-sonnet-5.5");
+    process.env.OPENROUTER_REWRITE_MODEL = "google/gemini-3.8-flash";
+    expect(getRewriteModel()).toBe("google/gemini-3.8-flash");
+    if (saved === undefined) delete process.env.OPENROUTER_REWRITE_MODEL;
+    else process.env.OPENROUTER_REWRITE_MODEL = saved;
   });
 });

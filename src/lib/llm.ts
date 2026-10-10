@@ -43,6 +43,13 @@ export function getModel(): string {
   return process.env.OPENROUTER_MODEL?.trim() || DEFAULT_MODEL;
 }
 
+/** Rewrites use a stronger model: in our comparison it followed formatting and source limits best at ~4s. */
+export const DEFAULT_REWRITE_MODEL = "anthropic/claude-sonnet-5.5";
+
+export function getRewriteModel(): string {
+  return process.env.OPENROUTER_REWRITE_MODEL?.trim() || DEFAULT_REWRITE_MODEL;
+}
+
 /**
  * Some models (verified: anthropic/claude-haiku-5.5 on OpenRouter) have no endpoint that accepts
  * `temperature`, and with require_parameters the request then 404s. So it is opt-in:
