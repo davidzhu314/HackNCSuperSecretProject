@@ -14,9 +14,13 @@ import {
   type HingeAnswer,
   type IdentityFact,
   type Segment,
+  type RewritableSection,
+  type RewriteSectionResponse,
+  RewriteSectionResponseSchema,
 } from "./schemas";
 import type { z } from "zod";
-import type { ModelEvaluateSchema, ModelHingeRewriteSchema, ModelRewriteSchema } from "./schemas";
+import type { ModelEvaluateSchema, ModelHingeRewriteSchema, ModelRewriteSchema, ModelSectionRewriteSchema } from "./schemas";
+import { splitSentences } from "./segments";
 import { checkStyle } from "./style-check";
 
 // Server-side cleanup of model output. The model is never trusted: ids are checked,
@@ -168,4 +172,86 @@ export function buildHingeVariations(
     };
     return finishVariation(style, "hinge", draft, built.warnings, segments, confirmedFacts);
   });
+}
+
+// ---------- LinkedIn by sections ----------
+
+const BULLET_LINE = /^\s*[-•·*–]\s+/;
+const countBullets = (text: string) => text.split("\n").filter((l) => BULLET_LINE.test(l)).length;
+
+function sectionCap(kind: RewritableSection["kind"]): number {
+  if (kind === "headline" || kind === "about") return LIMITS.sectionRewriteChars[kind];
+  return LIMITS.sectionRewriteChars.entry;
+}
+
+/** Cut at a word boundary so LinkedIn accepts it; the caller says so in changeSummary. */
+function cutToCap(text: string, cap: number): string {
+  if (text.length <= cap) return text;
+  const cut = text.slice(0, cap);
+  const boundary = cut.lastIndexOf(" ");
+  return (boundary > cap * 0.8 ? cut.slice(0, boundary) : cut).trim();
+}
+
+/**
+ * One section rewrite: normalize its format, keep it within LinkedIn's limit, then run
+ * FactCheck against `factCheckSegments` (the section's own corpus) and the cliche lint.
+ * More bullets than the original is flagged for review: a new bullet is usually a new claim.
+ */
+export function buildSectionRewrite(
+  model: z.infer<typeof ModelSectionRewriteSchema>,
+  args: { section: RewritableSection; style: RewriteStyle; segments: Segment[]; facts: IdentityFact[] },
+): RewriteSectionResponse {
+  const { section, style, segments, facts } = args;
+  const notes: string[] = [];
+  let content = model.content.trim();
+  if (section.kind === "headline") content = content.replace(/\s*\n+\s*/g, " | ").replace(/\s+/g, " ");
+  else content = content.replace(/^[ \t]*[•·*–][ \t]+/gm, "- ").replace(/\n{3,}/g, "\n\n");
+
+  // The original had bullets but the model returned plain lines or one paragraph: restore
+  // bullets, one per line, or one per sentence for a paragraph. The words are unchanged.
+  if (section.kind !== "headline" && countBullets(section.text) > 0 && countBullets(content) === 0) {
+    const lines = content.split("\n").filter((l) => l.trim());
+    const pieces = lines.length > 1 ? lines : splitSentences(content);
+    if (pieces.length > 1) {
+      content = pieces.map((l) => `- ${l.trim()}`).join("\n");
+      notes.push("Restored your bullet format.");
+    }
+  }
+
+  const cap = sectionCap(section.kind);
+  if (content.length > cap) {
+    content = cutToCap(content, cap);
+    notes.push(`Cut to LinkedIn's ${cap.toLocaleString("en-US")}-character limit; check the ending.`);
+  }
+  if (!content) throw new LlmError("invalid_model_output", "The AI returned an empty rewrite. Please try again.");
+
+  const rewrite = RewriteSchema.safeParse({
+    platform: "linkedin",
+    content,
+    usedFactIds: model.usedFactIds.slice(0, LIMITS.maxFacts),
+    changeSummary: [...notes, ...model.changeSummary].slice(0, 8).map((s) => s.slice(0, 300)),
+  });
+  if (!rewrite.success) throw new LlmError("invalid_model_output", "The AI returned an unusable rewrite. Please try again.");
+
+  const extra: GuardWarning[] = [];
+  const before = countBullets(section.text);
+  const after = countBullets(content);
+  if (before > 0 && after > before) {
+    extra.push({
+      kind: "unsupported_claim",
+      text: `${after} bullets (your original has ${before})`,
+      explanation: "This version adds bullets. Check that none of them describes something you didn't do.",
+    });
+  }
+
+  const out = RewriteSectionResponseSchema.safeParse({
+    source: "live",
+    sectionKey: section.key,
+    style,
+    rewrite: rewrite.data,
+    warnings: [...extra, ...checkRewrite({ rewrite: rewrite.data, segments, facts })],
+    styleWarnings: checkStyle(content),
+  });
+  if (!out.success) throw new LlmError("invalid_model_output", "The AI returned an unusable rewrite. Please try again.");
+  return out.data;
 }
