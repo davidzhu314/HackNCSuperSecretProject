@@ -179,7 +179,7 @@ export const RewritableSectionSchema = z.object({
   /** "headline" | "about" | an entry id ("exp2"). */
   key: z.string().min(1).max(8),
   kind: LinkedInSectionKindSchema,
-  /** e.g. "Experience · Agxes · Machine Learning Intern". */
+  /** e.g. "Experience · Acme Labs · Machine Learning Intern". */
   label: z.string().max(500),
   text: z.string().min(1).max(LIMITS.sectionText),
 });
@@ -351,6 +351,9 @@ export const ModelRewriteSchema = z.object({
   direct: ModelRewriteVariantSchema,
   narrative: ModelRewriteVariantSchema,
 });
+
+/** LinkedIn by sections: one section, one style per call. */
+export const ModelSectionRewriteSchema = ModelRewriteVariantSchema;
 
 /** Hinge: each variant returns one answer per original answer, keyed by segment id. */
 const ModelHingeRewriteVariantSchema = z.object({

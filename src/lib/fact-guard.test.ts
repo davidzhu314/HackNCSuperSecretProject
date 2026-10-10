@@ -151,3 +151,88 @@ describe("hinge", () => {
     expect(has(w, "unsupported_number", "12")).toBe(true);
   });
 });
+
+describe("real-world number and name formats (synthetic text)", () => {
+  const source = [
+    "Competed in the 2024–2025 Regional Rover Challenge, reaching the highest altitude in the region (~12,500 ft).",
+    "Contributed to the launch and recovery of the payload.",
+    "Began as a volunteer tutor and expanded to mentoring 8+ students.",
+    "Served over 40 guests each week.",
+    "Presented four research posters at the Spring Science Fair.",
+    "Evaluated open-weight models (Mistral, Llama 3.1, GPT-OSS-20B) with partners at Northwind Aerospace and Contoso.",
+  ];
+  const segs = source.map((text, i) => ({ id: `exp1-s${i + 1}`, text }));
+  const run = (content: string) => checkRewrite({ rewrite: { content, usedFactIds: [] }, segments: segs, facts: [] });
+
+  it("keeps numbers with ~, +, 'over', word numbers, en-dash ranges, and versions unflagged", () => {
+    const kept = [
+      "- Reached the highest altitude in the region (~12,500 ft) in the 2024–2025 Regional Rover Challenge",
+      "- Mentored 8+ students after starting as a volunteer tutor",
+      "- Served over 40 guests each week",
+      "- Presented 4 research posters at the Spring Science Fair",
+      "- Evaluated Llama 3.1, Mistral, and GPT-OSS-20B with partners at Northwind Aerospace and Contoso",
+      "- Competed in the 2024-2025 Regional Rover Challenge",
+    ].join("\n");
+    expect(run(kept)).toEqual([]);
+  });
+
+  it("still flags a changed number, version, or range year", () => {
+    const w = run("- Reached ~13,000 ft\n- Mentored 10+ students\n- Evaluated Llama 3.2\n- Competed in 2024–2026");
+    for (const n of ["13,000", "10", "3.2", "2026"]) expect(has(w, "unsupported_number", n)).toBe(true);
+  });
+
+  it("flags 'Contributed to' turned into 'Led'", () => {
+    const w = run("- Led the launch and recovery of the payload");
+    expect(has(w, "inflated_verb", "led")).toBe(true);
+  });
+});
+
+describe("entity heuristic edge cases from live runs", () => {
+  const segs = [
+    { id: "exp1-s1", text: "Studied calibration in Large Language Models with the Spring Science Fair team." },
+    { id: "exp1-s2", text: "Recognized as Tutor of the Month." },
+  ];
+  const run = (content: string) => checkRewrite({ rewrite: { content, usedFactIds: [] }, segments: segs, facts: [] });
+
+  it("accepts an acronym of a capitalized phrase in the sources", () => {
+    expect(run("Studied LLM calibration. Worked with LLMs.")).toEqual([]);
+  });
+
+  it("still flags an acronym the sources don't spell out", () => {
+    expect(has(run("Studied NLP calibration."), "unsupported_entity", "NLP")).toBe(true);
+  });
+
+  it("doesn't treat a past-tense verb opening a line as a name, but checks the words after it", () => {
+    expect(run("Named Tutor of the Month.")).toEqual([]);
+    expect(has(run("Named Tutor of the Year by Contoso."), "unsupported_entity", "Contoso")).toBe(true);
+  });
+});
+
+describe("acronyms inside long title-case runs", () => {
+  it("finds the phrase even at the end of a long paper title", () => {
+    const segs = [{ id: "exp1-s1", text: "Wrote “Cross-Domain Robustness of Reward Estimation in Large Language Models”." }];
+    const w = checkRewrite({ rewrite: { content: "Studied LLM reward estimation.", usedFactIds: [] }, segments: segs, facts: [] });
+    expect(w).toEqual([]);
+  });
+});
+
+describe("verb support from base forms and synonyms", () => {
+  const run = (source: string, content: string) =>
+    checkRewrite({ rewrite: { content, usedFactIds: [] }, segments: [{ id: "exp1-s2", text: source }], facts: [] });
+
+  it("counts 'lead' in the sources as support for 'led'/'leading'", () => {
+    expect(run("Design and lead weekly activities for students.", "- Leading weekly activities for students")).toEqual([]);
+  });
+
+  it("still flags 'led' when the sources only say 'contributed'", () => {
+    expect(has(run("Contributed to the payload launch.", "- Led the payload launch"), "inflated_verb", "led")).toBe(true);
+  });
+
+  it("never treats a base form in the rewrite as a claim, and ignores 'found' (find)", () => {
+    expect(has(run("Found a bug in the parser.", "- Founded a parser project"), "inflated_verb", "founded")).toBe(true);
+  });
+
+  it("treats 'authored' as support for 'wrote'", () => {
+    expect(run("Contributed to the launch and authored the team's report.", "- Contributed to the launch and wrote the team's report")).toEqual([]);
+  });
+});

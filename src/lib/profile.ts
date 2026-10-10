@@ -47,7 +47,7 @@ function entryHeader(e: ProfileEntry): string {
   return [e.title, e.organization, e.dates].map((x) => x?.trim()).filter(Boolean).join(" · ");
 }
 
-/** "Experience · Agxes · Machine Learning Intern". */
+/** "Experience · Acme Labs · Machine Learning Intern". */
 function entryLabel(kind: EntrySectionKind, e: ProfileEntry): string {
   return [KIND_LABEL[kind], e.organization.trim(), e.title.trim()].filter(Boolean).join(" · ");
 }
