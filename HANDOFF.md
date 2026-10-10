@@ -50,6 +50,12 @@ If the user wants this repeatable, suggest `/run-skill-generator` to save it as 
 ## Stale docs
 `README.md` and `PROGRESS.md` describe the earlier plain UI ("PERSONA", no Hinge, PROGRESS says 40 tests; it's now 146). The app is now branded **Personify** on screen. Update both once the user confirms the name. `CLAUDE.md`'s status checklist is also behind (Hinge is now done; the deploy is live).
 
+## Next phase (split between two people)
+LinkedIn by sections, PDF import, 8 lenses in 4 categories, Audience Clash redesign, per-section rewrites with a style dropdown, consent once per browser, and a demo-only Identity Hub. The work is split so the two sessions don't edit the same files:
+- [HANDOFF-PERSON-1.md](HANDOFF-PERSON-1.md): profile data and AI (contract, PDF parser, `/api/rewrite-section`, FactCheck per section, lenses, limits, fact coverage).
+- [HANDOFF-PERSON-2.md](HANDOFF-PERSON-2.md): interface (copy cleanup, consent once, section editor and PDF upload, lens picker, Audience Clash redesign, rewrite screen, hub).
+User decisions for this phase are listed in both docs; notably the "Simulated AI feedback" label is dropped for now (overrides CLAUDE.md/SPEC.md until those are updated) and there is no real login.
+
 ## Still to do
 1. User: revoke the leaked Gemini key (above).
 2. Demo: rehearse the 90-second script in SPEC.md and record a backup video. Warm the site first.
