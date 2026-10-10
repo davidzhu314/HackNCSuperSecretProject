@@ -11,6 +11,8 @@ export type IdentitySession = {
   /** A profile photo, as a local object URL. Shown on this device only; never uploaded. */
   photo: { name: string; url: string } | null;
   linkedin: LinkedInProfile | null;
+  /** The LinkedIn profile before any "Use this version" rewrites; null when none are used. */
+  linkedinOriginal: LinkedInProfile | null;
   /** Where the LinkedIn profile came from, if it was imported, with the parser's warnings. */
   linkedinImport: { fileName: string; warnings: string[] } | null;
   jobDescription: string;
@@ -28,6 +30,7 @@ export type IdentitySession = {
 const EMPTY_DATA: Omit<IdentitySession, "rev"> = {
   photo: null,
   linkedin: null,
+  linkedinOriginal: null,
   linkedinImport: null,
   jobDescription: "",
   hinge: null,

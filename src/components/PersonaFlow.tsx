@@ -14,6 +14,7 @@ import { ProfileClash } from "@/components/ProfileClash";
 import { ProfileInput } from "@/components/ProfileInput";
 import { RewriteComparison } from "@/components/RewriteComparison";
 import { SectionRewrites, type SectionRewriteState } from "@/components/SectionRewrites";
+import { StudioFinish } from "@/components/StudioFinish";
 import { TourStops } from "@/components/TourStops";
 import { Button } from "@/components/ui/button";
 import { errorMessage, evaluateProfile, extractFacts, rewriteProfile, rewriteSection } from "@/lib/api-client";
@@ -22,6 +23,7 @@ import { getSession, updateSession, useIdentitySession } from "@/lib/identity-se
 import { DEMO_HINGE_FACTS, DEMO_HINGE_INPUT, DEMO_LINKEDIN_FACTS, DEMO_LINKEDIN_PROFILE } from "@/lib/demo-data";
 import { emptyHingePairs, HINGE_PROMPTS, mergeFacts, MAX_HINGE_ANSWER, MAX_HINGE_PROMPTS, type HingePair } from "@/lib/persona-ui";
 import { emptyLinkedInProfile, factCheckSegments, findSection, profileCharCount, rewritableSections, segmentProfile } from "@/lib/profile";
+import { changedSections, profileAsText, sectionText, withSectionText } from "@/lib/profile-edits";
 import { cleanProfile, importProfileFile } from "@/lib/profile-import";
 import { DEFAULT_LINKEDIN_AUDIENCES, PLATFORM_CONFIGS } from "@/lib/rubrics";
 import { runLimited } from "@/lib/run-limited";
@@ -89,6 +91,9 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
   // LinkedIn: a sectioned profile. Hinge: prompt answers. Both start from the Identity Hub's
   // session (memory only), so the profile and facts follow the user between pages and platforms.
   const [profile, setProfile] = useState<LinkedInProfile>(() => getSession().linkedin ?? emptyLinkedInProfile());
+  // The profile before any "Use this version" rewrites (null when none are used). Rewrites and
+  // FactCheck keep working from it, so an accepted rewrite never becomes its own evidence.
+  const [original, setOriginal] = useState<LinkedInProfile | null>(() => getSession().linkedinOriginal);
   const [jobDescription, setJobDescription] = useState(() => getSession().jobDescription);
   const [imported, setImported] = useState<ImportState>(() => getSession().linkedinImport);
   const [importing, setImporting] = useState(false);
@@ -112,23 +117,26 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
   // Keep the hub's session in step with the studio, writing only values this studio actually
   // changed. Mounting, or Next re-showing a page it kept hidden, re-runs this effect with the
   // same values, and must not overwrite newer data from elsewhere with a stale copy.
-  const synced = useRef({ profile, imported, jobDescription, hinge, facts });
+  const synced = useRef({ profile, original, imported, jobDescription, hinge, facts });
   useEffect(() => {
     const prev = synced.current;
-    synced.current = { profile, imported, jobDescription, hinge, facts };
+    synced.current = { profile, original, imported, jobDescription, hinge, facts };
     const patch: Parameters<typeof updateSession>[0] = {};
     if (profile !== prev.profile) patch.linkedin = segmentProfile(profile).length ? profile : null;
+    if (original !== prev.original) patch.linkedinOriginal = original;
     if (imported !== prev.imported) patch.linkedinImport = imported;
     if (jobDescription !== prev.jobDescription) patch.jobDescription = jobDescription;
     if (hinge !== prev.hinge) patch.hinge = hinge.some((p) => p.answer.trim()) ? hinge : null;
     if (facts !== prev.facts) patch.facts = facts;
     if (Object.keys(patch).length) updateSession(patch);
-  }, [profile, imported, jobDescription, hinge, facts]);
+  }, [profile, original, imported, jobDescription, hinge, facts]);
 
   const [audiences, setAudiences] = useState(() => defaultAudiences(initialPlatform));
   const [traits, setTraits] = useState(() => defaultTraits(initialPlatform));
   const [evaluating, setEvaluating] = useState(false);
   const [evaluation, setEvaluation] = useState<EvaluateResponse | null>(null);
+  // The text the feedback was given on, so Audience Clash stays consistent after rewrites are used.
+  const [evaluatedOn, setEvaluatedOn] = useState<{ profile: LinkedInProfile; segments: Segment[] } | null>(null);
 
   const [goal, setGoal] = useState("");
   // Hinge: one rewrite of all answers.
@@ -150,11 +158,14 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
     () => (platform === "linkedin" ? segmentProfile(clean) : segmentHinge(hinge)),
     [platform, clean, hinge],
   );
-  const sections = useMemo(() => (platform === "linkedin" ? rewritableSections(clean) : []), [platform, clean]);
+  // Rewrites work from the original text; `applied` is which sections currently use a rewrite.
+  const baseClean = useMemo(() => (original ? cleanProfile(original) : clean), [original, clean]);
+  const sections = useMemo(() => (platform === "linkedin" ? rewritableSections(baseClean) : []), [platform, baseClean]);
+  const applied = useMemo(() => (original ? changedSections(cleanProfile(original), clean) : []), [original, clean]);
   const hingeOriginal = hinge.map((p) => p.answer.trim()).filter(Boolean).join("\n\n");
   const sourceKey = textKey(platform, segments);
   const confirmedFacts = facts.filter((f) => f.confirmed && f.text.trim());
-  const usingDemo = platform === "linkedin" ? JSON.stringify(clean) === DEMO_PROFILE_JSON : hingeDemo;
+  const usingDemo = platform === "linkedin" ? JSON.stringify(baseClean) === DEMO_PROFILE_JSON : hingeDemo;
   const canUseSample = usingDemo && platform === "linkedin";
   const sample = canUseSample && sampleMode;
   /** May this run proceed? Sample mode sends nothing, so it never needs consent. */
@@ -203,6 +214,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
     setRewriting(false);
     setFurthest(INPUT);
     setEvaluation(null);
+    setEvaluatedOn(null);
     setFocusSection(null);
     clearRewrites();
   }
@@ -215,6 +227,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
     resetResults();
     if (platform === "linkedin") {
       setProfile(emptyLinkedInProfile());
+      setOriginal(null);
       setJobDescription("");
       setImported(null);
     } else {
@@ -240,9 +253,34 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
     router.replace(`/studio?platform=${next}`, { scroll: false });
   }
 
+  /** Editing the profile yourself makes the edited text (accepted rewrites included) the new original. */
   function changeProfile(next: LinkedInProfile) {
     setProfile(next);
+    setOriginal(null);
     resetResults();
+  }
+
+  /** "Use this version": put a section's rewrite into the profile. Results are kept. */
+  function applyRewrite(key: string, text: string) {
+    if (!original) setOriginal(profile);
+    setProfile((p) => withSectionText(p, key, text));
+  }
+
+  function undoRewrite(key: string) {
+    if (!original) return;
+    const next = withSectionText(profile, key, sectionText(original, key) ?? "");
+    setProfile(next);
+    if (!changedSections(cleanProfile(original), cleanProfile(next)).length) setOriginal(null);
+  }
+
+  async function copyProfile() {
+    try {
+      await navigator.clipboard.writeText(profileAsText(clean));
+      return true;
+    } catch {
+      setError({ message: "Clipboard access is unavailable. Copy each section from its card instead." });
+      return false;
+    }
   }
 
   function changeJobDescription(text: string) {
@@ -264,6 +302,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
     try {
       const res = await importProfileFile(file);
       setProfile(res.profile);
+      setOriginal(null);
       setImported({ fileName: file.name, warnings: res.warnings });
       resetResults();
     } catch (err) {
@@ -277,6 +316,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
     resetResults();
     if (platform === "linkedin") {
       setProfile(structuredClone(DEMO_LINKEDIN_PROFILE));
+      setOriginal(null);
       setImported(null);
       setFacts((prev) => mergeFacts(prev, DEMO_LINKEDIN_FACTS));
       // Demo facts are preloaded, so no extraction is needed for this text.
@@ -342,6 +382,10 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
       setError({ message: "Choose at least one audience and trait." });
       return;
     }
+    // Cached sample feedback belongs to the demo's original text, so in sample mode the feedback is
+    // on that text (Audience Clash then says it predates the rewrites you used).
+    const evalProfile = sample ? baseClean : clean;
+    const evalSegments = sample ? segmentProfile(baseClean) : segments;
     const id = ++requestId.current;
     setEvaluating(true);
     setError(null);
@@ -350,7 +394,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
         {
           consent: true,
           platform,
-          segments,
+          segments: platform === "linkedin" ? evalSegments : segments,
           audiences,
           traits,
           jobDescription: platform === "linkedin" ? jobDescription.trim() || undefined : undefined,
@@ -359,6 +403,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
       );
       if (id !== requestId.current) return;
       setEvaluation(res);
+      setEvaluatedOn({ profile: evalProfile, segments: platform === "linkedin" ? evalSegments : segments });
       go(CLASH);
     } catch (err) {
       if (id !== requestId.current) return;
@@ -419,7 +464,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
       go(CONSENT);
       return;
     }
-    const section = findSection(clean, key);
+    const section = findSection(baseClean, key);
     if (!section) return;
     if (!confirmedFacts.length) {
       setError({ message: "Confirm at least one fact first." });
@@ -433,7 +478,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
           consent: true,
           platform: "linkedin",
           section,
-          profile: clean,
+          profile: baseClean,
           facts: confirmedFacts.map((f) => ({ ...f, confirmed: true as const })),
           style,
           audiences,
@@ -475,7 +520,9 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
     if (gen === sectionGen.current) setRewritingAll(false);
   }
 
-  const sourcesFor = (key: string): Segment[] => factCheckSegments(clean, key) ?? [];
+  const sourcesFor = (key: string): Segment[] => factCheckSegments(baseClean, key) ?? [];
+  const otherPlatform: Platform = platform === "linkedin" ? "hinge" : "linkedin";
+  const feedbackStale = !!evaluatedOn && textKey(platform, evaluatedOn.segments) !== sourceKey;
 
   const scene = SCENES[platform];
   const status = sample
@@ -509,13 +556,19 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
               </Button>
             ))}
           </div>
-          <Link href="/hub" className="tour-avatar" aria-label="Identity Hub" title="Identity Hub">
-            {session.photo ? (
-              // eslint-disable-next-line @next/next/no-img-element -- a local object URL, not an optimizable asset
-              <img src={session.photo.url} alt="" />
-            ) : (
-              <Fingerprint size={17} />
-            )}
+          <Link href="/hub" className="tour-hub-link" title="Your Identity Hub: facts and sources for every platform">
+            <span className="tour-avatar" aria-hidden="true">
+              {session.photo ? (
+                // eslint-disable-next-line @next/next/no-img-element -- a local object URL, not an optimizable asset
+                <img src={session.photo.url} alt="" />
+              ) : (
+                <Fingerprint size={17} />
+              )}
+            </span>
+            <span className="tour-hub-label">
+              Hub
+              {confirmedFacts.length > 0 && <span className="tour-hub-count">{confirmedFacts.length} facts</span>}
+            </span>
           </Link>
         </div>
       </header>
@@ -632,14 +685,28 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
               onFeedback={() => void runEvaluate()}
             />
           )}
+          {step === CLASH && evaluation && feedbackStale && (
+            <div className="prototype-notice stale-notice">
+              <TriangleAlert size={15} />
+              <span>
+                This feedback is on your profile before the rewrites you used.
+                {!sample && " Get feedback again to see how the audiences read the new version."}
+              </span>
+              {!sample && (
+                <Button variant="glass" size="sm" onClick={() => go(AUDIENCES)}>
+                  Get new feedback
+                </Button>
+              )}
+            </div>
+          )}
           {step === CLASH && evaluation && platform === "linkedin" && (
             <ProfileClash
               response={evaluation}
               config={config}
               audiences={audiences}
               traits={traits}
-              profile={clean}
-              segments={segments}
+              profile={evaluatedOn?.profile ?? clean}
+              segments={evaluatedOn?.segments ?? segments}
               onRewriteSection={(key) => {
                 setFocusSection(key);
                 go(REWRITE, { scroll: false });
@@ -656,7 +723,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
               config={config}
               audiences={audiences}
               traits={traits}
-              segments={segments}
+              segments={evaluatedOn?.segments ?? segments}
               onRewrite={() => go(REWRITE)}
             />
           )}
@@ -671,7 +738,11 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
               rewritingAll={rewritingAll}
               focusKey={focusSection}
               adversarial={adversarial}
-              adversarialOriginal={[clean.headline, clean.about].filter((t) => t.trim()).join("\n\n")}
+              applied={applied}
+              currentText={(key) => sectionText(clean, key) ?? ""}
+              onUse={applyRewrite}
+              onUndo={undoRewrite}
+              adversarialOriginal={[baseClean.headline, baseClean.about].filter((t) => t.trim()).join("\n\n")}
               adversarialSegments={segments}
               onGoal={(g) => {
                 setGoal(g);
@@ -697,6 +768,15 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
               onGenerate={() => void runRewrite()}
               onAdversarial={(enabled) => (enabled ? void runRewrite("adversarial") : setAdversarial(null))}
               onError={(message) => setError({ message })}
+            />
+          )}
+          {step === REWRITE && (
+            <StudioFinish
+              platform={platform}
+              used={platform === "linkedin" ? { count: applied.length, total: sections.length } : undefined}
+              confirmedFacts={confirmedFacts.length}
+              onCopyProfile={platform === "linkedin" ? copyProfile : undefined}
+              onOtherPlatform={() => switchPlatform(otherPlatform)}
             />
           )}
 

@@ -70,6 +70,7 @@ User decisions for this phase are listed in both docs; notably the "Simulated AI
 - Don't build ahead of a decision. When asked "what if…", answer and recommend; build when they say go.
 
 ## Gotchas
+- **Never run `npm run build` while `npm run dev` is running.** Both write under `.next/`, and the dev server then keeps serving an old stylesheet (the home page shows one full-screen photo with an unstyled link). Fix: stop the server, `rm -rf .next`, restart, and hard-refresh the browser (Cmd+Shift+R).
 - **Never chain a deploy after a push with `| tail` or `;`.** That's how my local code got deployed without a teammate's commits once (pipe hid the rejected push). Use `git push origin main && vercel --prod --yes`.
 - `.gitignore` must keep `.env*` then `!.env.example`. `.env.example` lists names only; it's the file that leaked a key.
 - zsh doesn't word-split variables: `G="git -c …"; $G commit` fails. Write the command out.

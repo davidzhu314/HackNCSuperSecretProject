@@ -1,6 +1,6 @@
 "use client";
 
-import { LoaderCircle, PenLine, Sparkles, TriangleAlert } from "lucide-react";
+import { Check, LoaderCircle, PenLine, Sparkles, TriangleAlert, Undo2 } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { VariationResult } from "@/components/RewriteComparison";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,8 @@ import type { IdentityFact, RewritableSection, RewriteResponse, RewriteSectionRe
 // LinkedIn rewrites, one card per section in LinkedIn order. Each card picks Direct or Narrative,
 // generates on demand, caches per style, and has its own FactCheck, edit-then-recheck, and Copy.
 // All requests go through PersonaFlow (which runs "Rewrite all" at most 3 at a time).
+// "Use this version" puts a rewrite into the profile (undoable); cards keep showing the original
+// text as "Original", and FactCheck keeps checking against it.
 
 export type SectionRewriteState = {
   style: RewriteStyle;
@@ -32,6 +34,12 @@ export function SectionRewrites(props: {
   adversarial: RewriteResponse | null;
   adversarialOriginal: string;
   adversarialSegments: Segment[];
+  /** Sections whose profile text is currently an accepted rewrite. */
+  applied: string[];
+  /** The section's text in the profile now (the accepted rewrite, if any). */
+  currentText: (key: string) => string;
+  onUse: (key: string, text: string) => void;
+  onUndo: (key: string) => void;
   onGoal: (goal: string) => void;
   onStyle: (key: string, style: RewriteStyle) => void;
   onGenerate: (key: string) => void;
@@ -42,6 +50,7 @@ export function SectionRewrites(props: {
 }) {
   const { sections, states, sourcesFor, confirmedFacts, goal, allStyle, rewritingAll, focusKey } = props;
   const { adversarial, adversarialOriginal, adversarialSegments } = props;
+  const { applied, currentText, onUse, onUndo } = props;
   const { onGoal, onStyle, onGenerate, onAllStyle, onRewriteAll, onAdversarial, onError } = props;
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -63,8 +72,8 @@ export function SectionRewrites(props: {
         </h2>
       </div>
       <p className="flow-description">
-        Each section is rewritten on its own, using only its text and the facts you confirmed. Paste each one back into
-        LinkedIn when you’re happy with it.
+        Each section is rewritten on its own, using only its text and the facts you confirmed. When you like a version,
+        choose “Use this version” to put it in your profile; you can undo it.
       </p>
 
       <div className="rewrite-options rewrite-all-row">
@@ -107,10 +116,25 @@ export function SectionRewrites(props: {
         {sections.map((section) => {
           const st = states[section.key] ?? { style: allStyle, results: {}, loading: null, error: null };
           const result = st.results[st.style];
+          const isApplied = applied.includes(section.key);
           return (
-            <article key={section.key} className="section-card" data-section={section.key} data-focused={focusKey === section.key}>
+            <article
+              key={section.key}
+              className="section-card"
+              data-section={section.key}
+              data-focused={focusKey === section.key}
+              data-applied={isApplied}
+            >
               <div className="section-card-head">
-                <h3 className="section-heading">{section.label}</h3>
+                <h3 className="section-heading">
+                  {section.label}
+                  {isApplied && (
+                    <span className="applied-badge">
+                      <Check size={12} />
+                      Using a rewrite
+                    </span>
+                  )}
+                </h3>
                 <div className="section-card-controls">
                   <label className="sr-only" htmlFor={`style-${section.key}`}>
                     Style for {section.label}
@@ -147,7 +171,16 @@ export function SectionRewrites(props: {
                   </Button>
                 </div>
               )}
-              {!result && !st.loading && !st.error && <p className="section-original">{section.text}</p>}
+              {!result && !st.loading && !st.error && !isApplied && <p className="section-original">{section.text}</p>}
+              {!result && !st.loading && isApplied && (
+                <div className="applied-text">
+                  <p className="section-original">{currentText(section.key)}</p>
+                  <Button variant="link" size="sm" onClick={() => onUndo(section.key)}>
+                    <Undo2 />
+                    Undo, back to your original
+                  </Button>
+                </div>
+              )}
               {result && !st.loading && (
                 <VariationResult
                   key={`${result.source}|${result.style}|${result.rewrite.content}`}
@@ -157,6 +190,12 @@ export function SectionRewrites(props: {
                   variation={{ style: result.style, rewrite: result.rewrite, warnings: result.warnings, styleWarnings: result.styleWarnings }}
                   source={result.source}
                   onError={onError}
+                  use={{
+                    current: currentText(section.key),
+                    applied: isApplied,
+                    onUse: (text) => onUse(section.key, text),
+                    onUndo: () => onUndo(section.key),
+                  }}
                 />
               )}
             </article>

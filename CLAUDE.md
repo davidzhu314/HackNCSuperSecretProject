@@ -23,6 +23,7 @@ Start with [HANDOFF.md](HANDOFF.md) (current state and next steps), then the ful
 - `src/components/`: `PersonaFlow` (the flow), `LinkedInEditor`, `ProfileClash`, `SectionRewrites` (LinkedIn), `ProfileInput`, `AudienceClash`, `RewriteComparison` (Hinge), `IdentityFacts`, `AudienceSelection`
 - `src/app/hub/` (`IdentityHub`): sources (LinkedIn PDF, photo) and real fact coverage; `src/app/studio/`: the flow (`?platform=hinge`). Home is the scenic LinkedIn/Hinge destinations; the studio shows the platform's photo with `TourStops` as the step rail (merged from the Lovable aero-persona-hub design)
 - `src/lib/identity-session.ts`: memory-only session shared by hub and studio (profiles, facts, photo); cleared on refresh, never sent or stored
+- `src/lib/profile-edits.ts`: "Use this version" (write a section rewrite into the profile, undo), copy-all text, Hinge fact coverage. The studio keeps the pre-rewrite profile as `original` so FactCheck and rewrites still check against the user's own words
 - `src/lib/`: `llm.ts`, `rubrics.ts`, `fact-guard.ts`, `segments.ts`, `schemas.ts`, `demo-data.ts`, `profile.ts` (sections, segment ids like `exp2-s1`, per-section FactCheck corpus, `factCoverage`), `linkedin-pdf.ts` (browser-side PDF import via `pdfjs-dist`)
 
 ## Rules

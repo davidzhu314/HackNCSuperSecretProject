@@ -1,13 +1,15 @@
 "use client";
 
-import { ArrowUpRight, Check, CircleAlert, FileUp, Fingerprint, IdCard, ImagePlus, LoaderCircle, Trash2 } from "lucide-react";
+import { ArrowUpRight, Check, CircleAlert, FileUp, Fingerprint, IdCard, ImagePlus, LoaderCircle, Sparkles, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { BrandMark } from "@/components/Chrome";
 import { Button } from "@/components/ui/button";
 import { DEMO_LINKEDIN_FACTS, DEMO_LINKEDIN_PROFILE } from "@/lib/demo-data";
 import { clearSession, setPhotoFile, updateSession, useIdentitySession } from "@/lib/identity-session";
+import type { HingePair } from "@/lib/persona-ui";
 import { factCoverage, rewritableSections, segmentProfile } from "@/lib/profile";
+import { hingeFactIds } from "@/lib/profile-edits";
 import { cleanProfile, importProfileFile } from "@/lib/profile-import";
 import type { IdentityFact, LinkedInProfile } from "@/lib/schemas";
 
@@ -29,7 +31,9 @@ export function IdentityHub() {
   const hingeAnswers = session.hinge?.filter((p) => p.answer.trim()).length ?? 0;
   const confirmed = session.facts.filter((f) => f.confirmed && f.text.trim());
   const own = !!linkedin && segmentProfile(linkedin).length > 0 && confirmed.length > 0;
-  const loadedDemo = !!linkedin && JSON.stringify(linkedin) === JSON.stringify(cleanProfile(DEMO_LINKEDIN_PROFILE));
+  // Before any "Use this version" rewrites; the demo is recognized by its original text.
+  const before = session.linkedinOriginal ? cleanProfile(session.linkedinOriginal) : null;
+  const loadedDemo = JSON.stringify(before ?? linkedin) === JSON.stringify(cleanProfile(DEMO_LINKEDIN_PROFILE));
 
   async function importPdf(file?: File) {
     if (!file) return;
@@ -38,7 +42,7 @@ export function IdentityHub() {
     try {
       const res = await importProfileFile(file);
       updateSession(
-        { linkedin: res.profile, linkedinImport: { fileName: file.name, warnings: res.warnings } },
+        { linkedin: res.profile, linkedinOriginal: null, linkedinImport: { fileName: file.name, warnings: res.warnings } },
         { external: true },
       );
     } catch (err) {
@@ -194,8 +198,10 @@ export function IdentityHub() {
         </section>
       </div>
 
+      <FactsCard facts={confirmed} linkedin={linkedin} hinge={session.hinge} />
+
       {own && linkedin ? (
-        <Coverage profile={linkedin} facts={confirmed} mode={loadedDemo ? "demo" : "own"} />
+        <Coverage profile={linkedin} before={before} facts={confirmed} mode={loadedDemo ? "demo" : "own"} />
       ) : (
         <Coverage profile={DEMO_LINKEDIN_PROFILE} facts={DEMO_LINKEDIN_FACTS.filter((f) => f.confirmed)} mode="example" />
       )}
@@ -213,18 +219,92 @@ export function IdentityHub() {
 }
 
 /**
+ * Your facts: the one set of confirmed facts every platform draws on, and where each shows up.
+ * LinkedIn by section, Hinge in the answers; both by the same deterministic word overlap.
+ */
+function FactsCard(props: { facts: IdentityFact[]; linkedin: LinkedInProfile | null; hinge: HingePair[] | null }) {
+  const { facts, linkedin, hinge } = props;
+  const hasHinge = !!hinge?.some((p) => p.answer.trim());
+  const linkedinCoverage = linkedin ? factCoverage(linkedin, facts) : null;
+  const labelOf = new Map(linkedinCoverage?.bySection.map((s) => [s.sectionKey, s.label]));
+  const onHinge = hingeFactIds(hinge, facts);
+
+  return (
+    <section className="hub-card hub-facts-card" aria-labelledby="facts-h">
+      <div className="results-heading">
+        <h2 id="facts-h" className="section-heading">
+          <Fingerprint />
+          Your facts
+        </h2>
+        <span className="empty-note">
+          {facts.length} confirmed · shared by LinkedIn and Hinge
+        </span>
+      </div>
+      {!facts.length ? (
+        <p className="empty-note">
+          No confirmed facts yet. Confirm them in the studio (step 3, Identity DNA); they follow you to every platform,
+          and rewrites may only use these.
+        </p>
+      ) : (
+        <ul className="hub-facts">
+          {facts.map((fact) => {
+            const keys = linkedinCoverage?.perFact.find((f) => f.factId === fact.id)?.sectionKeys ?? [];
+            return (
+              <li key={fact.id} className="hub-fact hub-fact-wide">
+                <Check size={15} aria-hidden="true" />
+                <div>
+                  <p>{fact.text}</p>
+                  <div className="fact-platforms">
+                    {linkedin && (
+                      <span className="fact-platform" data-found={keys.length > 0}>
+                        <strong>LinkedIn:</strong>{" "}
+                        {keys.length ? keys.map((k) => labelOf.get(k) ?? k).join(", ") : "not yet"}
+                      </span>
+                    )}
+                    {hasHinge && (
+                      <span className="fact-platform" data-found={onHinge.has(fact.id)}>
+                        <strong>Hinge:</strong> {onHinge.has(fact.id) ? "in your answers" : "not yet"}
+                      </span>
+                    )}
+                    {!linkedin && !hasHinge && <span className="empty-note">Add a profile to see where it appears.</span>}
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {facts.length > 0 && (
+        <p className="empty-note hub-fine-print">
+          Approximate: a fact counts when most of its words (and all its numbers) appear. A fact worded very differently
+          isn’t counted.
+        </p>
+      )}
+    </section>
+  );
+}
+
+/**
  * Which confirmed facts show up in which LinkedIn section. Real counts only.
  * "own": the user's profile; "demo": the user loaded the demo persona; "example": nothing of
- * the user's yet, so the demo persona is shown as an example.
+ * the user's yet, so the demo persona is shown as an example. `before` is the profile before
+ * any "Use this version" rewrites, for a before → after count.
  */
-function Coverage(props: { profile: LinkedInProfile; facts: IdentityFact[]; mode: "own" | "demo" | "example" }) {
-  const { profile, facts, mode } = props;
+function Coverage(props: {
+  profile: LinkedInProfile;
+  before?: LinkedInProfile | null;
+  facts: IdentityFact[];
+  mode: "own" | "demo" | "example";
+}) {
+  const { profile, before, facts, mode } = props;
   const demo = mode !== "own";
   const coverage = factCoverage(profile, facts);
+  const earlier = before ? factCoverage(before, facts) : null;
   const sections = coverage.bySection;
   const labelOf = new Map(sections.map((s) => [s.sectionKey, s.label]));
   const missing = coverage.perFact.filter((f) => !f.sectionKeys.length);
   const total = coverage.summary.confirmed;
+  const gained = earlier ? coverage.summary.covered - earlier.summary.covered : 0;
 
   return (
     <section aria-labelledby="coverage" className="hub-card hub-coverage">
@@ -237,18 +317,27 @@ function Coverage(props: { profile: LinkedInProfile; facts: IdentityFact[]; mode
       </div>
       <p className="status-note">
         <Check size={14} />
-        {coverage.summary.covered} of {total} confirmed facts appear on {demo ? "the demo" : "your"} LinkedIn
+        {earlier && earlier.summary.covered !== coverage.summary.covered
+          ? `${earlier.summary.covered} → ${coverage.summary.covered}`
+          : coverage.summary.covered}{" "}
+        of {total} confirmed facts appear on {demo ? "the demo" : "your"} LinkedIn
+        {earlier ? " (before → after the rewrites you used)" : ""}
       </p>
+      {gained > 0 && (
+        <p className="hub-gain">
+          <Sparkles size={14} />
+          The rewrites you used added {gained} {gained === 1 ? "fact" : "facts"} to your profile.
+        </p>
+      )}
       <p className="empty-note">
-        {demo
-          ? mode === "example"
-            ? "An example with the demo persona. Add your LinkedIn and confirm your facts in the studio to see your own. Counts only, no scores."
-            : "You loaded the demo persona in the studio. Counts only, no scores."
-          : "How many of your confirmed facts each section mentions. Counts only, no scores; a fact worded very differently isn’t counted."}
+        {mode === "example"
+          ? "An example with the demo persona. Add your LinkedIn and confirm your facts in the studio to see your own. Counts only, no scores."
+          : "How many of your confirmed facts each section mentions. Counts only, no scores."}
       </p>
       <ul className="hub-bars">
         {sections.map((s) => {
           const n = s.factIds.length;
+          const was = earlier?.bySection.find((b) => b.sectionKey === s.sectionKey)?.factIds.length;
           return (
             <li key={s.sectionKey} className="hub-bar-row" data-empty={n === 0}>
               <span className="hub-bar-label">{s.label}</span>
@@ -256,6 +345,7 @@ function Coverage(props: { profile: LinkedInProfile; facts: IdentityFact[]; mode
                 <span className="hub-bar-fill" style={{ width: `${total ? (n / total) * 100 : 0}%` }} />
               </span>
               <span className="hub-bar-count">
+                {was !== undefined && was !== n ? `${was} → ` : ""}
                 {n} of {total}
               </span>
             </li>
@@ -263,31 +353,34 @@ function Coverage(props: { profile: LinkedInProfile; facts: IdentityFact[]; mode
         })}
       </ul>
 
-      <h3 className="section-heading hub-subheading">Each fact</h3>
-      <ul className="hub-facts">
-        {coverage.perFact.map((c) => {
-          const fact = facts.find((f) => f.id === c.factId);
-          return (
-            <li key={c.factId} className="hub-fact" data-missing={!c.sectionKeys.length}>
-              {c.sectionKeys.length ? <Check size={15} aria-hidden="true" /> : <CircleAlert size={15} aria-hidden="true" />}
-              <div>
-                <p>{fact?.text}</p>
-                <p className="empty-note">
-                  {c.sectionKeys.length
-                    ? `In: ${c.sectionKeys.map((k) => labelOf.get(k) ?? k).join(", ")}`
-                    : "Not on LinkedIn yet"}
-                </p>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+      {mode === "example" && (
+        <>
+          <h3 className="section-heading hub-subheading">Each fact</h3>
+          <ul className="hub-facts">
+            {coverage.perFact.map((c) => {
+              const fact = facts.find((f) => f.id === c.factId);
+              return (
+                <li key={c.factId} className="hub-fact" data-missing={!c.sectionKeys.length}>
+                  {c.sectionKeys.length ? <Check size={15} aria-hidden="true" /> : <CircleAlert size={15} aria-hidden="true" />}
+                  <div>
+                    <p>{fact?.text}</p>
+                    <p className="empty-note">
+                      {c.sectionKeys.length
+                        ? `In: ${c.sectionKeys.map((k) => labelOf.get(k) ?? k).join(", ")}`
+                        : "Not on LinkedIn yet"}
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
       {missing.length > 0 && mode !== "example" && (
         <div className="action-band">
           <span className="empty-note">
             {missing.length === 1 ? "1 confirmed fact isn’t" : `${missing.length} confirmed facts aren’t`} on{" "}
-            {demo ? "the demo’s" : "your"} LinkedIn.
-            A rewrite can add {missing.length === 1 ? "it" : "them"}.
+            {demo ? "the demo’s" : "your"} LinkedIn. A rewrite can add {missing.length === 1 ? "it" : "them"}.
           </span>
           <Button variant="aero" nativeButton={false} render={<Link href="/studio?platform=linkedin" />}>
             Rewrite LinkedIn <ArrowUpRight />

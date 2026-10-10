@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Clipboard, LoaderCircle, PenLine, ReceiptText, ShieldCheck, Sparkles, TriangleAlert } from "lucide-react";
+import { Check, Clipboard, LoaderCircle, PenLine, ReceiptText, ShieldCheck, Sparkles, TriangleAlert, Undo2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { checkRewrite } from "@/lib/fact-guard";
@@ -125,8 +125,13 @@ export function VariationResult(props: {
   variation: RewriteVariation;
   source: ResultSource;
   onError: (message: string) => void;
+  /**
+   * LinkedIn sections: put this version (as edited) into the profile. `current` is the section's
+   * profile text now; `applied` says whether it is an accepted rewrite.
+   */
+  use?: { current: string; applied: boolean; onUse: (text: string) => void; onUndo: () => void };
 }) {
-  const { original, segments, confirmedFacts, variation, source, onError } = props;
+  const { original, segments, confirmedFacts, variation, source, onError, use } = props;
   const { rewrite } = variation;
   const [text, setText] = useState(rewrite.content);
   const [editing, setEditing] = useState(false);
@@ -175,6 +180,8 @@ export function VariationResult(props: {
 
   const factText = new Map(confirmedFacts.map((fact) => [fact.id, fact.text]));
   const usedFactIds = [...new Set(rewrite.usedFactIds)];
+
+  const inUse = !!use?.applied && use.current.trim() === text.trim();
 
   async function copy() {
     try {
@@ -343,11 +350,27 @@ export function VariationResult(props: {
         </section>
       </div>
       <div className="action-band">
-        <span className="empty-note">Review your words before sharing them.</span>
-        <Button variant="aero" onClick={() => void copy()}>
-          {copied ? <Check /> : <Clipboard />}
-          {copied ? "Copied" : warnings.length ? "Copy anyway" : "Copy"}
-        </Button>
+        <span className="empty-note">
+          {use?.applied && inUse ? "This version is in your profile." : "Review your words before sharing them."}
+        </span>
+        <div className="action-buttons">
+          {use?.applied && (
+            <Button variant="ghost" onClick={use.onUndo}>
+              <Undo2 />
+              Undo
+            </Button>
+          )}
+          <Button variant={use ? "glass" : "aero"} onClick={() => void copy()}>
+            {copied ? <Check /> : <Clipboard />}
+            {copied ? "Copied" : warnings.length ? "Copy anyway" : "Copy"}
+          </Button>
+          {use && (
+            <Button variant="aero" disabled={inUse} onClick={() => use.onUse(text)}>
+              <Check />
+              {inUse ? "In your profile" : warnings.length ? "Use anyway" : "Use this version"}
+            </Button>
+          )}
+        </div>
       </div>
     </>
   );
