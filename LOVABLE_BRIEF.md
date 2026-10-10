@@ -8,7 +8,7 @@ Paste everything below the line into Lovable. It describes the screens to build 
 
 **PERSONA**: "One identity. Every platform. Authentically you."
 
-A web app that helps someone improve their LinkedIn profile (later also Hinge) **without inventing anything about them**. The user pastes their profile text, ticks which facts about themselves are true, picks some simulated audiences, and gets:
+A web app that helps someone improve their LinkedIn profile (later also Hinge) **without inventing anything about them**. The user pastes their profile text, agrees to send it to the AI, ticks which facts about themselves are true, picks some simulated audiences, and gets:
 1. feedback from those audiences, where every point is linked to the sentence it's about, and
 2. a rewritten version that only uses facts they confirmed, checked by "FactCheck", which flags anything the AI made up.
 
@@ -40,17 +40,18 @@ Principle shown in the UI: **improve expression, not invent identity.**
 - Button **"Load demo persona"** fills the fields from `linkedinInput` and shows a small note "Fictitious demo persona".
 - Button **"Continue"** (disabled while About is empty).
 
-### 2. Identity DNA (component name: `IdentityFacts`)
+### 2. Consent
+- Plain explanation of what is sent (the pasted text + confirmed facts), to whom (OpenRouter and the underlying model provider), and that nothing is saved.
+- Consent comes **before** the facts screen, because suggesting facts already sends the text to the AI.
+- Two buttons: **"I agree, continue"** and **"Go back"**. Declining must not move forward.
+
+### 3. Identity DNA (component name: `IdentityFacts`)
 - Explains: "Tick the facts that are true about you. Only ticked facts can be used in a rewrite."
 - List of facts with checkboxes (`facts`). Each fact text is editable inline. A small tag shows where it came from ("Suggested by AI" for `source: "extracted"`, "Added by you" for `source: "user"`).
 - "Add a fact" input + button.
 - Suggested facts start **unticked**. Never pre-tick an AI-suggested fact.
 - Empty state: "No concrete facts found in your text. Add a few true facts about yourself."
 - Continue button.
-
-### 3. Consent
-- Plain explanation of what is sent (the pasted text + confirmed facts), to whom (OpenRouter and the underlying model provider), and that nothing is saved.
-- Two buttons: **"I agree, continue"** and **"Go back"**. Declining must not move forward.
 
 ### 4. Choose audiences and traits
 - Pick 1-3 audiences and 1-5 traits from `platforms.linkedin` (show `label`, keep `id` internally). Default: all 3 audiences, first 3 traits.
