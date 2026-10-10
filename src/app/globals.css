@@ -369,3 +369,7 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .receipt-status[data-status=untraced] { background: var(--card); color: var(--destructive); }
 .receipt-row .source-segment { border-bottom: none; padding: 8px 10px; margin-top: 4px; border-radius: 4px; }
 .receipt-row .missing-evidence { margin: 6px 0 0; border-radius: 4px; }
+/* Consent once per browser */
+.privacy-badge .withdraw-link { height: auto; padding: 0 0 0 8px; font-size: 11px; color: var(--muted-foreground); text-decoration: underline; }
+.consent-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+@media (max-width: 680px) { .consent-actions { flex-direction: column-reverse; align-items: stretch; } }

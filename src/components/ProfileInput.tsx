@@ -15,6 +15,10 @@ export function ProfileInput(props: {
   linkedin: LinkedInInput;
   hinge: HingePair[];
   demo: boolean;
+  /** Sample results exist only for the LinkedIn demo persona. They send nothing, so need no consent. */
+  canUseSample: boolean;
+  sampleMode: boolean;
+  onSampleModeChange: (enabled: boolean) => void;
   canContinue: boolean;
   onLinkedInChange: (input: LinkedInInput) => void;
   onHingeChange: (pairs: HingePair[]) => void;
@@ -22,8 +26,21 @@ export function ProfileInput(props: {
   onContinue: () => void;
   onError: (message: string) => void;
 }) {
-  const { platform, linkedin, hinge, demo, canContinue, onLinkedInChange, onHingeChange, onLoadDemo, onContinue, onError } =
-    props;
+  const {
+    platform,
+    linkedin,
+    hinge,
+    demo,
+    canUseSample,
+    sampleMode,
+    onSampleModeChange,
+    canContinue,
+    onLinkedInChange,
+    onHingeChange,
+    onLoadDemo,
+    onContinue,
+    onError,
+  } = props;
   const [mode, setMode] = useState<"text" | "file">("text");
   const [filename, setFilename] = useState("");
   const [dragging, setDragging] = useState(false);
@@ -223,6 +240,15 @@ export function ProfileInput(props: {
             Load demo persona
           </Button>
           {demo && <p className="demo-note">Fictitious demo persona</p>}
+          {canUseSample && (
+            <label className="sample-toggle">
+              <input type="checkbox" checked={sampleMode} onChange={(event) => onSampleModeChange(event.target.checked)} />
+              <span>
+                Use sample results instead. Nothing is sent to the AI, and every result is labeled &ldquo;Sample
+                result&rdquo;.
+              </span>
+            </label>
+          )}
           {platform === "linkedin" && (
             <details className="job-details">
               <summary>Target a specific job</summary>
@@ -245,7 +271,9 @@ export function ProfileInput(props: {
         </div>
       </div>
       <div className="action-band">
-        <span className="empty-note">Next: agree to send your text to the AI.</span>
+        <span className="empty-note">
+          {sampleMode && canUseSample ? "Sample mode: nothing will be sent." : "Next: confirm the facts about you."}
+        </span>
         <Button variant="aero" disabled={!canContinue} onClick={onContinue}>
           Continue <ArrowRight />
         </Button>

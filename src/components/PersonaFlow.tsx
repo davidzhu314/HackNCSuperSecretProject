@@ -12,6 +12,7 @@ import { ProfileInput, type LinkedInInput } from "@/components/ProfileInput";
 import { RewriteComparison } from "@/components/RewriteComparison";
 import { Button } from "@/components/ui/button";
 import { errorMessage, evaluateProfile, extractFacts, rewriteProfile } from "@/lib/api-client";
+import { saveConsent, useStoredConsent, withdrawConsent } from "@/lib/consent";
 import { DEMO_HINGE_FACTS, DEMO_HINGE_INPUT, DEMO_LINKEDIN_FACTS, DEMO_LINKEDIN_INPUT } from "@/lib/demo-data";
 import { emptyHingePairs, HINGE_PROMPTS, mergeFacts, MAX_HINGE_ANSWER, MAX_HINGE_PROMPTS, type HingePair } from "@/lib/persona-ui";
 import { PLATFORM_CONFIGS } from "@/lib/rubrics";
@@ -19,8 +20,9 @@ import { LIMITS, type EvaluateResponse, type IdentityFact, type Platform, type R
 import { segmentHinge, segmentLinkedIn } from "@/lib/segments";
 
 // Owns the whole studio: state, API calls, and the Lovable page layout. Screens are props-only.
-// Rules enforced here: nothing is sent to the AI before consent, only confirmed facts reach the
-// rewrite, and sample mode is only offered for the LinkedIn demo persona (the only one with cached results).
+// Rules enforced here: nothing is sent to the AI before consent (asked once per browser, remembered
+// as a flag), only confirmed facts reach the rewrite, and sample mode, which sends nothing and so
+// needs no consent, is only offered for the LinkedIn demo persona (the only one with cached results).
 
 const STEPS = ["Your profile", "Consent", "Identity DNA", "Audience lenses", "Audience Clash", "Rewrite + FactCheck"];
 const [INPUT, CONSENT, FACTS, AUDIENCES, CLASH, REWRITE] = [0, 1, 2, 3, 4, 5];
@@ -55,7 +57,7 @@ export function PersonaFlow() {
   const [hinge, setHinge] = useState<HingePair[]>(emptyHingePairs);
   const [usingDemo, setUsingDemo] = useState(false);
   const [sampleMode, setSampleMode] = useState(false);
-  const [consent, setConsent] = useState(false);
+  const consent = useStoredConsent();
 
   const [facts, setFacts] = useState<IdentityFact[]>([]);
   const [extracting, setExtracting] = useState(false);
@@ -86,6 +88,8 @@ export function PersonaFlow() {
   const confirmedFacts = facts.filter((f) => f.confirmed && f.text.trim());
   const canUseSample = usingDemo && platform === "linkedin";
   const sample = canUseSample && sampleMode;
+  /** May this run proceed? Sample mode sends nothing, so it never needs consent. */
+  const allowed = sample || consent;
   const loading = extracting || evaluating || rewriting;
 
   const inputError = (() => {
@@ -105,13 +109,12 @@ export function PersonaFlow() {
     setError(null);
   }
 
-  /** New text means new consent, new suggestions, and new results. Facts the user typed are kept. */
+  /** New text means new suggestions and new results. Facts the user typed are kept; consent is remembered. */
   function resetResults() {
     requestId.current++;
     setExtracting(false);
     setEvaluating(false);
     setRewriting(false);
-    setConsent(false);
     setFurthest(INPUT);
     setEvaluation(null);
     setRewrite(null);
@@ -179,9 +182,9 @@ export function PersonaFlow() {
     setError(null);
   }
 
-  // `consented` is passed explicitly from the consent click, before React has applied setConsent(true).
-  async function runExtract(consented = consent) {
-    if (!consented) return;
+  // `ok` is passed explicitly from the consent click, before the stored flag has re-rendered.
+  async function runExtract(ok = allowed) {
+    if (!ok) return;
     const id = ++requestId.current;
     setExtracting(true);
     setError(null);
@@ -200,9 +203,15 @@ export function PersonaFlow() {
     }
   }
 
-  function goToFacts(consented = consent) {
+  function goToFacts(ok = allowed) {
     go(FACTS);
-    if (extractedFor.current !== sourceKey) void runExtract(consented);
+    if (extractedFor.current !== sourceKey) void runExtract(ok);
+  }
+
+  /** Forget consent in this browser. Results already on screen stay; the next AI call asks again. */
+  function withdraw() {
+    withdrawConsent();
+    if (!sample && step > CONSENT) go(CONSENT);
   }
 
   function continueFromInput() {
@@ -210,13 +219,17 @@ export function PersonaFlow() {
       setError({ message: inputError });
       return;
     }
-    if (consent) goToFacts();
+    if (allowed) goToFacts();
     else go(CONSENT);
   }
 
   async function runEvaluate() {
-    if (!consent || !audiences.length || !traits.length) {
-      setError({ message: "Confirm consent and choose at least one audience and trait." });
+    if (!allowed) {
+      go(CONSENT);
+      return;
+    }
+    if (!audiences.length || !traits.length) {
+      setError({ message: "Choose at least one audience and trait." });
       return;
     }
     const id = ++requestId.current;
@@ -246,8 +259,12 @@ export function PersonaFlow() {
   }
 
   async function runRewrite(mode: "normal" | "adversarial" = "normal") {
-    if (!consent || !confirmedFacts.length) {
-      setError({ message: "Confirm at least one fact and agree to continue first." });
+    if (!allowed) {
+      go(CONSENT);
+      return;
+    }
+    if (!confirmedFacts.length) {
+      setError({ message: "Confirm at least one fact first." });
       return;
     }
     const id = ++requestId.current;
@@ -304,7 +321,12 @@ export function PersonaFlow() {
           </div>
           <span className="privacy-badge">
             <ShieldCheck size={13} />
-            {sample ? "Sample mode · nothing sent or stored" : "Sent only after consent · nothing stored"}
+            {sample ? "Sample mode · nothing sent or stored" : consent ? "You agreed to send text to the AI · nothing stored" : "Nothing sent until you agree · nothing stored"}
+            {consent && (
+              <Button variant="link" className="withdraw-link" onClick={withdraw}>
+                Withdraw consent
+              </Button>
+            )}
           </span>
         </div>
         <div className="studio-body">
@@ -390,6 +412,9 @@ export function PersonaFlow() {
               linkedin={linkedin}
               hinge={hinge}
               demo={usingDemo}
+              canUseSample={canUseSample}
+              sampleMode={sampleMode}
+              onSampleModeChange={setSampleMode}
               canContinue={!inputError}
               onLinkedInChange={changeLinkedIn}
               onHingeChange={changeHinge}
@@ -400,13 +425,12 @@ export function PersonaFlow() {
           )}
           {step === CONSENT && (
             <ConsentScreen
-              canUseSample={canUseSample}
-              sampleMode={sampleMode}
-              onSampleModeChange={setSampleMode}
+              alreadyAgreed={consent}
               onAgree={() => {
-                setConsent(true);
+                saveConsent();
                 goToFacts(true);
               }}
+              onWithdraw={withdraw}
               onBack={() => go(INPUT)}
             />
           )}
@@ -488,8 +512,9 @@ export function PersonaFlow() {
         </footer>
         {help && (
           <p className="help-note">
-            Nothing is sent until you agree on the consent step. After that, your profile text and confirmed facts go
-            to OpenRouter and the underlying AI model provider; nothing is stored by this app. Feedback is written
+            Nothing is sent until you agree, once per browser (only that yes is remembered; withdraw it any time
+            from the top bar). After that, your profile text and confirmed facts go to OpenRouter and the
+            underlying AI model provider; nothing else is stored by this app. Feedback is written
             by an AI model, not real people. Rewrites may only use facts you confirm, and FactCheck flags
             numbers, names, and stronger verbs it can&apos;t trace to your words. Sample results are labeled.
             Refreshing clears your session.
