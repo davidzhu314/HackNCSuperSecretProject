@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     "Thoughtful, AI-assisted profile feedback for LinkedIn and Hinge. Improve the expression, keep the identity yours.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col">{children}</body>
