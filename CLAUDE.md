@@ -1,6 +1,6 @@
 # PERSONA (hackathon app)
 
-Full spec: [SPEC.md](SPEC.md). Read it before building anything. (The earlier SkinOS idea is archived in `archive/SKINOS-SPEC.md`; ignore it.)
+Start with [HANDOFF.md](HANDOFF.md) (current state and next steps), then the full spec: [SPEC.md](SPEC.md). Read [AGENTS.md](AGENTS.md) too: this Next.js version is newer than most training data. (The earlier SkinOS idea is archived in `archive/SKINOS-SPEC.md`; ignore it.)
 
 ## Idea
 **PERSONA** — "One identity. Every platform. Authentically you." Users paste a LinkedIn or Hinge profile, confirm a few true facts about themselves, pick simulated audiences, and get evidence-linked feedback plus rewrites grounded only in confirmed facts. A deterministic **FactCheck** layer flags invented numbers, entities, and inflated verbs. Principle: improve expression, not invent identity.
@@ -47,7 +47,7 @@ Full spec: [SPEC.md](SPEC.md). Read it before building anything. (The earlier Sk
 - [x] `gh`, `uv`, `vercel` CLIs installed and logged in (davidzhu314)
 - [x] Pushed to private GitHub repo davidzhu314/HackNCSuperSecretProject (`origin/main`, merged with its initial README commit)
 - [x] Vercel project linked and hello-world deployed (https://hackathon-app-nu.vercel.app). Still need `OPENROUTER_API_KEY` / `OPENROUTER_MODEL` added to Vercel env.
-- [ ] OpenRouter key pasted into `.env.local` (file created, values blank) and model chosen. (Switched from Gemini direct: the Google AI Studio key returned 401 on every endpoint.)
+- [x] OpenRouter key in `.env.local` and verified (`scripts/llm_check.py` passes with `anthropic/claude-haiku-5.5`). Switched from Gemini direct: the Google AI Studio key returned 401 on every endpoint.
 - [x] shadcn/ui (button, card, tabs, checkbox, badge, textarea, label), zod, `openai`, `diff`, lucide-react installed
 - [ ] Schemas agreed (`schemas.ts`) and demo persona (`demo-data.ts`)
 - [ ] LinkedIn flow end to end (hour 12 checkpoint)
