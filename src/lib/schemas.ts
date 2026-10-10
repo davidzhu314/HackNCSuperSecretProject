@@ -352,6 +352,9 @@ export const ModelRewriteSchema = z.object({
   narrative: ModelRewriteVariantSchema,
 });
 
+/** LinkedIn by sections: one section, one style per call. */
+export const ModelSectionRewriteSchema = ModelRewriteVariantSchema;
+
 /** Hinge: each variant returns one answer per original answer, keyed by segment id. */
 const ModelHingeRewriteVariantSchema = z.object({
   answers: z.array(z.object({ segmentId: z.string(), text: z.string() })),
