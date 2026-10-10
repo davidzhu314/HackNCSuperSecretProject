@@ -62,8 +62,8 @@ export const SAMPLE_EVALUATE: EvaluateResponse = {
   warnings: [],
   critiques: [
     {
-      audience: "Startup founder",
-      trait: "Ownership and impact",
+      audience: "startup_founder",
+      trait: "ownership_impact",
       rating: "weak",
       segmentIds: ["s3"],
       missingEvidence: false,
@@ -71,8 +71,8 @@ export const SAMPLE_EVALUATE: EvaluateResponse = {
       suggestion: "Name one project and your specific part in it.",
     },
     {
-      audience: "Technical recruiter",
-      trait: "Technical specificity",
+      audience: "technical_recruiter",
+      trait: "technical_specificity",
       rating: "not_evident",
       segmentIds: [],
       missingEvidence: true,
@@ -80,8 +80,8 @@ export const SAMPLE_EVALUATE: EvaluateResponse = {
       suggestion: "Add the technologies you have actually used, drawn from your confirmed facts.",
     },
     {
-      audience: "Research or hiring lead",
-      trait: "Clarity",
+      audience: "research_lead",
+      trait: "clarity",
       rating: "weak",
       segmentIds: ["s1", "s2"],
       missingEvidence: false,

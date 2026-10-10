@@ -167,3 +167,31 @@ export type PlatformConfig = {
   audiences: { id: string; label: string; description: string }[];
   traits: { id: string; label: string; description: string }[];
 };
+
+// ---------- What the model returns (before server-side checks) ----------
+// Kept free of length bounds because strict JSON-schema mode doesn't support every keyword.
+// Server code validates and clamps against the bounded schemas above afterwards.
+
+export const ModelExtractSchema = z.object({
+  facts: z.array(z.string()),
+});
+
+export const ModelEvaluateSchema = z.object({
+  critiques: z.array(
+    z.object({
+      audience: z.string(),
+      trait: z.string(),
+      rating: RatingSchema,
+      segmentIds: z.array(z.string()),
+      missingEvidence: z.boolean(),
+      rationale: z.string(),
+      suggestion: z.string(),
+    }),
+  ),
+});
+
+export const ModelRewriteSchema = z.object({
+  content: z.string(),
+  usedFactIds: z.array(z.string()),
+  changeSummary: z.array(z.string()),
+});
