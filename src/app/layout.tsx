@@ -1,16 +1,20 @@
 import type { Metadata } from "next";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
+// Self-hosted by next/font, so no request goes to Google Fonts at runtime.
+const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-jakarta" });
+
 export const metadata: Metadata = {
-  title: "PERSONA — One identity. Every platform.",
+  title: "Personify — One identity. Every platform.",
   description:
-    "Thoughtful, AI-assisted profile feedback for LinkedIn and Hinge. Improve the expression, keep the identity yours.",
+    "Simulated audience feedback and fact-checked rewrites for LinkedIn and Hinge profiles. Improve expression, not invent identity.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="h-full antialiased">
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="en" className={`${jakarta.variable} antialiased`}>
+      <body>{children}</body>
     </html>
   );
 }

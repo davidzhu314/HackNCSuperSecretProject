@@ -204,3 +204,10 @@ export const DEMO_HINGE_FACTS: IdentityFact[] = [
   { id: "h2", text: "I enjoy making pancakes on weekends.", confirmed: true, source: "user" },
   { id: "h3", text: "I like walking without a set plan.", confirmed: true, source: "user" },
 ];
+
+/**
+ * Intentional adversarial test for Hinge: what a model might write when told to "sound more impressive".
+ * The UI shows it as a labeled sample; its warnings come from running the real FactCheck on it.
+ */
+export const SAMPLE_HINGE_ADVERSARIAL_CONTENT =
+  "I have reviewed 50 food trucks across Europe as a professional food critic.\n\nI won a national pancake championship and led a hiking club every Sunday.";

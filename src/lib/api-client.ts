@@ -1,5 +1,7 @@
+import { checkRewrite } from "./fact-guard";
 import {
   SAMPLE_ADVERSARIAL_REWRITE,
+  SAMPLE_HINGE_ADVERSARIAL_CONTENT,
   SAMPLE_EVALUATE,
   SAMPLE_EXTRACT,
   SAMPLE_REWRITE,
@@ -101,7 +103,17 @@ export async function rewriteProfile(
   req: RewriteRequest,
   opts: { sample?: boolean; adversarial?: boolean } = {},
 ): Promise<RewriteResponse> {
-  if (opts.adversarial) return pause().then(() => SAMPLE_ADVERSARIAL_REWRITE);
+  if (opts.adversarial) {
+    await pause();
+    if (req.platform === "linkedin") return SAMPLE_ADVERSARIAL_REWRITE;
+    const rewrite = {
+      platform: req.platform,
+      content: SAMPLE_HINGE_ADVERSARIAL_CONTENT,
+      usedFactIds: [],
+      changeSummary: ["Intentionally embellished test case."],
+    };
+    return { source: "sample", rewrite, warnings: checkRewrite({ rewrite, segments: req.segments, facts: req.facts }) };
+  }
   if (opts.sample) return pause().then(() => SAMPLE_REWRITE);
   return post("/api/rewrite", req, RewriteResponseSchema);
 }

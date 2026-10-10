@@ -1,99 +1,87 @@
 "use client";
 
+import { Check, Clipboard, LoaderCircle, ShieldCheck, Sparkles, TriangleAlert } from "lucide-react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { ErrorNotice, SourceBadge, WARNING_LABEL } from "@/components/labels";
 import { checkRewrite } from "@/lib/fact-guard";
-import type { GuardWarning, IdentityFact, RewriteResponse, RewriteTone, Segment } from "@/lib/schemas";
-import { diffWordsWithSpace } from "diff";
-import { useState, type ReactNode } from "react";
-
-const TONES: { id: RewriteTone; label: string }[] = [
-  { id: "closer_to_my_words", label: "Closer to my words" },
-  { id: "balanced", label: "Balanced" },
-  { id: "more_playful", label: "More playful" },
-];
-
-function escapeRegex(s: string) {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-/** Wrap flagged words in <mark>. Fact/segment-id warnings aren't in the text, so they're skipped. */
-function withFlags(text: string, warnings: GuardWarning[]): ReactNode {
-  const terms = warnings
-    .filter((w) => w.kind !== "invalid_fact_id" && w.kind !== "unverified_segment" && w.text.trim())
-    .map((w) => escapeRegex(w.text))
-    .sort((a, b) => b.length - a.length);
-  if (!terms.length) return text;
-  const re = new RegExp(`(${terms.join("|")})`, "gi");
-  return text.split(re).map((part, i) =>
-    i % 2 === 1 ? (
-      <mark key={i} className="rounded bg-red-200 px-0.5 dark:bg-red-800/70">{part}</mark>
-    ) : (
-      part
-    ),
-  );
-}
+import { WARNING_LABEL, wordDiff } from "@/lib/persona-ui";
+import { LIMITS, type IdentityFact, type RewriteResponse, type RewriteTone, type Segment } from "@/lib/schemas";
 
 export function RewriteComparison(props: {
   original: string;
   segments: Segment[];
   confirmedFacts: IdentityFact[];
+  result: RewriteResponse | null;
   tone: RewriteTone;
   goal: string;
-  onOptionsChange: (opts: { tone: RewriteTone; goal: string }) => void;
-  onGenerate: () => void;
-  onShowAdversarial: () => void;
-  result: RewriteResponse | null;
   loading: boolean;
-  error: string | null;
+  adversarial: boolean;
+  onTone: (tone: RewriteTone) => void;
+  onGoal: (goal: string) => void;
+  onGenerate: () => void;
+  onAdversarial: (enabled: boolean) => void;
+  onError: (message: string) => void;
 }) {
-  const { tone, goal, onOptionsChange, onGenerate, onShowAdversarial, result, loading, error } = props;
-
+  const { result, tone, goal, loading, adversarial, confirmedFacts, onTone, onGoal, onGenerate, onAdversarial } = props;
   return (
-    <section className="space-y-5">
-      <div className="space-y-3 rounded-lg border p-3">
-        <fieldset className="flex flex-wrap gap-2">
-          <legend className="mb-1 text-sm font-medium">Tone</legend>
-          {TONES.map((t) => (
-            <Button
-              key={t.id}
-              type="button"
-              size="sm"
-              variant={tone === t.id ? "default" : "outline"}
-              aria-pressed={tone === t.id}
-              onClick={() => onOptionsChange({ tone: t.id, goal })}
-            >
-              {t.label}
-            </Button>
-          ))}
-        </fieldset>
-        <div className="space-y-1">
-          <Label htmlFor="goal">Goal (optional)</Label>
+    <section className="flow-section fade-in">
+      <div className="results-heading">
+        <h2 className="flow-title">
+          <Sparkles />
+          Your rewrite + FactCheck
+        </h2>
+        {result?.source === "sample" && <span className="sample-badge">Sample result</span>}
+      </div>
+      <div className="rewrite-options">
+        <div>
+          <label className="field-label" htmlFor="tone">
+            Your voice
+          </label>
+          <select
+            id="tone"
+            className="audience-select"
+            value={tone}
+            disabled={loading}
+            onChange={(event) => onTone(event.target.value as RewriteTone)}
+          >
+            <option value="closer_to_my_words">Closer to my words</option>
+            <option value="balanced">Balanced</option>
+            <option value="more_playful">More playful</option>
+          </select>
+        </div>
+        <div>
+          <label className="field-label" htmlFor="rewrite-goal">
+            Goal <span className="optional">(optional)</span>
+          </label>
           <input
-            id="goal"
-            value={goal}
+            id="rewrite-goal"
+            className="goal-input"
             maxLength={300}
-            onChange={(e) => onOptionsChange({ tone, goal: e.target.value })}
-            placeholder="e.g. Make it clearer for technical recruiters"
-            className="w-full rounded-lg border bg-background px-3 py-2 text-sm"
+            value={goal}
+            onChange={(event) => onGoal(event.target.value)}
+            placeholder="What would you like to express more clearly?"
           />
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" onClick={onGenerate} disabled={loading}>
-            {result ? "Rewrite again" : "Generate rewrite"}
-          </Button>
-          <Button type="button" variant="ghost" onClick={onShowAdversarial} disabled={loading}>
-            Show FactCheck demo (intentional test case)
-          </Button>
-        </div>
+        <Button variant="aero" disabled={loading || !confirmedFacts.length} onClick={onGenerate}>
+          {loading ? <LoaderCircle className="animate-spin" /> : <Sparkles />}
+          {loading ? "Rewriting..." : result ? "Rewrite again" : "Generate rewrite"}
+        </Button>
       </div>
-
-      {loading && <p className="text-sm text-muted-foreground" aria-live="polite">Writing a grounded rewrite and running FactCheck...</p>}
-      {error && <ErrorNotice message={error} onRetry={onGenerate} />}
-      {/* key resets the editable text whenever a new rewrite arrives */}
-      {result && !loading && <RewriteResult key={result.rewrite.content} {...props} result={result} />}
+      <p className="empty-note">
+        {confirmedFacts.length
+          ? "The rewrite may only use your original text and the facts you confirmed."
+          : "Confirm at least one fact in Identity DNA before rewriting."}
+      </p>
+      {result && (
+        <>
+          <label className="demo-toggle">
+            <input type="checkbox" checked={adversarial} onChange={(event) => onAdversarial(event.target.checked)} />
+            Show FactCheck demo {adversarial && <span className="test-badge">Intentional test case</span>}
+          </label>
+          {/* Keyed by the result, so edits reset whenever a new rewrite arrives. */}
+          <RewriteResult key={`${result.source}|${result.rewrite.content}`} {...props} result={result} />
+        </>
+      )}
     </section>
   );
 }
@@ -103,128 +91,169 @@ function RewriteResult(props: {
   segments: Segment[];
   confirmedFacts: IdentityFact[];
   result: RewriteResponse;
+  onError: (message: string) => void;
 }) {
-  const { original, segments, confirmedFacts, result } = props;
+  const { original, segments, confirmedFacts, result, onError } = props;
   const [text, setText] = useState(result.rewrite.content);
   const [editing, setEditing] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // Unedited: show the server's FactCheck. Edited: re-run the same deterministic check locally.
+  // Unedited: the server's FactCheck. Edited: the same deterministic check, re-run locally.
   const edited = text !== result.rewrite.content;
-  const warnings = edited
-    ? checkRewrite({
-        rewrite: { content: text, usedFactIds: result.rewrite.usedFactIds },
-        segments,
-        facts: confirmedFacts,
-      })
-    : result.warnings;
+  const warnings = useMemo(
+    () =>
+      edited
+        ? checkRewrite({ rewrite: { content: text, usedFactIds: result.rewrite.usedFactIds }, segments, facts: confirmedFacts })
+        : result.warnings,
+    [edited, text, result, segments, confirmedFacts],
+  );
 
-  const parts = diffWordsWithSpace(original, text);
-  const factText = new Map(confirmedFacts.map((f) => [f.id, f.text]));
+  const diff = useMemo(() => wordDiff(original, text), [original, text]);
+  const warningRanges = useMemo(() => {
+    const content = text.toLowerCase();
+    return warnings.flatMap((warning) => {
+      const query = warning.text.toLowerCase();
+      if (!query) return [];
+      const ranges: { start: number; end: number }[] = [];
+      for (let start = content.indexOf(query); start >= 0; start = content.indexOf(query, start + query.length)) {
+        ranges.push({ start, end: start + query.length });
+      }
+      return ranges;
+    });
+  }, [warnings, text]);
+  const revisedOffsets = useMemo(() => {
+    const starts: number[] = [];
+    for (let i = 0, offset = 0; i < diff.revised.length; offset += diff.revised[i].text.length, i++) starts.push(offset);
+    return starts;
+  }, [diff]);
+  const flagged = (index: number) => {
+    const start = revisedOffsets[index];
+    const end = start + diff.revised[index].text.trimEnd().length;
+    return warningRanges.some((range) => start < range.end && end > range.start);
+  };
 
-  const copy = async () => {
+  const factText = new Map(confirmedFacts.map((fact) => [fact.id, fact.text]));
+  const usedFacts = [...new Set(result.rewrite.usedFactIds)].filter((id) => factText.has(id));
+
+  async function copy() {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
     } catch {
-      setEditing(true); // fall back to letting the user select the text
+      onError("Clipboard access is unavailable. Select the rewrite text to copy it.");
     }
-  };
+  }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <h2 className="text-lg font-semibold">Rewrite</h2>
-        <span className="text-xs text-muted-foreground">Simulated AI rewrite</span>
-        <SourceBadge source={result.source} />
-        {result.source === "sample" && result.warnings.length > 0 && (
-          <span className="text-xs text-muted-foreground">Intentional test case</span>
-        )}
-      </div>
-
-      <div className="grid gap-3 md:grid-cols-2">
-        <div className="rounded-lg border p-3">
-          <h3 className="mb-2 text-sm font-medium">Original</h3>
-          <p className="whitespace-pre-wrap text-sm">
-            {parts.map((p, i) =>
-              p.added ? null : p.removed ? (
-                <del key={i} className="bg-red-100 text-red-900 dark:bg-red-950 dark:text-red-200">{p.value}</del>
-              ) : (
-                <span key={i}>{p.value}</span>
-              ),
-            )}
-          </p>
-        </div>
-        <div className="rounded-lg border p-3">
-          <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-sm font-medium">Rewritten{edited ? " (edited)" : ""}</h3>
-            <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(!editing)}>
-              {editing ? "Done" : "Edit"}
-            </Button>
+    <>
+      <div className="comparison-grid">
+        <section className="profile-panel">
+          <div className="panel-header">
+            <h3 className="section-heading">Original</h3>
+            <span className="empty-note">Removed words</span>
           </div>
-          {editing ? (
-            <Textarea aria-label="Edit rewritten text" value={text} rows={10} onChange={(e) => setText(e.target.value)} />
-          ) : (
-            <p className="whitespace-pre-wrap text-sm">
-              {parts.map((p, i) =>
-                p.removed ? null : p.added ? (
-                  <ins key={i} className="bg-emerald-100 text-emerald-900 no-underline dark:bg-emerald-950 dark:text-emerald-100">
-                    {withFlags(p.value, warnings)}
-                  </ins>
-                ) : (
-                  <span key={i}>{withFlags(p.value, warnings)}</span>
-                ),
-              )}
-            </p>
-          )}
-        </div>
-      </div>
-
-      <div className="rounded-lg border p-3" aria-live="polite">
-        <h3 className="mb-2 text-sm font-medium">FactCheck</h3>
-        {warnings.length === 0 ? (
-          <p className="text-sm text-emerald-700 dark:text-emerald-300">No unsupported concrete claims detected.</p>
-        ) : (
-          <ul className="space-y-2 text-sm">
-            {warnings.map((w, i) => (
-              <li key={i} className="rounded-md bg-red-50 p-2 dark:bg-red-950">
-                <span className="font-medium">{WARNING_LABEL[w.kind]}:</span> &ldquo;{w.text}&rdquo;
-                <span className="block text-muted-foreground">{w.explanation}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-        <p className="mt-2 text-xs text-muted-foreground">
-          FactCheck catches concrete claims like numbers, names, and inflated verbs. It can miss subtle exaggeration.
-        </p>
-      </div>
-
-      {result.rewrite.changeSummary.length > 0 && (
-        <div>
-          <h3 className="mb-1 text-sm font-medium">What changed</h3>
-          <ul className="list-disc pl-5 text-sm">
-            {result.rewrite.changeSummary.map((s, i) => <li key={i}>{s}</li>)}
-          </ul>
-        </div>
-      )}
-
-      {result.rewrite.usedFactIds.length > 0 && (
-        <div>
-          <h3 className="mb-1 text-sm font-medium">Facts the AI says it used</h3>
-          <div className="flex flex-wrap gap-1">
-            {result.rewrite.usedFactIds.map((id) => (
-              <span key={id} className="rounded-md border px-2 py-0.5 text-xs">
-                {factText.get(id) ?? `${id} (not one of your confirmed facts)`}
+          <div className="diff-body">
+            {diff.original.map((token, index) => (
+              <span key={index} className={token.changed ? "diff-removed" : undefined}>
+                {token.text}
               </span>
             ))}
           </div>
-        </div>
-      )}
-
-      <Button type="button" onClick={copy}>
-        {copied ? "Copied" : warnings.length ? "Copy anyway" : "Copy"}
-      </Button>
-    </div>
+        </section>
+        <section className="profile-panel">
+          <div className="panel-header">
+            <h3 className="section-heading">Rewritten</h3>
+            <Button variant="link" size="sm" onClick={() => setEditing(!editing)}>
+              {editing ? "Done editing" : "Edit text"}
+            </Button>
+          </div>
+          {editing ? (
+            <div className="profile-content">
+              <textarea
+                aria-label="Edit rewritten profile"
+                className="profile-textarea"
+                maxLength={LIMITS.maxRewriteChars}
+                value={text}
+                onChange={(event) => {
+                  setText(event.target.value);
+                  setCopied(false);
+                }}
+              />
+            </div>
+          ) : (
+            <div className="diff-body">
+              {diff.revised.map((token, index) => (
+                <span key={index} className={flagged(index) ? "diff-flagged" : token.changed ? "diff-added" : undefined}>
+                  {token.text}
+                </span>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+      <div className="summary-grid">
+        <section>
+          <h3 className="section-heading">What changed</h3>
+          <ul className="change-list">
+            {result.rewrite.changeSummary.map((change, index) => (
+              <li key={index}>{change}</li>
+            ))}
+          </ul>
+        </section>
+        <section>
+          <h3 className="section-heading">
+            Facts used <span className="empty-note">(advisory, as reported by the AI)</span>
+          </h3>
+          <div className="fact-chips">
+            {usedFacts.map((id) => (
+              <span className="fact-chip" key={id}>
+                {factText.get(id)}
+              </span>
+            ))}
+            {!usedFacts.length && <span className="empty-note">None reported.</span>}
+          </div>
+        </section>
+      </div>
+      <section className="factcheck-panel" data-warnings={warnings.length > 0}>
+        <h3 className="section-heading">
+          <ShieldCheck />
+          FactCheck
+          {result.source === "sample" && <span className="sample-badge">Sample result</span>}
+        </h3>
+        {edited && <p className="empty-note">Re-checked against your edited text.</p>}
+        {warnings.length === 0 ? (
+          <>
+            <p className="status-note">
+              <Check />
+              No unsupported concrete claims detected
+            </p>
+            <p className="empty-note">
+              FactCheck catches concrete claims like numbers, names, and inflated verbs. It can miss subtle
+              exaggeration.
+            </p>
+          </>
+        ) : (
+          <div className="guard-list">
+            {warnings.map((warning, index) => (
+              <div className="guard-item" key={index}>
+                <TriangleAlert size={16} />
+                <div>
+                  <strong>{WARNING_LABEL[warning.kind]}</strong>
+                  <q>{warning.text}</q>
+                  <p>{warning.explanation}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+      <div className="action-band">
+        <span className="empty-note">Review your words before sharing them.</span>
+        <Button variant="aero" onClick={() => void copy()}>
+          {copied ? <Check /> : <Clipboard />}
+          {copied ? "Copied" : warnings.length ? "Copy anyway" : "Copy"}
+        </Button>
+      </div>
+    </>
   );
 }

@@ -1,69 +1,75 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { RatingBadge, SourceBadge } from "@/components/labels";
-import type { AudienceCritique, EvaluateResponse, PlatformConfig, Segment } from "@/lib/schemas";
+import { ArrowRight, Eye, FileText, TriangleAlert } from "lucide-react";
 import { useState } from "react";
-
-const key = (c: Pick<AudienceCritique, "audience" | "trait">) => `${c.audience}|${c.trait}`;
+import { Button } from "@/components/ui/button";
+import { RATING_LABEL } from "@/lib/persona-ui";
+import type { AudienceCritique, EvaluateResponse, PlatformConfig, Segment } from "@/lib/schemas";
 
 export function AudienceClash(props: {
-  result: EvaluateResponse;
-  segments: Segment[];
+  response: EvaluateResponse;
   config: PlatformConfig;
-  audienceIds: string[];
-  traitIds: string[];
+  audiences: string[];
+  traits: string[];
+  segments: Segment[];
   onRewrite: () => void;
 }) {
-  const { result, segments, config, audienceIds, traitIds, onRewrite } = props;
-  const [selected, setSelected] = useState<string | null>(null);
-  const byKey = new Map(result.critiques.map((c) => [key(c), c]));
-  const active = selected ? byKey.get(selected) : undefined;
-  const label = (list: { id: string; label: string }[], id: string) => list.find((x) => x.id === id)?.label ?? id;
+  const { response, config, audiences, traits, segments, onRewrite } = props;
+  const [selected, setSelected] = useState<AudienceCritique | null>(null);
+  const label = (id: string, kind: "audiences" | "traits") => config[kind].find((option) => option.id === id)?.label ?? id;
+  const critiques = response.critiques.filter((item) => audiences.includes(item.audience) && traits.includes(item.trait));
+  // The server already dropped unknown ids; this filter is a second guard so nothing unverified is highlighted.
+  const highlighted = selected?.missingEvidence
+    ? []
+    : (selected?.segmentIds.filter((id) => segments.some((segment) => segment.id === id)) ?? []);
+  const invalidSource = response.warnings.some((warning) => warning.kind === "unverified_segment");
 
   return (
-    <section className="space-y-5">
-      <div className="flex flex-wrap items-center gap-2">
-        <h2 className="text-lg font-semibold">Audience Clash</h2>
-        <span className="text-xs text-muted-foreground">Simulated AI feedback</span>
-        <SourceBadge source={result.source} />
+    <section className="flow-section fade-in">
+      <div className="results-heading">
+        <h2 className="flow-title">
+          <Eye />
+          Audience Clash
+        </h2>
+        {response.source === "sample" && <span className="sample-badge">Sample result</span>}
       </div>
-
-      {result.warnings.length > 0 && (
-        <p className="rounded-lg border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
-          The AI cited text that doesn&apos;t exist ({result.warnings.map((w) => w.text).join(", ")}); it was ignored.
-        </p>
-      )}
-
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[480px] border-collapse text-sm">
+      <p className="feedback-label">Simulated AI feedback</p>
+      <p className="flow-description">
+        Different lenses. Different impressions. These viewpoints are simulated, not real people reviewing you, and
+        they don&apos;t predict how anyone will respond.
+      </p>
+      <div className="matrix-scroll">
+        <table className="feedback-matrix">
+          <caption className="sr-only">Audience and trait feedback matrix</caption>
           <thead>
             <tr>
-              <th className="p-2 text-left font-medium">Audience</th>
-              {traitIds.map((t) => (
-                <th key={t} className="p-2 text-left font-medium">{label(config.traits, t)}</th>
+              <th scope="col">Audience lens</th>
+              {traits.map((id) => (
+                <th scope="col" key={id}>
+                  {label(id, "traits")}
+                </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {audienceIds.map((a) => (
-              <tr key={a} className="border-t">
-                <th scope="row" className="p-2 text-left font-normal">{label(config.audiences, a)}</th>
-                {traitIds.map((t) => {
-                  const c = byKey.get(`${a}|${t}`);
+            {audiences.map((audience) => (
+              <tr key={audience}>
+                <th scope="row">{label(audience, "audiences")}</th>
+                {traits.map((trait) => {
+                  const critique = critiques.find((item) => item.audience === audience && item.trait === trait);
                   return (
-                    <td key={t} className="p-2">
-                      {c ? (
-                        <button
-                          type="button"
-                          onClick={() => setSelected(key(c))}
-                          aria-pressed={selected === key(c)}
-                          className={`rounded-md p-0.5 ${selected === key(c) ? "ring-2 ring-ring" : ""}`}
+                    <td key={trait}>
+                      {critique ? (
+                        <Button
+                          variant="rating"
+                          data-rating={critique.rating}
+                          aria-label={`${label(audience, "audiences")}, ${label(trait, "traits")}: ${RATING_LABEL[critique.rating]}`}
+                          onClick={() => setSelected(critique)}
                         >
-                          <RatingBadge rating={c.rating} />
-                        </button>
+                          {RATING_LABEL[critique.rating]}
+                        </Button>
                       ) : (
-                        <span className="text-xs text-muted-foreground">No result</span>
+                        <span className="unrated">No feedback</span>
                       )}
                     </td>
                   );
@@ -73,48 +79,67 @@ export function AudienceClash(props: {
           </tbody>
         </table>
       </div>
-
-      <div className="rounded-lg border p-3">
-        <h3 className="mb-2 text-sm font-medium">Your text</h3>
-        {active?.missingEvidence && (
-          <p className="mb-2 text-xs text-amber-700 dark:text-amber-300">
-            Missing evidence: nothing in your text supports this yet.
-          </p>
-        )}
-        <ol className="space-y-1 text-sm">
-          {segments.map((s) => {
-            const hit = active?.segmentIds.includes(s.id);
-            return (
-              <li key={s.id} className={`rounded px-1 ${hit ? "bg-yellow-200 dark:bg-yellow-800/60" : ""}`}>
-                <span className="mr-1 text-xs text-muted-foreground">{s.id}</span>
-                {s.text}
-              </li>
-            );
-          })}
-        </ol>
-      </div>
-
-      <ul className="space-y-2">
-        {result.critiques.map((c) => (
-          <li key={key(c)}>
-            <button
-              type="button"
-              onClick={() => setSelected(key(c))}
-              className={`w-full rounded-lg border p-3 text-left text-sm ${selected === key(c) ? "ring-2 ring-ring" : ""}`}
+      {invalidSource && (
+        <p className="warning-notice">
+          <TriangleAlert size={15} />
+          The AI cited text that doesn&apos;t exist; it was ignored.
+        </p>
+      )}
+      <div className="clash-grid">
+        <div className="insight-list">
+          {critiques.map((critique) => (
+            <Button
+              variant="critique"
+              className="insight-item"
+              data-selected={selected === critique}
+              key={`${critique.audience}|${critique.trait}`}
+              onClick={() => setSelected(critique)}
             >
-              <div className="mb-1 flex flex-wrap items-center gap-2">
-                <span className="font-medium">{label(config.audiences, c.audience)}</span>
-                <span className="text-muted-foreground">· {label(config.traits, c.trait)}</span>
-                <RatingBadge rating={c.rating} />
-              </div>
-              <p>{c.rationale}</p>
-              {c.suggestion && <p className="mt-1 text-muted-foreground">Try: {c.suggestion}</p>}
-            </button>
-          </li>
-        ))}
-      </ul>
-
-      <Button type="button" onClick={onRewrite}>Rewrite my profile</Button>
+              <span className="insight-head">
+                <span>{label(critique.audience, "audiences")}</span>
+                <span className="rating-pill" data-rating={critique.rating}>
+                  {RATING_LABEL[critique.rating]}
+                </span>
+              </span>
+              <span className="critique-trait">{label(critique.trait, "traits")}</span>
+              <span className="critique-copy">{critique.rationale}</span>
+              <span className="critique-suggestion">{critique.suggestion}</span>
+              {critique.missingEvidence && (
+                <span className="missing-evidence">Missing evidence: nothing in your text supports this yet</span>
+              )}
+            </Button>
+          ))}
+          {!critiques.length && (
+            <p className="empty-note">No feedback came back for this combination. Go back and try again.</p>
+          )}
+        </div>
+        <aside className="source-panel">
+          <h3 className="section-heading">
+            <FileText />
+            Your source text
+          </h3>
+          {selected?.missingEvidence && (
+            <p className="missing-evidence" role="status">
+              Missing evidence: nothing in your text supports this yet
+            </p>
+          )}
+          {segments.map((segment) => (
+            <div className="source-segment" data-highlighted={highlighted.includes(segment.id)} key={segment.id}>
+              <span>{segment.id}</span>
+              <p>
+                {segment.prompt && <strong className="source-prompt">{segment.prompt}</strong>}
+                {segment.text}
+              </p>
+            </div>
+          ))}
+        </aside>
+      </div>
+      <div className="action-band">
+        <span className="empty-note">Every point stays tied to your words.</span>
+        <Button variant="aero" onClick={onRewrite}>
+          Rewrite my profile <ArrowRight />
+        </Button>
+      </div>
     </section>
   );
 }
