@@ -140,7 +140,27 @@ function covers(factText: string, sectionText: string, sectionStems: Set<string>
   const numbers = extractNumbers(factText).map((n) => n.key);
   const sectionNumbers = new Set(extractNumbers(sectionText).map((n) => n.key));
   if (!numbers.every((n) => sectionNumbers.has(n))) return false;
-  return stems.filter((s) => sectionStems.has(s)).length / stems.length >= COVERAGE_THRESHOLD;
+  const hits = stems.filter((s) => sectionStems.has(s)).length;
+  // Two matching words at least (when the fact has two), so one common word can't cover a fact.
+  return hits >= Math.min(2, stems.length) && hits / stems.length >= COVERAGE_THRESHOLD;
+}
+
+export type FactCoverage = {
+  /** Where each confirmed fact shows up (section keys in profile order). */
+  perFact: { factId: string; sectionKeys: string[] }[];
+  /** Every non-empty section in profile order, with the confirmed facts found in it (possibly none). */
+  bySection: { sectionKey: string; label: string; factIds: string[] }[];
+  /** "9 of 12 confirmed facts appear on your LinkedIn". */
+  summary: { confirmed: number; covered: number };
+};
+
+function sectionLabel(p: LinkedInProfile, key: string): string {
+  if (key === "headline") return "Headline";
+  if (key === "about") return "About";
+  if (key === "skills") return "Skills";
+  if (key === "honors") return "Honors & awards";
+  const found = allEntries(p).find(({ entry }) => entry.id === key);
+  return found ? entryLabel(found.kind, found.entry) : key;
 }
 
 /**
@@ -148,10 +168,7 @@ function covers(factText: string, sectionText: string, sectionStems: Set<string>
  * (stemmed content words, plus every number in the fact), so the counts are real
  * but approximate: a fact phrased very differently on the profile is not counted.
  */
-export function factCoverage(
-  p: LinkedInProfile,
-  facts: IdentityFact[],
-): { perFact: { factId: string; sectionKeys: string[] }[]; summary: { confirmed: number; covered: number } } {
+export function factCoverage(p: LinkedInProfile, facts: IdentityFact[]): FactCoverage {
   const sections = sectionPieces(p)
     .filter((s) => s.pieces.length)
     .map(({ key, pieces }) => {
@@ -164,8 +181,14 @@ export function factCoverage(
       factId: f.id,
       sectionKeys: sections.filter((s) => covers(f.text, s.text, s.stems)).map((s) => s.key),
     }));
+  const bySection = sections.map((s) => ({
+    sectionKey: s.key,
+    label: sectionLabel(p, s.key),
+    factIds: perFact.filter((f) => f.sectionKeys.includes(s.key)).map((f) => f.factId),
+  }));
   return {
     perFact,
+    bySection,
     summary: { confirmed: perFact.length, covered: perFact.filter((f) => f.sectionKeys.length).length },
   };
 }

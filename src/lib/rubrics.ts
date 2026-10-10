@@ -20,56 +20,56 @@ export const LINKEDIN_CONFIG: PlatformConfig = {
       label: "Talent acquisition specialist",
       category: "recruitment",
       description:
-        "Screens many profiles fast for a clear role and level: what you do now, what you want next, and whether the headline matches an opening.",
+        "Screens many profiles quickly to decide who goes to a hiring team. Looks for a clear current role and level, what the person wants next, and a headline that matches an opening's title. Moves on when it's unclear which job the person would fit.",
     },
     {
       id: "technical_recruiter",
       label: "Technical recruiter",
       category: "recruitment",
       description:
-        "Scans quickly for role fit, concrete skills and tools, and a clear statement of what you do.",
+        "Matches people to technical openings. Scans for concrete languages, tools, and systems, how recently and how deeply they were used, and a plain statement of what the person does.",
     },
     {
       id: "hiring_manager",
       label: "Hiring manager",
       category: "hiring_leadership",
       description:
-        "Reads entries for what you personally did, the scope of it, and whether it maps to the work on their team.",
+        "Decides whether someone would do well on their team. Reads entries for what the person personally did, its scope, and what came of it, and whether that maps to the team's work. Discounts duties listed without outcomes.",
     },
     {
       id: "technical_lead",
       label: "Technical lead",
       category: "hiring_leadership",
       description:
-        "Checks whether the technical work is described precisely enough to believe: named systems, methods, and trade-offs rather than buzzwords.",
+        "Would work with the person day to day. Checks whether technical work is described precisely enough to believe: named systems, methods, and trade-offs, and what the person built versus what the team did. Distrusts buzzwords.",
     },
     {
       id: "research_lead",
       label: "Research lead",
       category: "research_academia",
       description:
-        "Looks for depth, precision, and evidence of rigorous technical work rather than buzzwords.",
+        "Recruits for a lab or research team. Looks for research questions, methods, and evidence of rigor (papers, posters, experiments), and for depth in one area rather than a list of buzzwords.",
     },
     {
       id: "admissions_reviewer",
       label: "Admissions / fellowship reviewer",
       category: "research_academia",
       description:
-        "Looks for a coherent direction across your experiences, intellectual curiosity, and evidence you follow through on what you start.",
+        "Reviews applications for an academic program or fellowship. Looks for a coherent direction across experiences, intellectual curiosity, initiative, and evidence the person follows through on what they start.",
     },
     {
       id: "startup_founder",
       label: "Startup founder",
       category: "entrepreneurship_networking",
       description:
-        "Looks for evidence of ownership, initiative, and working with little guidance. Skims for what you actually built or did.",
+        "Hiring early teammates. Looks for ownership and initiative: things the person started, shipped, or figured out with little guidance, and range across different kinds of work. Skims for what was actually built.",
     },
     {
       id: "industry_professional",
       label: "Industry professional",
       category: "entrepreneurship_networking",
       description:
-        "A peer in your field meeting you at a networking event. Looks for domain credibility (do you know the field's real problems and tools?) and a specific detail worth starting a conversation about.",
+        "A peer in the person's own field meeting them at a networking event or conference, not evaluating them for a job. Looks for domain credibility (do they know the field's real problems, tools, and vocabulary?) and one specific detail worth starting a conversation about.",
     },
   ],
   traits: [
@@ -82,7 +82,7 @@ export const LINKEDIN_CONFIG: PlatformConfig = {
     {
       id: "technical_specificity",
       label: "Technical specificity",
-      question: "Can they tell how you work?",
+      question: "Can they see the tools and methods you use?",
       description: "Names concrete tools, methods, or technical work instead of generic claims.",
     },
     {
