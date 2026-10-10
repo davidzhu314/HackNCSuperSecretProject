@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildCandidateFacts, buildCritiques, buildVariations } from "./postprocess";
-import { DEMO_LINKEDIN_FACTS, DEMO_LINKEDIN_SEGMENTS } from "./demo-data";
+import { buildCandidateFacts, buildCritiques, buildHingeAnswers, buildHingeVariations, buildVariations } from "./postprocess";
+import { DEMO_HINGE_FACTS, DEMO_HINGE_SEGMENTS, DEMO_LINKEDIN_FACTS, DEMO_LINKEDIN_SEGMENTS } from "./demo-data";
 
 const requested = { audienceIds: ["startup_founder"], traitIds: ["clarity", "relevance"] };
 const base = { rating: "weak" as const, rationale: "r", suggestion: "s" };
@@ -49,6 +49,40 @@ describe("buildCritiques", () => {
   });
 });
 
+describe("buildHingeAnswers", () => {
+  it("returns one answer per segment in original order, with prompts", () => {
+    const out = buildHingeAnswers(
+      { answers: [{ segmentId: "s2", text: " Pancakes, then a walk. " }, { segmentId: "s1", text: "Food trucks." }] },
+      DEMO_HINGE_SEGMENTS,
+    );
+    expect(out.answers.map((a) => [a.segmentId, a.text])).toEqual([
+      ["s1", "Food trucks."],
+      ["s2", "Pancakes, then a walk."],
+    ]);
+    expect(out.answers[0].prompt).toBe(DEMO_HINGE_SEGMENTS[0].prompt);
+    expect(out.content).toBe("Food trucks.\n\nPancakes, then a walk.");
+    expect(out.warnings).toEqual([]);
+    expect(out.keptOriginal).toEqual([]);
+  });
+
+  it("keeps the original for a missing or empty answer and flags unknown ids", () => {
+    const out = buildHingeAnswers(
+      {
+        answers: [
+          { segmentId: "s1", text: "  " },
+          { segmentId: "s9", text: "A made-up answer." },
+          { segmentId: "s2", text: "First." },
+          { segmentId: "s2", text: "Duplicate." },
+        ],
+      },
+      DEMO_HINGE_SEGMENTS,
+    );
+    expect(out.answers.map((a) => a.text)).toEqual([DEMO_HINGE_SEGMENTS[0].text, "First."]);
+    expect(out.keptOriginal.map((s) => s.id)).toEqual(["s1"]);
+    expect(out.warnings).toEqual([expect.objectContaining({ kind: "unverified_segment", text: "s9" })]);
+  });
+});
+
 describe("buildVariations", () => {
   it("returns both styles, each with its own FactCheck and style warnings", () => {
     const [direct, narrative] = buildVariations(
@@ -70,5 +104,36 @@ describe("buildVariations", () => {
       expect.arrayContaining(["unsupported_entity:Google", "invalid_fact_id:f42"]),
     );
     expect(narrative.styleWarnings.map((w) => w.text)).toEqual(["leveraged"]);
+  });
+});
+
+describe("buildHingeVariations", () => {
+  it("returns both styles with per-answer text, FactCheck, and kept-original notes", () => {
+    const [direct, narrative] = buildHingeVariations(
+      {
+        direct: {
+          answers: [
+            { segmentId: "s1", text: "Finding the best food truck in any city." },
+            { segmentId: "s2", text: "Pancakes, then a long walk with no plan." },
+          ],
+          usedFactIds: ["h1"],
+          changeSummary: ["Tightened the second answer."],
+        },
+        narrative: {
+          answers: [{ segmentId: "s1", text: "I have tried 40 food trucks in Paris." }],
+          usedFactIds: [],
+          changeSummary: [],
+        },
+      },
+      DEMO_HINGE_SEGMENTS,
+      DEMO_HINGE_FACTS,
+    );
+    expect(direct).toMatchObject({ style: "direct", warnings: [] });
+    expect(direct.rewrite.answers?.map((a) => a.segmentId)).toEqual(["s1", "s2"]);
+    expect(narrative.rewrite.answers?.[1].text).toBe(DEMO_HINGE_SEGMENTS[1].text);
+    expect(narrative.rewrite.changeSummary[0]).toContain("Kept your answer");
+    expect(narrative.warnings.map((w) => `${w.kind}:${w.text}`)).toEqual(
+      expect.arrayContaining(["unsupported_number:40", "unsupported_entity:Paris"]),
+    );
   });
 });
