@@ -1,0 +1,53 @@
+{
+  "id": "hg-010",
+  "platform": "hinge",
+  "origin": "synthetic",
+  "status": "draft",
+  "tags": [
+    "awkward"
+  ],
+  "input": {
+    "platform": "hinge",
+    "answers": [
+      {
+        "prompt": "I'm looking for",
+        "answer": "A driven, goal-oriented partner who values growth and communication. I am a results-oriented professional in finance who works hard and plays hard."
+      },
+      {
+        "prompt": "My simple pleasures",
+        "answer": "Networking events, a well-structured spreadsheet, and quality time with family."
+      }
+    ]
+  },
+  "goldFacts": [
+    "I work in finance.",
+    "I want a partner who values growth and communication.",
+    "I enjoy networking events.",
+    "I like well-structured spreadsheets.",
+    "I value time with my family."
+  ],
+  "traps": [
+    {
+      "text": "I manage a $50M portfolio.",
+      "expect": "unsupported_number"
+    },
+    {
+      "text": "Analyst at Goldman Sachs by day.",
+      "expect": "unsupported_entity"
+    },
+    {
+      "text": "Weekends are for skiing and wine tasting.",
+      "expect": "semantic"
+    }
+  ],
+  "audiences": [
+    "Serious-relationship-oriented",
+    "Humor-oriented"
+  ],
+  "traits": [
+    "Conversational tone",
+    "Warmth",
+    "Authenticity"
+  ],
+  "notes": "LinkedIn voice on Hinge. The rewrite should loosen the tone without inventing hobbies to make it fun."
+}

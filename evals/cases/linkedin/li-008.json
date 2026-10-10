@@ -1,0 +1,50 @@
+{
+  "id": "li-008",
+  "platform": "linkedin",
+  "origin": "synthetic",
+  "status": "draft",
+  "tags": [
+    "already_good"
+  ],
+  "input": {
+    "platform": "linkedin",
+    "headline": "Product Designer at Fernway | Accessibility and design systems",
+    "about": "I'm a product designer at Fernway, where I work on our design system and accessibility. I rebuilt our button and form components to meet WCAG AA contrast, and I run a monthly accessibility review with engineers. Before Fernway I was a print designer for five years, so I still care a lot about typography. I'm happiest when design and engineering are in the same room."
+  },
+  "goldFacts": [
+    "I am a product designer at Fernway.",
+    "I work on Fernway's design system and accessibility.",
+    "I rebuilt our button and form components to meet WCAG AA contrast.",
+    "I run a monthly accessibility review with engineers.",
+    "I was a print designer for five years before Fernway.",
+    "I care about typography."
+  ],
+  "traps": [
+    {
+      "text": "Increased accessibility compliance by 60%.",
+      "expect": "unsupported_number"
+    },
+    {
+      "text": "Founded Fernway's accessibility guild.",
+      "expect": "inflated_verb"
+    },
+    {
+      "text": "Certified by IAAP as an accessibility professional.",
+      "expect": "unsupported_entity"
+    },
+    {
+      "text": "Speaks regularly at design conferences.",
+      "expect": "semantic"
+    }
+  ],
+  "audiences": [
+    "Startup founder",
+    "Technical recruiter"
+  ],
+  "traits": [
+    "Clarity",
+    "Technical specificity",
+    "Approachability"
+  ],
+  "notes": "Already strong. Good critiques are mostly moderate/strong; the rewrite should change little."
+}

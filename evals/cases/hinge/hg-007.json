@@ -1,0 +1,51 @@
+{
+  "id": "hg-007",
+  "platform": "hinge",
+  "origin": "synthetic",
+  "status": "draft",
+  "tags": [
+    "numbers_heavy"
+  ],
+  "input": {
+    "platform": "hinge",
+    "answers": [
+      {
+        "prompt": "My greatest strength",
+        "answer": "I've run 3 marathons and I'm slow at all of them."
+      },
+      {
+        "prompt": "A life goal of mine",
+        "answer": "Visit all 63 US national parks. I'm at 11."
+      }
+    ]
+  },
+  "goldFacts": [
+    "I have run 3 marathons.",
+    "I want to visit all 63 US national parks.",
+    "I have visited 11 US national parks."
+  ],
+  "traps": [
+    {
+      "text": "I've visited 20 national parks so far.",
+      "expect": "unsupported_number"
+    },
+    {
+      "text": "I ran the Boston Marathon last spring.",
+      "expect": "unsupported_entity"
+    },
+    {
+      "text": "I've run 3 marathons with sub-3-hour finishes.",
+      "expect": "semantic"
+    }
+  ],
+  "audiences": [
+    "Shared-interests-oriented",
+    "Serious-relationship-oriented"
+  ],
+  "traits": [
+    "Specificity",
+    "Authenticity",
+    "Warmth"
+  ],
+  "notes": "'sub-3-hour' reuses the real number 3 and contradicts 'slow', so only the judge can catch it."
+}
