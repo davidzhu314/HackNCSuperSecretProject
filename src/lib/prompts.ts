@@ -13,18 +13,36 @@ function fence(tag: string, body: string) {
   return `<${tag}>\n${body}\n</${tag}>`;
 }
 
+const EXTRACT_SCOPE: Record<Platform, string[]> = {
+  linkedin: [
+    "You extract candidate facts about a person from their own profile text.",
+    "A fact is a concrete, checkable statement the text directly makes: a role, what they study, a project they built, a tool or language they used, an activity, an organization, or a specific hobby or preference.",
+    "Do NOT extract self-descriptions or aspirations. Skip anything like: aspiring, passionate, motivated, team player, hard-working, loves learning, looking for opportunities, experience with various projects. Do not turn vague phrases into facts.",
+  ],
+  hinge: [
+    "You extract candidate facts about a person from their own dating-profile answers.",
+    "Each answer is shown after the prompt question it responds to, in parentheses. Read the answer together with its prompt: \"(A perfect Sunday) Pancakes and a long walk\" states \"I like making pancakes and taking long walks on Sundays.\"",
+    "A fact is a concrete thing the answer directly says: a hobby, a habit, an activity, a place, a food, a skill, or a specific like or dislike.",
+    "Do NOT infer what the person is looking for in a partner, their relationship goals, values, personality, or background. Do NOT extract jokes or obvious exaggeration as literal facts. Skip generic lines like: love to laugh, down to earth, work hard play hard, looking for my partner in crime.",
+  ],
+};
+
 export function extractPrompt(platform: Platform, segments: Segment[]) {
   return {
     system: [
-      "You extract candidate facts about a person from their own profile text.",
-      "A fact is a concrete, checkable statement the text directly makes: a role, what they study, a project they built, a tool or language they used, an activity, an organization, or a specific hobby or preference.",
-      "Do NOT extract self-descriptions or aspirations. Skip anything like: aspiring, passionate, motivated, team player, hard-working, loves learning, looking for opportunities, experience with various projects. Do not turn vague phrases into facts.",
+      ...EXTRACT_SCOPE[platform],
       "Do not infer, embellish, or add anything the text does not say. Each fact is one short complete sentence that starts with \"I\" (for example: \"I built a course-planning app in Python.\"). Return at most 6. If the text states nothing concrete, return an empty list. An empty list is a correct answer.",
       DATA_RULE,
     ].join("\n"),
     user: `Platform: ${platform}\n${fence("user_data", formatSegmentsForPrompt(segments))}`,
   };
 }
+
+const HINGE_EVALUATE_RULES = [
+  "Each segment is the person's answer to the Hinge prompt shown before it in parentheses. Judge the answer as a reply to that prompt: the prompt is fixed by the app, only the answer is the person's writing.",
+  "Never comment on attractiveness, looks, age, income, or who the person should date, and never predict likes, matches, or replies.",
+  "A suggestion may say what kind of true detail would help (for example \"name the dish you actually make\"), but must never propose a specific hobby, place, food, or preference the person did not mention.",
+];
 
 export function evaluatePrompt(args: {
   config: PlatformConfig;
@@ -40,6 +58,7 @@ export function evaluatePrompt(args: {
       "Produce one critique for every audience x trait combination.",
       "For each critique cite the segment ids that are your evidence (e.g. \"s2\"). Cite only ids that appear in the input. If nothing in the text is evidence, use an empty segmentIds list and set missingEvidence to true. Never quote text.",
       "Use the audience and trait ids exactly as given. Keep rationale and suggestion short and concrete. A suggestion must not invent facts, numbers, employers, or credentials; it may only tell the person what kind of true information to add or clarify.",
+      ...(config.id === "hinge" ? HINGE_EVALUATE_RULES : []),
       RATING_GUIDE,
       DATA_RULE,
     ].join("\n"),
@@ -56,10 +75,29 @@ export function evaluatePrompt(args: {
   };
 }
 
-const TONE_GUIDE: Record<RewriteTone, string> = {
-  closer_to_my_words: "Make minimal edits and keep the person's own wording wherever possible.",
-  balanced: "Improve clarity and specificity while keeping the person's voice.",
-  more_playful: "Allow a lighter, more playful phrasing, but add no new facts.",
+const TONE_GUIDE: Record<Platform, Record<RewriteTone, string>> = {
+  linkedin: {
+    closer_to_my_words: "Make minimal edits and keep the person's own wording wherever possible.",
+    balanced: "Improve clarity and specificity while keeping the person's voice.",
+    more_playful: "Allow a warmer, more personable phrasing that is still professional. Add no new facts.",
+  },
+  hinge: {
+    closer_to_my_words:
+      "Make the smallest edit that helps: fix flow and sharpen a detail the person already gave. Keep their words, slang, and jokes. If an answer is already good, return it unchanged.",
+    balanced: "Make each answer more specific and easier to reply to while keeping the person's voice and humor.",
+    more_playful: "Allow a lighter, more playful phrasing of the same content. Playfulness must come from wording, never from new facts.",
+  },
+};
+
+const REWRITE_FORMAT: Record<Platform, string[]> = {
+  linkedin: [
+    "Output format for each content field: the headline on the first line, a blank line, then the About text.",
+  ],
+  hinge: [
+    "In each version, return one entry in answers for every original answer, using its segment id (e.g. \"s1\") as segmentId, in the same order. Never merge, split, drop, or add answers.",
+    "Each rewritten answer must still answer its own prompt question, stay first person, and be under 150 characters (Hinge's limit). Do not repeat the prompt question in the answer.",
+    "Do not add experiences, places, foods, pets, people, plans, or dating preferences (what the person is looking for) that the answer and confirmed facts don't state.",
+  ],
 };
 
 // Style rules adapted from the team's LinkedIn copywriting prompt, for a profile (headline + About)
@@ -96,10 +134,6 @@ export function rewritePrompt(args: {
   jobDescription?: string;
 }) {
   const { config, segments, facts, audiences, goal, tone, jobDescription } = args;
-  const formatRule =
-    config.id === "linkedin"
-      ? "Output format for each content field: the headline on the first line, a blank line, then the About text."
-      : "Output format for each content field: one rewritten answer per original answer, in the same order, separated by a blank line. Keep each answer's meaning and the person's own context.";
   const variations = VARIATIONS[config.id];
   return {
     system: [
@@ -114,8 +148,9 @@ export function rewritePrompt(args: {
       "Write two versions:",
       `- ${variations.direct}`,
       `- ${variations.narrative}`,
-      formatRule,
-      config.id === "linkedin" ? LINKEDIN_STYLE : TONE_GUIDE[tone],
+      ...REWRITE_FORMAT[config.id],
+      ...(config.id === "linkedin" ? [LINKEDIN_STYLE] : []),
+      TONE_GUIDE[config.id][tone],
       STYLE_BAN_PROMPT,
       DATA_RULE,
     ].join("\n"),
