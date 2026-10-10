@@ -1,11 +1,12 @@
 "use client";
 
-import { ArrowLeft, Check, ChevronRight, CircleHelp, House, RotateCcw, ShieldCheck, TriangleAlert } from "lucide-react";
+import { ArrowLeft, CircleHelp, Fingerprint, RotateCcw, ShieldCheck, TriangleAlert } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AudienceClash } from "@/components/AudienceClash";
 import { AudienceSelection } from "@/components/AudienceSelection";
-import { Backdrop, BrandMark, WorldFooter, Wordmark } from "@/components/Chrome";
+import { BrandMark, SCENES, ScenicBackdrop, Wordmark } from "@/components/Chrome";
 import { ConsentScreen } from "@/components/ConsentScreen";
 import { IdentityFacts } from "@/components/IdentityFacts";
 import { LinkedInEditor, type ImportState } from "@/components/LinkedInEditor";
@@ -13,9 +14,11 @@ import { ProfileClash } from "@/components/ProfileClash";
 import { ProfileInput } from "@/components/ProfileInput";
 import { RewriteComparison } from "@/components/RewriteComparison";
 import { SectionRewrites, type SectionRewriteState } from "@/components/SectionRewrites";
+import { TourStops } from "@/components/TourStops";
 import { Button } from "@/components/ui/button";
 import { errorMessage, evaluateProfile, extractFacts, rewriteProfile, rewriteSection } from "@/lib/api-client";
 import { saveConsent, useStoredConsent, withdrawConsent } from "@/lib/consent";
+import { getSession, updateSession, useIdentitySession } from "@/lib/identity-session";
 import { DEMO_HINGE_FACTS, DEMO_HINGE_INPUT, DEMO_LINKEDIN_FACTS, DEMO_LINKEDIN_PROFILE } from "@/lib/demo-data";
 import { emptyHingePairs, HINGE_PROMPTS, mergeFacts, MAX_HINGE_ANSWER, MAX_HINGE_PROMPTS, type HingePair } from "@/lib/persona-ui";
 import { emptyLinkedInProfile, factCheckSegments, findSection, profileCharCount, rewritableSections, segmentProfile } from "@/lib/profile";
@@ -55,6 +58,8 @@ function demoHingePairs(): HingePair[] {
   return pairs;
 }
 
+const isDemoHinge = (pairs: HingePair[] | null) => !!pairs && JSON.stringify(pairs) === JSON.stringify(demoHingePairs());
+
 /** Demo facts are recognized by text: merging may renumber their ids. */
 const DEMO_FACT_TEXTS = new Set([...DEMO_LINKEDIN_FACTS, ...DEMO_HINGE_FACTS].map((f) => f.text));
 const DEMO_PROFILE_JSON = JSON.stringify(DEMO_LINKEDIN_PROFILE);
@@ -72,26 +77,53 @@ type FlowError = { message: string; retry?: () => void };
 
 /** `initialPlatform` comes from the URL (`/studio?platform=hinge`), e.g. from the Identity Hub. */
 export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?: Platform }) {
-  const [platform, setPlatform] = useState<Platform>(initialPlatform);
+  // The platform is the URL's (`/studio?platform=`); switching navigates, and the studio is keyed on it.
+  const platform = initialPlatform;
+  const router = useRouter();
   const config = PLATFORM_CONFIGS[platform];
   const [step, setStep] = useState(INPUT);
   const [furthest, setFurthest] = useState(INPUT);
   const [error, setError] = useState<FlowError | null>(null);
   const [help, setHelp] = useState(false);
 
-  // LinkedIn: a sectioned profile. Hinge: prompt answers.
-  const [profile, setProfile] = useState<LinkedInProfile>(emptyLinkedInProfile);
-  const [jobDescription, setJobDescription] = useState("");
-  const [imported, setImported] = useState<ImportState>(null);
+  // LinkedIn: a sectioned profile. Hinge: prompt answers. Both start from the Identity Hub's
+  // session (memory only), so the profile and facts follow the user between pages and platforms.
+  const [profile, setProfile] = useState<LinkedInProfile>(() => getSession().linkedin ?? emptyLinkedInProfile());
+  const [jobDescription, setJobDescription] = useState(() => getSession().jobDescription);
+  const [imported, setImported] = useState<ImportState>(() => getSession().linkedinImport);
   const [importing, setImporting] = useState(false);
-  const [hinge, setHinge] = useState<HingePair[]>(emptyHingePairs);
-  const [hingeDemo, setHingeDemo] = useState(false);
+  const [hinge, setHinge] = useState<HingePair[]>(() => getSession().hinge ?? emptyHingePairs());
+  const [hingeDemo, setHingeDemo] = useState(() => isDemoHinge(getSession().hinge));
   const [sampleMode, setSampleMode] = useState(false);
   const consent = useStoredConsent();
+  const session = useIdentitySession();
 
-  const [facts, setFacts] = useState<IdentityFact[]>([]);
+  const [facts, setFacts] = useState<IdentityFact[]>(() => getSession().facts);
   const [extracting, setExtracting] = useState(false);
-  const extractedFor = useRef<string | null>(null);
+  // Demo text comes with its facts, so it needs no extraction.
+  const extractedFor = useRef<string | null>(
+    JSON.stringify(getSession().linkedin) === JSON.stringify(DEMO_LINKEDIN_PROFILE)
+      ? textKey("linkedin", segmentProfile(DEMO_LINKEDIN_PROFILE))
+      : isDemoHinge(getSession().hinge)
+        ? textKey("hinge", segmentHinge(demoHingePairs()))
+        : null,
+  );
+
+  // Keep the hub's session in step with the studio, writing only values this studio actually
+  // changed. Mounting, or Next re-showing a page it kept hidden, re-runs this effect with the
+  // same values, and must not overwrite newer data from elsewhere with a stale copy.
+  const synced = useRef({ profile, imported, jobDescription, hinge, facts });
+  useEffect(() => {
+    const prev = synced.current;
+    synced.current = { profile, imported, jobDescription, hinge, facts };
+    const patch: Parameters<typeof updateSession>[0] = {};
+    if (profile !== prev.profile) patch.linkedin = segmentProfile(profile).length ? profile : null;
+    if (imported !== prev.imported) patch.linkedinImport = imported;
+    if (jobDescription !== prev.jobDescription) patch.jobDescription = jobDescription;
+    if (hinge !== prev.hinge) patch.hinge = hinge.some((p) => p.answer.trim()) ? hinge : null;
+    if (facts !== prev.facts) patch.facts = facts;
+    if (Object.keys(patch).length) updateSession(patch);
+  }, [profile, imported, jobDescription, hinge, facts]);
 
   const [audiences, setAudiences] = useState(() => defaultAudiences(initialPlatform));
   const [traits, setTraits] = useState(() => defaultTraits(initialPlatform));
@@ -142,10 +174,16 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
     return null;
   })();
 
-  function go(next: number) {
+  /** `scroll: false` when the next screen scrolls to something itself (a focused section). */
+  function go(next: number, { scroll = true } = {}) {
     setStep(next);
     setFurthest((prev) => Math.max(prev, next));
     setError(null);
+    // A new step starts at the top, next to the step rail, not wherever the last one was scrolled.
+    if (scroll && window.scrollY > 0) {
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+    }
   }
 
   /** Rewrites depend on the text and the confirmed facts; drop them when either changes. */
@@ -169,14 +207,21 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
     clearRewrites();
   }
 
+  /**
+   * Start over on this platform: clears its text and results. Facts the user confirmed or typed
+   * stay (they're true on every platform); the hub's "Clear this session" removes everything.
+   */
   function reset() {
     resetResults();
-    setProfile(emptyLinkedInProfile());
-    setJobDescription("");
-    setImported(null);
-    setHinge(emptyHingePairs());
-    setHingeDemo(false);
-    setFacts([]);
+    if (platform === "linkedin") {
+      setProfile(emptyLinkedInProfile());
+      setJobDescription("");
+      setImported(null);
+    } else {
+      setHinge(emptyHingePairs());
+      setHingeDemo(false);
+    }
+    setFacts((prev) => prev.filter((f) => f.confirmed || f.source === "user"));
     extractedFor.current = null;
     setSampleMode(false);
     setStep(INPUT);
@@ -184,17 +229,15 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
   }
 
   /**
-   * One identity, every platform: switching clears the profile text and results, but keeps the
-   * facts the user confirmed or typed. They are true about the person on LinkedIn and Hinge alike.
+   * One identity, every platform: switching keeps both profiles and the facts the user confirmed
+   * or typed (true on LinkedIn and Hinge alike); results and unconfirmed suggestions are dropped.
    */
   function switchPlatform(next: Platform) {
     if (next === platform) return;
-    const kept = facts.filter((f) => f.confirmed || f.source === "user");
-    reset();
-    setFacts(kept);
-    setPlatform(next);
-    setAudiences(defaultAudiences(next));
-    setTraits(defaultTraits(next));
+    // Both profiles stay in the hub's session; the studio for `next` starts from it. `external`
+    // also restarts any studio Next kept hidden, so going back can't show a stale copy.
+    updateSession({ facts: facts.filter((f) => f.confirmed || f.source === "user") }, { external: true });
+    router.replace(`/studio?platform=${next}`, { scroll: false });
   }
 
   function changeProfile(next: LinkedInProfile) {
@@ -434,95 +477,69 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
 
   const sourcesFor = (key: string): Segment[] => factCheckSegments(clean, key) ?? [];
 
-  return (
-    <div className="app-root" data-theme={platform}>
-      <Backdrop />
-      <header className="site-header">
-        <Wordmark />
-        <nav className="header-nav" aria-label="Main navigation">
-          <Link href="/" className="studio-link">
-            Home
-          </Link>
-          <Link href="/hub" className="studio-link">
-            Identity Hub
-          </Link>
-          <span className="header-avatar">You</span>
-        </nav>
-      </header>
-      <main className="studio-shell">
-        <div className="studio-topbar">
-          <div className="breadcrumb">
-            <Link href="/" aria-label="Home">
-              <House size={13} />
-            </Link>
-            <ChevronRight size={11} />
-            <span>Profile studio</span>
-          </div>
-          <span className="privacy-badge">
-            <ShieldCheck size={13} />
-            {sample ? "Sample mode · nothing sent or stored" : consent ? "You agreed to send text to the AI · nothing stored" : "Nothing sent until you agree · nothing stored"}
-            {consent && (
-              <Button variant="link" className="withdraw-link" onClick={withdraw}>
-                Withdraw consent
-              </Button>
-            )}
-          </span>
-        </div>
-        <div className="studio-body">
-          <div className="welcome-row">
-            <div>
-              <h1>Profile studio</h1>
-              <p className="welcome-copy">Add your profile, confirm your facts, get feedback, then rewrite.</p>
-            </div>
-            {step > INPUT && (
-              <Button variant="glass" onClick={reset} title="Clear this session">
-                <RotateCcw />
-                Start over
-              </Button>
-            )}
-          </div>
+  const scene = SCENES[platform];
+  const status = sample
+    ? "Sample mode · nothing sent or stored"
+    : consent
+      ? "You agreed to send text to the AI · nothing stored"
+      : "Nothing sent until you agree · nothing stored";
 
-          <div className="platform-grid" aria-label="Choose a platform">
+  return (
+    <div className="app-root tour-root" data-theme={platform}>
+      <ScenicBackdrop platform={platform} />
+      <header className="tour-header">
+        <Button variant="tour" nativeButton={false} render={<Link href="/" />}>
+          <ArrowLeft />
+          Overview
+        </Button>
+        <Wordmark className="tour-wordmark" />
+        <div className="tour-header-actions">
+          <div className="tour-platform-switch" role="group" aria-label="Choose a platform">
             {(["linkedin", "hinge"] as const).map((id) => (
               <Button
-                variant="platform"
+                variant="tour"
                 key={id}
-                data-platform={id}
-                data-active={platform === id}
+                data-selected={platform === id}
                 aria-pressed={platform === id}
                 disabled={loading}
                 onClick={() => switchPlatform(id)}
               >
-                <span className="platform-icon">
-                  <BrandMark platform={id} />
-                </span>
-                <span>
-                  <span className="platform-name">{id === "linkedin" ? "LinkedIn" : "Hinge"}</span>
-                  <span className="platform-description">
-                    {id === "linkedin" ? "Headline, About, and experience" : "Prompt answers"}
-                  </span>
-                </span>
-                <span className="platform-check" aria-hidden="true" />
+                <span className="tour-pearl" aria-hidden="true" />
+                {id === "linkedin" ? "LinkedIn" : "Hinge"}
               </Button>
             ))}
           </div>
+          <Link href="/hub" className="tour-avatar" aria-label="Identity Hub" title="Identity Hub">
+            {session.photo ? (
+              // eslint-disable-next-line @next/next/no-img-element -- a local object URL, not an optimizable asset
+              <img src={session.photo.url} alt="" />
+            ) : (
+              <Fingerprint size={17} />
+            )}
+          </Link>
+        </div>
+      </header>
 
-          <nav className="stage-bar expanded-stages" aria-label="Profile workflow">
-            {STEPS.map((label, index) => (
-              <Button
-                variant="stage"
-                key={label}
-                data-active={step === index}
-                aria-current={step === index ? "step" : undefined}
-                disabled={index > furthest || loading}
-                onClick={() => go(index)}
-              >
-                <span className="stage-number">{index < step ? <Check size={11} /> : index + 1}</span>
-                {label}
-              </Button>
-            ))}
-          </nav>
+      {step === INPUT && (
+        <section className="tour-location" aria-label={`${scene.name} studio`}>
+          <span className="tour-kicker">
+            <span className="destination-mark">
+              <BrandMark platform={platform} />
+            </span>
+            {scene.lens} <span className="tour-line" aria-hidden="true" /> THROUGH THEIR EYES
+          </span>
+          <h1>{scene.caption}</h1>
+          <p>
+            Add your profile, confirm what’s true, see it through their eyes, then rewrite. A first impression that
+            still feels like you.
+          </p>
+        </section>
+      )}
 
+      <TourStops steps={STEPS} step={step} furthest={furthest} disabled={loading} onSelect={go} />
+
+      <main className="tour-workspace studio-shell">
+        <div className="studio-body">
           {sample && step >= FACTS && (
             <p className="prototype-notice">
               <ShieldCheck size={15} />
@@ -625,7 +642,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
               segments={segments}
               onRewriteSection={(key) => {
                 setFocusSection(key);
-                go(REWRITE);
+                go(REWRITE, { scroll: false });
               }}
               onRewrite={() => {
                 setFocusSection(null);
@@ -683,36 +700,61 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
             />
           )}
 
-          {step > INPUT && step !== CONSENT && (
+          {step > INPUT && (
             <div className="back-row">
-              <Button variant="ghost" disabled={loading} onClick={() => go(step - 1)}>
-                <ArrowLeft />
-                Go back
+              {step !== CONSENT ? (
+                <Button variant="ghost" disabled={loading} onClick={() => go(step - 1)}>
+                  <ArrowLeft />
+                  Go back
+                </Button>
+              ) : (
+                <span />
+              )}
+              <Button variant="ghost" disabled={loading} onClick={reset} title="Clear this session">
+                <RotateCcw />
+                Start over
               </Button>
             </div>
           )}
         </div>
-        <footer className="studio-footer">
-          <span className="footer-message">
-            <ShieldCheck size={12} />
-            Nothing is stored. Refreshing clears your session.
-          </span>
-          <Button variant="link" className="sample-link" aria-expanded={help} onClick={() => setHelp(!help)}>
-            <CircleHelp />Help
-          </Button>
-        </footer>
         {help && (
-          <p className="help-note">
+          <p className="help-note" id="studio-help">
             Nothing is sent until you agree, once per browser (only that yes is remembered; withdraw it any time
-            from the top bar). After that, your profile text and confirmed facts go to OpenRouter and the
-            underlying AI model provider; nothing else is stored by this app. Imported PDFs are read in your
+            from the bar below). After that, your profile text and confirmed facts go to OpenRouter and the
+            underlying AI model provider; nothing else is stored by this app. Imported PDFs and photos stay in your
             browser, and entry locations are never sent. Feedback is written by an AI model, not real people.
             Rewrites may only use facts you confirm, and FactCheck flags numbers, names, and stronger verbs it
             can&apos;t trace to your words. Sample results are labeled. Refreshing clears your session.
           </p>
         )}
       </main>
-      <WorldFooter />
+
+      <footer className="tour-footer">
+        <span className="tour-privacy">
+          <ShieldCheck size={13} />
+          {status}
+          {consent && (
+            <Button variant="link" className="withdraw-link" onClick={withdraw}>
+              Withdraw consent
+            </Button>
+          )}
+        </span>
+        <Button
+          variant="tour"
+          size="sm"
+          className="tour-help"
+          aria-expanded={help}
+          aria-controls="studio-help"
+          onClick={() => setHelp(!help)}
+        >
+          <CircleHelp />
+          How this works
+        </Button>
+        <span className="tour-progress" aria-label={`Step ${step + 1} of ${STEPS.length}: ${STEPS[step]}`}>
+          <span className="tour-progress-label">{STEPS[step]}</span>
+          {String(step + 1).padStart(2, "0")} <span>/ {String(STEPS.length).padStart(2, "0")}</span>
+        </span>
+      </footer>
     </div>
   );
 }
