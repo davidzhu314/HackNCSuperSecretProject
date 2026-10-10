@@ -1,4 +1,5 @@
 import type {
+  AudienceCritique,
   EvaluateResponse,
   ExtractFactsResponse,
   IdentityFact,
@@ -57,37 +58,71 @@ export const SAMPLE_EXTRACT: ExtractFactsResponse = {
   facts: DEMO_LINKEDIN_FACTS.map((f) => ({ ...f, confirmed: false as const, source: "extracted" as const })),
 };
 
+/** Sample critique; missingEvidence follows from having no cited segments, as on the server. */
+function critique(
+  audience: string,
+  trait: string,
+  rating: AudienceCritique["rating"],
+  segmentIds: string[],
+  rationale: string,
+  suggestion: string,
+): AudienceCritique {
+  return { audience, trait, rating, segmentIds, missingEvidence: segmentIds.length === 0, rationale, suggestion };
+}
+
+/** Every audience x trait combination for LinkedIn, so the sample matrix is full whatever the user picks. */
 export const SAMPLE_EVALUATE: EvaluateResponse = {
   source: "sample",
   warnings: [],
   critiques: [
-    {
-      audience: "startup_founder",
-      trait: "ownership_impact",
-      rating: "weak",
-      segmentIds: ["s3"],
-      missingEvidence: false,
-      rationale: "\"Experience with various projects\" does not say what was built or what the person did.",
-      suggestion: "Name one project and your specific part in it.",
-    },
-    {
-      audience: "technical_recruiter",
-      trait: "technical_specificity",
-      rating: "not_evident",
-      segmentIds: [],
-      missingEvidence: true,
-      rationale: "No languages, tools, or technical work are mentioned anywhere in the text.",
-      suggestion: "Add the technologies you have actually used, drawn from your confirmed facts.",
-    },
-    {
-      audience: "research_lead",
-      trait: "clarity",
-      rating: "weak",
-      segmentIds: ["s1", "s2"],
-      missingEvidence: false,
-      rationale: "The headline and opening use general phrases (\"passionate\", \"innovation\") that could describe anyone.",
-      suggestion: "Lead with your field and one concrete thing you have done.",
-    },
+    // Startup founder
+    critique("startup_founder", "clarity", "weak", ["s1"],
+      "\"Aspiring tech professional\" says what you hope to be, not what you do, so a founder skimming can't place you.",
+      "Open with what you are now (your field and stage) and one thing you have made."),
+    critique("startup_founder", "technical_specificity", "not_evident", [],
+      "There is nothing a founder could check: no project, tool, or piece of technical work is named.",
+      "Name a real project and the tools you used for it."),
+    critique("startup_founder", "ownership_impact", "weak", ["s3"],
+      "\"Experience with various projects\" does not say what was built or what the person did.",
+      "Name one project and your specific part in it."),
+    critique("startup_founder", "relevance", "weak", ["s4"],
+      "\"Looking for opportunities\" is open-ended, so it's unclear what kind of role or team would fit.",
+      "Say what kind of work you want next, if you know it."),
+    critique("startup_founder", "approachability", "moderate", ["s2"],
+      "The tone is friendly and positive, which makes it easy to reach out.",
+      "Keep the warm tone, but pair it with one concrete detail."),
+    // Technical recruiter
+    critique("technical_recruiter", "clarity", "weak", ["s1"],
+      "The headline doesn't state a role or level, so it's hard to match to an opening.",
+      "Put your field and current stage (for example, a student year) in the headline."),
+    critique("technical_recruiter", "technical_specificity", "not_evident", [],
+      "No languages, tools, or technical work are mentioned anywhere in the text.",
+      "Add the technologies you have actually used, drawn from your confirmed facts."),
+    critique("technical_recruiter", "ownership_impact", "not_evident", [],
+      "Nothing describes a responsibility or result that a recruiter could point to.",
+      "Describe one thing you were responsible for, in plain terms."),
+    critique("technical_recruiter", "relevance", "weak", ["s1", "s4"],
+      "\"Tech professional\" and \"opportunities\" are too broad to match against a specific job.",
+      "Paste a job description to see feedback against a real target."),
+    critique("technical_recruiter", "approachability", "moderate", ["s2"],
+      "Reads as friendly and collaborative.",
+      "Fine as is; specificity matters more for this reader."),
+    // Research or hiring lead
+    critique("research_lead", "clarity", "weak", ["s1", "s2"],
+      "The headline and opening use general phrases (\"passionate\", \"innovation\") that could describe anyone.",
+      "Lead with your field and one concrete thing you have done."),
+    critique("research_lead", "technical_specificity", "not_evident", [],
+      "There is no method, system, or technical depth to evaluate.",
+      "Describe one technical problem you worked on and how you approached it."),
+    critique("research_lead", "ownership_impact", "weak", ["s3"],
+      "Projects are mentioned only in general, so it's unclear what you personally contributed.",
+      "Separate what you did yourself from what a group did."),
+    critique("research_lead", "relevance", "not_evident", [],
+      "Without a target role or area, there's nothing to judge fit against.",
+      "Name the area of work you're aiming for, or paste a job description."),
+    critique("research_lead", "approachability", "moderate", ["s2", "s3"],
+      "Enthusiasm for learning comes through and reads as genuine.",
+      "Keep it, and back it up with something you learned or built."),
   ],
 };
 
