@@ -5,37 +5,19 @@ import { Backdrop, BrandMark, WorldFooter, Wordmark } from "@/components/Chrome"
 import { Button } from "@/components/ui/button";
 import { DEMO_LINKEDIN_FACTS, DEMO_LINKEDIN_PROFILE, DEMO_PERSONA } from "@/lib/demo-data";
 import { factCoverage } from "@/lib/profile";
-import type { LinkedInProfile } from "@/lib/schemas";
+import { profileSectionList } from "@/lib/persona-ui";
 
 export const metadata: Metadata = {
   title: "Identity Hub — Personify",
   description: "A demo profile showing which of your confirmed facts appear on each platform.",
 };
 
-const ENTRY_KINDS = [
-  ["experience", "Experience"],
-  ["education", "Education"],
-  ["projects", "Projects"],
-  ["volunteering", "Volunteering"],
-] as const;
-
-/** Every section a fact can appear in, in LinkedIn order, labeled like the studio's section labels. */
-function hubSections(p: LinkedInProfile): { key: string; label: string }[] {
-  return [
-    ...(p.headline.trim() ? [{ key: "headline", label: "Headline" }] : []),
-    ...(p.about.trim() ? [{ key: "about", label: "About" }] : []),
-    ...ENTRY_KINDS.flatMap(([kind, name]) =>
-      p[kind].map((e) => ({ key: e.id, label: [name, e.organization.trim(), e.title.trim()].filter(Boolean).join(" · ") })),
-    ),
-  ];
-}
-
 // Demo only: the fictitious persona, nothing saved, no login. Every number is a real count
 // from Person 1's factCoverage over the demo profile and confirmed facts; there are no scores.
 export default function HubPage() {
   const profile = DEMO_LINKEDIN_PROFILE;
   const facts = DEMO_LINKEDIN_FACTS.filter((f) => f.confirmed);
-  const sections = hubSections(profile);
+  const sections = profileSectionList(profile);
   const coverage = factCoverage(profile, facts);
   const factsIn = (key: string) => coverage.perFact.filter((f) => f.sectionKeys.includes(key)).length;
   const labelOf = new Map(sections.map((s) => [s.key, s.label]));

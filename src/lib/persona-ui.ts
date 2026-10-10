@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { LIMITS, type GuardWarning, type IdentityFact, type Rating } from "./schemas";
+import { ENTRY_KINDS, LIMITS, type EntrySectionKind, type GuardWarning, type IdentityFact, type LinkedInProfile, type Rating } from "./schemas";
 
 // Client-side helpers for the UI (ported from the Lovable design). No AI, no network.
 
@@ -97,4 +97,31 @@ export function mergeFacts(prev: IdentityFact[], incoming: IdentityFact[], max: 
     out.push({ ...fact, id });
   }
   return out.slice(0, max);
+}
+
+const ENTRY_LABEL: Record<EntrySectionKind, string> = {
+  experience: "Experience",
+  education: "Education",
+  projects: "Projects",
+  volunteering: "Volunteering",
+};
+
+/**
+ * Every section of a LinkedIn profile that feedback can cite, in LinkedIn order, with the same
+ * labels the studio uses ("Experience · Acme · Intern"). Empty sections are skipped.
+ */
+export function profileSectionList(p: LinkedInProfile): { key: string; label: string; rewritable: boolean }[] {
+  return [
+    ...(p.headline.trim() ? [{ key: "headline", label: "Headline", rewritable: true }] : []),
+    ...(p.about.trim() ? [{ key: "about", label: "About", rewritable: true }] : []),
+    ...ENTRY_KINDS.flatMap((kind) =>
+      p[kind].map((e) => ({
+        key: e.id,
+        label: [ENTRY_LABEL[kind], e.organization.trim(), e.title.trim()].filter(Boolean).join(" · "),
+        rewritable: Boolean(e.description.trim()),
+      })),
+    ),
+    ...(p.skills.some((s) => s.trim()) ? [{ key: "skills", label: "Skills", rewritable: false }] : []),
+    ...(p.honors.some((s) => s.trim()) ? [{ key: "honors", label: "Honors", rewritable: false }] : []),
+  ];
 }

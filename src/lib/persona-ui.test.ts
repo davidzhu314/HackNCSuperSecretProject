@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { emptyHingePairs, factTextSchema, mergeFacts, wordDiff } from "./persona-ui";
+import { DEMO_LINKEDIN_PROFILE } from "./demo-data";
+import { emptyHingePairs, factTextSchema, mergeFacts, profileSectionList, wordDiff } from "./persona-ui";
+import { rewritableSections } from "./profile";
 import type { IdentityFact } from "./schemas";
 import { PLATFORM_CONFIGS } from "./rubrics";
 
@@ -57,5 +59,15 @@ describe("mergeFacts", () => {
     const out = mergeFacts([fact("f1", "I study CS.", true)], [fact("f1", " i study cs. ", false)]);
     expect(out).toHaveLength(1);
     expect(out[0].confirmed).toBe(true);
+  });
+});
+
+describe("profileSectionList", () => {
+  it("lists sections in LinkedIn order and marks the rewritable ones like rewritableSections does", () => {
+    const list = profileSectionList(DEMO_LINKEDIN_PROFILE);
+    expect(list[0]).toMatchObject({ key: "headline", label: "Headline" });
+    expect(list.map((s) => s.key)).toContain("skills");
+    const rewritable = rewritableSections(DEMO_LINKEDIN_PROFILE);
+    expect(list.filter((s) => s.rewritable).map((s) => [s.key, s.label])).toEqual(rewritable.map((s) => [s.key, s.label]));
   });
 });

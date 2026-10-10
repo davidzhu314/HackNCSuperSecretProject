@@ -118,7 +118,7 @@ export function RewriteComparison(props: {
   );
 }
 
-function VariationResult(props: {
+export function VariationResult(props: {
   original: string;
   segments: Segment[];
   confirmedFacts: IdentityFact[];
