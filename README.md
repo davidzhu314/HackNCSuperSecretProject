@@ -1,3 +1,7 @@
+# HackNCSuperSecretProject
+
+PERSONA: one identity, every platform, authentically you. See [SPEC.md](SPEC.md) for the full spec.
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
