@@ -1,9 +1,9 @@
 # Handoff: PERSONA / Personify hackathon app
 
-Updated 2026-10-10 (evening) for the next Claude session. Read this, then [CLAUDE.md](CLAUDE.md) (rules, stack), then [SPEC.md](SPEC.md) (product spec). Also read [AGENTS.md](AGENTS.md): this is Next.js 16.4 / React 19.3, newer than your training data, so check `node_modules/next/dist/docs/` before writing Next code. [PROGRESS.md](PROGRESS.md) and [README.md](README.md) have more detail but predate the Personify UI (see "Stale docs").
+Updated 2026-10-10 (night) for the next Claude session. Read this, then [CLAUDE.md](CLAUDE.md) (rules, stack), then [SPEC.md](SPEC.md) (product spec). Also read [AGENTS.md](AGENTS.md): this is Next.js 16.4 / React 19.3, newer than your training data, so check `node_modules/next/dist/docs/` before writing Next code. [PROGRESS.md](PROGRESS.md) and [README.md](README.md) have more detail but predate the Personify UI (see "Stale docs").
 
 ## State in one paragraph
-The app works end to end and is deployed. LinkedIn and Hinge both run live against OpenRouter: paste profile, consent, confirm facts, simulated audience feedback with clickable sentence citations, then two grounded rewrites (Option A direct, Option B narrative), each checked by deterministic FactCheck and an AI-cliché lint. The UI is the teammates' Lovable design ("Personify"), ported into `src/` by Izad Khokhar and wired to the real API. 146 tests pass, lint and build are clean. What's left is mostly demo prep, docs, and one urgent security item for the user.
+The app works end to end, is deployed, and has been tested live. LinkedIn is entered by section (or imported from LinkedIn's PDF export), then consent (once per browser), confirm facts, pick up to 3 of 8 lenses, Audience Clash on the annotated profile, and per-section rewrites (Direct or Narrative) each checked by deterministic FactCheck, the AI-cliché lint, and receipts. Hinge keeps its prompt-answer flow. A demo Identity Hub is at `/hub`. The sections phase (Person 1: #7, #9–#13; Person 2: #5, #6, #8, #14) is merged and all branches are deleted. 252 tests pass, lint and build are clean. What's left is demo prep and one security item for the user.
 
 ## URGENT for the user (not for you to do)
 - **The repo is now PUBLIC** (https://github.com/davidzhu314/HackNCSuperSecretProject), so the Gemini key committed in `933a9c6` (`.env.example`, `GEMINI_API_KEY=AQ.…`) is publicly readable in history. The user must revoke it at https://aistudio.google.com/apikey. A full history scan found no other keys; the OpenRouter key was never committed. Don't rewrite history without the user's explicit say-so.
@@ -43,25 +43,25 @@ The app works end to end and is deployed. LinkedIn and Hinge both run live again
 `chromium-cli` isn't installed. What worked: `playwright-core` installed in a scratch folder (not the project), driving the installed Chrome with `chromium.launch({ channel: "chrome", headless: true })`. Run `npm run dev`, poll `http://localhost:3000`, then script the flow at `/studio`. Gotchas:
 - In sample mode the consent button is **"Continue with samples"**, not "I agree, continue".
 - The step tab "6 Rewrite + FactCheck" also matches `/rewrite/i` and is disabled; use exact names ("Rewrite my profile", "Generate rewrites").
-- Next's dev server sometimes serves stale CSS after edits to `globals.css`; restart it.
+- Next's dev server sometimes serves stale CSS after edits to `globals.css`: stop it, `rm -rf .next/dev`, restart.
+- The first `/studio` load after a restart takes ~15s to hydrate (pdfjs compiles). Wait before clicking.
 - Kill the dev server by port when done: `lsof -ti:3000 -sTCP:LISTEN | xargs kill`.
 If the user wants this repeatable, suggest `/run-skill-generator` to save it as a project skill.
 
 ## Stale docs
-`README.md` and `PROGRESS.md` describe the earlier plain UI ("PERSONA", no Hinge, PROGRESS says 40 tests; it's now 146). The app is now branded **Personify** on screen. Update both once the user confirms the name. `CLAUDE.md`'s status checklist is also behind (Hinge is now done; the deploy is live).
+None known. README, PROGRESS, CLAUDE.md, and this file were updated after the sections phase merged. `HANDOFF-PERSON-1.md` and `HANDOFF-PERSON-2.md` are finished work orders, kept as a record.
 
-## Next phase (split between two people)
-LinkedIn by sections, PDF import, 8 lenses in 4 categories, Audience Clash redesign, per-section rewrites with a style dropdown, consent once per browser, and a demo-only Identity Hub. The work is split so the two sessions don't edit the same files:
+## Sections phase (done)
+LinkedIn by sections, PDF import, 8 lenses in 4 categories, Audience Clash redesign, per-section rewrites with a style dropdown, consent once per browser, and a demo-only Identity Hub. It was split so the two sessions didn't edit the same files:
 - [HANDOFF-PERSON-1.md](HANDOFF-PERSON-1.md): profile data and AI (contract, PDF parser, `/api/rewrite-section`, FactCheck per section, lenses, limits, fact coverage).
 - [HANDOFF-PERSON-2.md](HANDOFF-PERSON-2.md): interface (copy cleanup, consent once, section editor and PDF upload, lens picker, Audience Clash redesign, rewrite screen, hub).
 User decisions for this phase are listed in both docs; notably the "Simulated AI feedback" label is dropped for now (overrides CLAUDE.md/SPEC.md until those are updated) and there is no real login.
 
 ## Still to do
 1. User: revoke the leaked Gemini key (above).
-2. Demo: rehearse the 90-second script in SPEC.md and record a backup video. Warm the site first.
-3. Update README, PROGRESS.md, and the CLAUDE.md checklist for Personify, Hinge, and the live URL.
-4. Evals: the 20 cases are drafts awaiting human review; a runner that compares models and a `src/lib/models.ts` don't exist yet.
-5. Optional: blind A/B (stretch) only if everything else is solid.
+2. Demo: rehearse the 90-second script in SPEC.md, leading with "try to make me lie" (a judge edits a rewrite; FactCheck flags it in the browser with no AI call). Record a backup video. Warm the site first.
+3. Evals: the 20 cases are drafts awaiting human review. The live false-positive sweep exists (`evals/fp-sweep.test.ts`); a model-comparison runner doesn't.
+4. Optional: blind A/B (stretch) only if everything else is solid.
 
 ## Working with this user
 - Wants brutally honest assessments, concise answers, and a recommendation instead of a survey.

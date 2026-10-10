@@ -1,6 +1,6 @@
 # Evals
 
-Picks which OpenRouter model handles each task (`extract`, `evaluate`, `rewrite`) per platform, based on measurements rather than reputation. Production reads the choice from `src/lib/models.ts`.
+Picks which OpenRouter model handles each task (`extract`, `evaluate`, `rewrite`) per platform, based on measurements rather than reputation. Production reads the choice from `OPENROUTER_MODEL` / `OPENROUTER_REWRITE_MODEL`, with defaults in `src/lib/llm.ts`.
 
 ## What's here
 
@@ -10,6 +10,7 @@ Picks which OpenRouter model handles each task (`extract`, `evaluate`, `rewrite`
 | `cases/linkedin/li-001..010.json` | 10 synthetic LinkedIn cases, **status: draft** |
 | `cases/hinge/hg-001..010.json` | 10 synthetic Hinge cases, **status: draft** |
 | `cases.test.ts` | Runs with `npm test`. Validates every case, checks FactCheck catches every non-semantic trap, and checks gold facts don't trip FactCheck |
+| `fp-sweep.test.ts` | Live false-positive sweep: every case through the real `/api/rewrite` with honest input, counting FactCheck flags. Skipped unless `LIVE_SWEEP=1` (needs `npm run dev` with a key) |
 | `candidates.ts` | The 3 models to compare plus the judge, with OpenRouter ids and prices |
 
 Coverage per platform: 3 average, 2 sparse, 2 numbers-heavy, 2 already-good, 1 awkward.

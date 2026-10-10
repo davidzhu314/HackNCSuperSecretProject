@@ -20,7 +20,8 @@ Start with [HANDOFF.md](HANDOFF.md) (current state and next steps), then the ful
 
 ## Layout
 - `src/app/`: pages plus `api/facts/extract`, `api/evaluate`, `api/rewrite` (Hinge), `api/rewrite-section` (LinkedIn, one section per call), `api/compare` (stretch)
-- `src/components/`: `IdentityFacts`, `AudienceClash`, `RewriteComparison`
+- `src/components/`: `PersonaFlow` (the flow), `LinkedInEditor`, `ProfileClash`, `SectionRewrites` (LinkedIn), `ProfileInput`, `AudienceClash`, `RewriteComparison` (Hinge), `IdentityFacts`, `AudienceSelection`
+- `src/app/hub/`: demo Identity Hub; `src/app/studio/`: the flow (`?platform=hinge`)
 - `src/lib/`: `llm.ts`, `rubrics.ts`, `fact-guard.ts`, `segments.ts`, `schemas.ts`, `demo-data.ts`, `profile.ts` (sections, segment ids like `exp2-s1`, per-section FactCheck corpus, `factCoverage`), `linkedin-pdf.ts` (browser-side PDF import via `pdfjs-dist`)
 
 ## Rules
@@ -48,7 +49,7 @@ Start with [HANDOFF.md](HANDOFF.md) (current state and next steps), then the ful
 - [x] Next.js scaffold created and dev server verified
 - [x] Idea chosen (PERSONA, now named Personify) and spec written
 - [x] `gh`, `uv`, `vercel` CLIs installed and logged in (davidzhu314)
-- [x] Pushed to private GitHub repo davidzhu314/HackNCSuperSecretProject (`origin/main`, merged with its initial README commit)
+- [x] Pushed to GitHub repo (now public) davidzhu314/HackNCSuperSecretProject (`origin/main`, merged with its initial README commit)
 - [x] Vercel project linked and deployed (https://hackathon-app-nu.vercel.app). Model vars aren't set on Vercel; code defaults apply.
 - [x] OpenRouter key in `.env.local` and verified (`scripts/llm_check.py` passes with `anthropic/claude-haiku-5.5`). Switched from Gemini direct: the Google AI Studio key returned 401 on every endpoint.
 - [x] shadcn/ui (button, card, tabs, checkbox, badge, textarea, label), zod, `openai`, `diff`, lucide-react installed
@@ -59,6 +60,7 @@ Start with [HANDOFF.md](HANDOFF.md) (current state and next steps), then the ful
 - [x] Hinge mode
 - [x] Live on Vercel (https://hackathon-app-nu.vercel.app); `OPENROUTER_API_KEY` set for Production
 - [x] Sections phase, data/AI side: section schemas and `profile.ts` (#7), PDF import (#9), live `/api/rewrite-section` (#10), 8 lenses in 4 categories (#11), `factCoverage` per section
-- [ ] Sections phase, UI side (Person 2: section editor and PDF upload, lens picker, Audience Clash redesign, per-section rewrite screen, consent once, demo hub)
+- [x] Sections phase, UI side (#5, #6, #8, #14; Person 2: section editor and PDF upload, lens picker, Audience Clash redesign, per-section rewrite screen, consent once, demo hub)
+- [x] Sections build tested live and deployed
 - [ ] Blind A/B (stretch)
 - [ ] Demo rehearsed and backup video recorded
