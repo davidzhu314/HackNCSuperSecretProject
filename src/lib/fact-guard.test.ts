@@ -72,6 +72,14 @@ describe("legitimate text passes", () => {
     ).toEqual([]);
   });
 
+  it("does not flag generic title-case or heading words, but still flags titles and names", () => {
+    const w = check(
+      "Senior Computer Science Student | Builder of Python and React Web Apps\n\nWhat I've worked on:\nI built a course-planning web app with Python and React.",
+    );
+    expect(w.filter((x) => x.kind === "unsupported_entity")).toEqual([]);
+    expect(has(check("Python and React Developer who studies computer science."), "unsupported_entity", "Developer")).toBe(true);
+  });
+
   it("treats '95 percent' and '95%' as the same number", () => {
     const keys = extractNumbers("up 95 percent, then 95%").map((n) => n.key);
     expect(keys).toEqual(["95%", "95%"]);

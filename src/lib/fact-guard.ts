@@ -131,10 +131,15 @@ function checkNumbers(content: string, corpus: string): GuardWarning[] {
 
 // ---------- 2. entities (heuristic) ----------
 
+// Words that are capitalized only because of headline/title case or a section heading, not because
+// they are names. Deliberately excludes job titles ("Developer", "Engineer"): those are claims.
 const ENTITY_ALLOWLIST = new Set(
-  ["I", "A", "An", "The", "And", "Or", "But", "Of", "In", "At", "On", "For", "With", "To", "By", "From", "As"].map(
-    (w) => w.toLowerCase(),
-  ),
+  [
+    "I", "A", "An", "The", "And", "Or", "But", "Of", "In", "At", "On", "For", "With", "To", "By", "From", "As",
+    "What", "Why", "How", "When", "Where", "Who", "My", "Our", "Your",
+    "Student", "Students", "App", "Apps", "Project", "Projects", "Skills", "Experience", "Education",
+    "About", "Summary", "Overview", "Highlights", "Interests", "Background", "Goals", "Tools", "Work",
+  ].map((w) => w.toLowerCase()),
 );
 
 type Token = { text: string; start: number; end: number; atStart: boolean };

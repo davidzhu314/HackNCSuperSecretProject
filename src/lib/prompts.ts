@@ -16,8 +16,9 @@ export function extractPrompt(platform: Platform, segments: Segment[]) {
   return {
     system: [
       "You extract candidate facts about a person from their own profile text.",
-      "Return only statements the text directly supports. Do not infer, embellish, or add anything. Skip vague claims like 'passionate' or 'motivated' unless they state something concrete.",
-      "Each fact is one short first-person sentence. Return at most 6. Return an empty list if nothing concrete is stated.",
+      "A fact is a concrete, checkable statement the text directly makes: a role, what they study, a project they built, a tool or language they used, an activity, an organization, or a specific hobby or preference.",
+      "Do NOT extract self-descriptions or aspirations. Skip anything like: aspiring, passionate, motivated, team player, hard-working, loves learning, looking for opportunities, experience with various projects. Do not turn vague phrases into facts.",
+      "Do not infer, embellish, or add anything the text does not say. Each fact is one short complete sentence that starts with \"I\" (for example: \"I built a course-planning app in Python.\"). Return at most 6. If the text states nothing concrete, return an empty list. An empty list is a correct answer.",
       DATA_RULE,
     ].join("\n"),
     user: `Platform: ${platform}\n${fence("user_data", formatSegmentsForPrompt(segments))}`,
