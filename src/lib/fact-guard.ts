@@ -17,8 +17,15 @@ export type GuardInput = {
 const WORD_RE = /[A-Za-z][A-Za-z0-9'’&+#]*(?:\.[A-Za-z0-9]+)*/g;
 
 /** Very light stemmer so "contributed"/"contributor" and "plan"/"plans" match. Lenient on purpose. */
+// Irregular past tenses, so "built" matches "builder"/"building" and "taught" matches "teaching".
+const IRREGULAR: Record<string, string> = {
+  built: "build", wrote: "write", written: "write", taught: "teach", led: "lead", ran: "run",
+  made: "make", drove: "drive", oversaw: "oversee", began: "begin", grew: "grow", won: "win",
+};
+
 function stem(word: string): string {
   let w = word.toLowerCase().replace(/['’]s$/, "");
+  if (IRREGULAR[w]) return IRREGULAR[w];
   for (const suffix of ["ing", "ed", "er", "or", "es", "s"]) {
     if (w.length - suffix.length >= 4 && w.endsWith(suffix)) {
       w = w.slice(0, -suffix.length);

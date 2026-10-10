@@ -80,6 +80,11 @@ describe("legitimate text passes", () => {
     expect(has(check("Python and React Developer who studies computer science."), "unsupported_entity", "Developer")).toBe(true);
   });
 
+  it("matches irregular verbs to their nouns (built -> Builder)", () => {
+    const w = check("Python and React Builder | Teaching Assistant");
+    expect(w.filter((x) => x.kind === "unsupported_entity")).toEqual([]);
+  });
+
   it("treats '95 percent' and '95%' as the same number", () => {
     const keys = extractNumbers("up 95 percent, then 95%").map((n) => n.key);
     expect(keys).toEqual(["95%", "95%"]);

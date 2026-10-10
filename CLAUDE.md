@@ -52,7 +52,7 @@ Start with [HANDOFF.md](HANDOFF.md) (current state and next steps), then the ful
 - [x] OpenRouter key in `.env.local` and verified (`scripts/llm_check.py` passes with `anthropic/claude-haiku-5.5`). Switched from Gemini direct: the Google AI Studio key returned 401 on every endpoint.
 - [x] shadcn/ui (button, card, tabs, checkbox, badge, textarea, label), zod, `openai`, `diff`, lucide-react installed
 - [x] Schemas (`schemas.ts`) and demo persona (`demo-data.ts`)
-- [ ] LinkedIn flow end to end (hour 12 checkpoint)
+- [x] LinkedIn flow end to end (hour 12 checkpoint): placeholder UI in `src/components/`, driven live in Chrome. Lovable redesign to be ported in.
 - [x] FactCheck with tests (`fact-guard.ts`, vitest: `npm test`)
 - [x] LLM client, rubrics, prompts, and API routes `facts/extract`, `evaluate`, `rewrite` (verified live against OpenRouter with the demo persona)
 - [ ] Hinge mode
