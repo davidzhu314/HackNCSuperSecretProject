@@ -45,8 +45,9 @@ const defaultTraits = (p: Platform) => PLATFORM_CONFIGS[p].traits.slice(0, 3).ma
 
 type FlowError = { message: string; retry?: () => void };
 
-export function PersonaFlow() {
-  const [platform, setPlatform] = useState<Platform>("linkedin");
+/** `initialPlatform` comes from the URL (`/studio?platform=hinge`), e.g. from the Identity Hub. */
+export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?: Platform }) {
+  const [platform, setPlatform] = useState<Platform>(initialPlatform);
   const config = PLATFORM_CONFIGS[platform];
   const [step, setStep] = useState(INPUT);
   const [furthest, setFurthest] = useState(INPUT);
@@ -63,8 +64,8 @@ export function PersonaFlow() {
   const [extracting, setExtracting] = useState(false);
   const extractedFor = useRef<string | null>(null);
 
-  const [audiences, setAudiences] = useState(defaultAudiences("linkedin"));
-  const [traits, setTraits] = useState(defaultTraits("linkedin"));
+  const [audiences, setAudiences] = useState(() => defaultAudiences(initialPlatform));
+  const [traits, setTraits] = useState(() => defaultTraits(initialPlatform));
   const [evaluating, setEvaluating] = useState(false);
   const [evaluation, setEvaluation] = useState<EvaluateResponse | null>(null);
 

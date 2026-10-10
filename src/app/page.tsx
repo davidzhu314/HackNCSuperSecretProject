@@ -10,6 +10,9 @@ export default function HomePage() {
       <header className="site-header">
         <Wordmark />
         <nav className="header-nav" aria-label="Main navigation">
+          <Link href="/hub" className="studio-link">
+            Identity Hub
+          </Link>
           <Button variant="glass" nativeButton={false} render={<Link href="/studio" />}>
             Profile studio <ArrowRight />
           </Button>
