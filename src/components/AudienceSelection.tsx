@@ -18,13 +18,16 @@ export function AudienceSelection(props: {
 }) {
   const { config, audiences, traits, loading, onAudiences, onTraits, onFeedback } = props;
   const maxTraits = Math.min(config.traits.length, LIMITS.maxTraits);
+  const groups = config.categories?.length
+    ? config.categories.map((cat) => ({ ...cat, options: config.audiences.filter((a) => a.category === cat.id) }))
+    : [{ id: "all", label: "", options: config.audiences }];
   return (
     <section className="flow-section fade-in">
       <h2 className="flow-title">
         <Eye /> Choose your audience lens
       </h2>
       <p className="flow-description">
-        Who is your profile for? These are simulated viewpoints, not real recruiters or people reviewing you.
+        Who is your profile for?
       </p>
       <div className="selection-grid">
         <div>
@@ -34,28 +37,36 @@ export function AudienceSelection(props: {
               {audiences.length} / {LIMITS.maxAudiences}
             </span>
           </h3>
-          <div className="audience-options">
-            {config.audiences.map((option) => (
-              <Button
-                variant="glass"
-                className="audience-option"
-                data-selected={audiences.includes(option.id)}
-                aria-pressed={audiences.includes(option.id)}
-                key={option.id}
-                disabled={loading}
-                title={option.description}
-                onClick={() => onAudiences(toggle(audiences, option.id, LIMITS.maxAudiences))}
-              >
-                <Eye />
-                <span>{option.label}</span>
-                {audiences.includes(option.id) && <Check />}
-              </Button>
-            ))}
-          </div>
+          {/* LinkedIn groups its lenses by category; Hinge has a flat list. */}
+          {groups.map((group) => (
+            <div key={group.id} className="audience-group">
+              {group.label && <h4 className="audience-group-label">{group.label}</h4>}
+              <div className="audience-options">
+                {group.options.map((option) => (
+                  <Button
+                    variant="glass"
+                    className="audience-option"
+                    data-selected={audiences.includes(option.id)}
+                    aria-pressed={audiences.includes(option.id)}
+                    key={option.id}
+                    disabled={loading}
+                    onClick={() => onAudiences(toggle(audiences, option.id, LIMITS.maxAudiences))}
+                  >
+                    <Eye />
+                    <span>
+                      <span className="audience-option-name">{option.label}</span>
+                      <span className="audience-option-desc">{option.description}</span>
+                    </span>
+                    {audiences.includes(option.id) && <Check />}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
         <div>
           <h3 className="section-heading">
-            What should they look for?{" "}
+            {config.categories?.length ? "What should they be able to tell?" : "What should they look for?"}{" "}
             <span className="selection-count">
               {traits.length} / {maxTraits}
             </span>
@@ -72,21 +83,21 @@ export function AudienceSelection(props: {
                 onClick={() => onTraits(toggle(traits, option.id, maxTraits))}
               >
                 {traits.includes(option.id) && <Check />}
-                {option.label}
+                {option.question ?? option.label}
               </Button>
             ))}
           </div>
           <p className="empty-note">
-            Choose 1–{LIMITS.maxAudiences} audience lenses and 1–{maxTraits} traits. Each lens can notice something
-            different in the same words.
+            Pick up to {LIMITS.maxAudiences} audiences and up to {maxTraits} questions.{" "}
+            {config.categories?.length ? "Picking from different groups gives feedback that differs more." : ""}
           </p>
         </div>
       </div>
       <div className="action-band">
-        <span className="empty-note">Simulated AI feedback, not a prediction of how real people will react.</span>
+        <span className="empty-note" />
         <Button variant="aero" disabled={!audiences.length || !traits.length || loading} onClick={onFeedback}>
           {loading ? <LoaderCircle className="animate-spin" /> : <Sparkles />}
-          {loading ? "Getting simulated feedback..." : "Get feedback"}
+          {loading ? "Getting feedback..." : "Get feedback"}
         </Button>
       </div>
       {loading && (

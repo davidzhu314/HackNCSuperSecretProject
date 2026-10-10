@@ -1,4 +1,4 @@
-import { ArrowRight, Eye, Heart, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, Eye, ShieldCheck, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { Backdrop, BrandMark, WorldFooter, Wordmark } from "@/components/Chrome";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,9 @@ export default function HomePage() {
       <header className="site-header">
         <Wordmark />
         <nav className="header-nav" aria-label="Main navigation">
+          <Link href="/hub" className="studio-link">
+            Identity Hub
+          </Link>
           <Button variant="glass" nativeButton={false} render={<Link href="/studio" />}>
             Profile studio <ArrowRight />
           </Button>
@@ -17,18 +20,11 @@ export default function HomePage() {
       </header>
       <main>
         <section className="home-hero">
-          <div className="home-eyebrow">
-            <Sparkles size={15} />
-            One identity. Every platform.
-          </div>
           <div className="home-title">
             <h1>Personify</h1>
           </div>
-          <h2>You, in your best light.</h2>
-          <p>
-            Your next opportunity. Your next real connection.
-            <br />A first impression that still feels like you.
-          </p>
+          <h2>Feedback and rewrites for your LinkedIn and Hinge profiles.</h2>
+          <p>Rewrites use only facts you confirm. FactCheck flags anything they can’t trace back to you.</p>
           <Button variant="aero" size="lg" className="home-start" nativeButton={false} render={<Link href="/studio" />}>
             Get started <ArrowRight />
           </Button>
@@ -39,9 +35,7 @@ export default function HomePage() {
         </section>
         <section className="home-overview studio-shell">
           <div className="home-section-heading">
-            <span className="eyebrow">Different worlds. Same you.</span>
-            <h2>Find the words that fit.</h2>
-            <p>Improve expression, not invent identity.</p>
+            <h2>How it works</h2>
           </div>
           <div className="home-platforms">
             <div className="home-platform">
@@ -50,7 +44,7 @@ export default function HomePage() {
               </span>
               <div>
                 <h3>LinkedIn</h3>
-                <p>Your experience, your ambitions, your next chapter. See your profile through a professional lens.</p>
+                <p>Your profile by section, or import LinkedIn’s PDF. Feedback from up to 3 of 8 audiences.</p>
               </div>
             </div>
             <div className="home-platform">
@@ -59,32 +53,30 @@ export default function HomePage() {
               </span>
               <div>
                 <h3>Hinge</h3>
-                <p>Your quirks, your favorite Sundays, your kind of connection. Give someone a little more of the real you.</p>
+                <p>Up to three prompt answers. Edits keep your own words and add nothing new.</p>
               </div>
             </div>
           </div>
           <div className="home-process">
             <div>
               <Sparkles />
-              <h3>Start with your story</h3>
-              <p>Bring your profile and the facts you choose to share.</p>
+              <h3>1. Paste your profile</h3>
+              <p>Then tick the facts about you that are true.</p>
             </div>
             <div>
               <Eye />
-              <h3>See another perspective</h3>
-              <p>Explore simulated AI feedback through different audience lenses.</p>
+              <h3>2. Get feedback</h3>
+              <p>Pick up to 3 audiences. Each comment points to the sentence it’s about.</p>
             </div>
             <div>
               <ShieldCheck />
-              <h3>Keep it grounded</h3>
-              <p>Rewrites use only facts you confirm, and FactCheck flags unsupported claims before you share.</p>
+              <h3>3. Rewrite and check</h3>
+              <p>Rewrites use only confirmed facts. FactCheck flags numbers, names, and verbs it can’t trace.</p>
             </div>
           </div>
         </section>
       </main>
-      <WorldFooter>
-        Authentically you. <Heart size={10} />
-      </WorldFooter>
+      <WorldFooter />
     </div>
   );
 }
