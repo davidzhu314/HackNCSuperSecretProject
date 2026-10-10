@@ -355,3 +355,17 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .style-item q { display: block; font-size: 11px; overflow-wrap: anywhere; }
 .style-item p { font-size: 11px; line-height: 1.8; margin: 6px 0 0; }
 @media (max-width: 680px) { .rewrite-options-goal { grid-template-columns: minmax(0, 1fr); } .variation-tabs { display: flex; } .variation-tabs .mode-btn { flex: 1; } }
+/* Receipts: sentence-level provenance for a rewrite. */
+.receipts-panel { border-top: 2px solid var(--primary); padding: 20px 0 6px; }
+.receipt-list { display: grid; gap: 8px; margin-top: 12px; }
+.receipt-row { background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--success); border-radius: 6px; padding: 10px 13px; }
+.receipt-row[data-status=weak] { border-left-color: var(--warning); }
+.receipt-row[data-status=untraced] { border-left-color: var(--destructive); background: var(--danger-surface); }
+.receipt-row summary { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; cursor: pointer; list-style: none; font-size: 12px; line-height: 1.7; }
+.receipt-row summary::-webkit-details-marker { display: none; }
+.receipt-row[open] summary { margin-bottom: 8px; }
+.receipt-status { flex-shrink: 0; font-size: 10px; font-weight: 700; padding: 3px 7px; border-radius: 4px; background: var(--success-surface); color: var(--success); }
+.receipt-status[data-status=weak] { background: var(--warning-surface); color: var(--warning); }
+.receipt-status[data-status=untraced] { background: var(--card); color: var(--destructive); }
+.receipt-row .source-segment { border-bottom: none; padding: 8px 10px; margin-top: 4px; border-radius: 4px; }
+.receipt-row .missing-evidence { margin: 6px 0 0; border-radius: 4px; }

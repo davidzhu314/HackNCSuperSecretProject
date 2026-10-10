@@ -13,7 +13,7 @@ import { RewriteComparison } from "@/components/RewriteComparison";
 import { Button } from "@/components/ui/button";
 import { errorMessage, evaluateProfile, extractFacts, rewriteProfile } from "@/lib/api-client";
 import { DEMO_HINGE_FACTS, DEMO_HINGE_INPUT, DEMO_LINKEDIN_FACTS, DEMO_LINKEDIN_INPUT } from "@/lib/demo-data";
-import { emptyHingePairs, HINGE_PROMPTS, MAX_HINGE_ANSWER, MAX_HINGE_PROMPTS, type HingePair } from "@/lib/persona-ui";
+import { emptyHingePairs, HINGE_PROMPTS, mergeFacts, MAX_HINGE_ANSWER, MAX_HINGE_PROMPTS, type HingePair } from "@/lib/persona-ui";
 import { PLATFORM_CONFIGS } from "@/lib/rubrics";
 import { LIMITS, type EvaluateResponse, type IdentityFact, type Platform, type RewriteResponse } from "@/lib/schemas";
 import { segmentHinge, segmentLinkedIn } from "@/lib/segments";
@@ -34,6 +34,9 @@ function demoHingePairs(): HingePair[] {
   while (pairs.length < MAX_HINGE_PROMPTS) pairs.push({ prompt: unused[pairs.length] ?? HINGE_PROMPTS[0], answer: "" });
   return pairs;
 }
+
+/** Demo facts are recognized by text: merging may renumber their ids. */
+const DEMO_FACT_TEXTS = new Set([...DEMO_LINKEDIN_FACTS, ...DEMO_HINGE_FACTS].map((f) => f.text));
 
 const defaultAudiences = (p: Platform) => PLATFORM_CONFIGS[p].audiences.map((a) => a.id);
 const defaultTraits = (p: Platform) => PLATFORM_CONFIGS[p].traits.slice(0, 3).map((t) => t.id);
@@ -127,9 +130,15 @@ export function PersonaFlow() {
     setError(null);
   }
 
+  /**
+   * One identity, every platform: switching clears the profile text and results, but keeps the
+   * facts the user confirmed or typed. They are true about the person on LinkedIn and Hinge alike.
+   */
   function switchPlatform(next: Platform) {
     if (next === platform) return;
+    const kept = facts.filter((f) => f.confirmed || f.source === "user");
     reset();
+    setFacts(kept);
     setPlatform(next);
     setAudiences(defaultAudiences(next));
     setTraits(defaultTraits(next));
@@ -157,12 +166,12 @@ export function PersonaFlow() {
     resetResults();
     if (platform === "linkedin") {
       setLinkedIn({ ...DEMO_LINKEDIN_INPUT, jobDescription: "" });
-      setFacts(DEMO_LINKEDIN_FACTS.map((f) => ({ ...f })));
+      setFacts((prev) => mergeFacts(prev, DEMO_LINKEDIN_FACTS));
       extractedFor.current = `linkedin|${DEMO_LINKEDIN_INPUT.headline.trim()}\n\n${DEMO_LINKEDIN_INPUT.about.trim()}`;
     } else {
       const pairs = demoHingePairs();
       setHinge(pairs);
-      setFacts(DEMO_HINGE_FACTS.map((f) => ({ ...f })));
+      setFacts((prev) => mergeFacts(prev, DEMO_HINGE_FACTS));
       extractedFor.current = `hinge|${pairs.map((p) => p.answer.trim()).filter(Boolean).join("\n\n")}`;
     }
     setUsingDemo(true);
@@ -179,8 +188,9 @@ export function PersonaFlow() {
     try {
       const res = await extractFacts({ consent: true, platform, segments }, { sample });
       if (id !== requestId.current) return;
-      // Keep facts the user added; replace earlier AI suggestions.
-      setFacts((prev) => [...prev.filter((f) => f.source === "user"), ...res.facts].slice(0, LIMITS.maxFacts));
+      // Keep confirmed and user-added facts (including ones carried over from the other platform);
+      // replace earlier unconfirmed AI suggestions.
+      setFacts((prev) => mergeFacts(prev, res.facts));
       extractedFor.current = sourceKey;
     } catch (err) {
       if (id !== requestId.current) return;
@@ -409,7 +419,7 @@ export function PersonaFlow() {
           {step === FACTS && (
             <IdentityFacts
               facts={facts}
-              demoFactIds={usingDemo ? (platform === "linkedin" ? DEMO_LINKEDIN_FACTS : DEMO_HINGE_FACTS).map((f) => f.id) : []}
+              demoFactIds={facts.filter((f) => DEMO_FACT_TEXTS.has(f.text)).map((f) => f.id)}
               loading={extracting}
               onChange={(next) => {
                 setFacts(next);

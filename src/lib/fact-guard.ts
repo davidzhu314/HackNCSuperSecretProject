@@ -23,7 +23,7 @@ const IRREGULAR: Record<string, string> = {
   made: "make", drove: "drive", oversaw: "oversee", began: "begin", grew: "grow", won: "win",
 };
 
-function stem(word: string): string {
+export function stem(word: string): string {
   let w = word.toLowerCase().replace(/['’]s$/, "");
   if (IRREGULAR[w]) return IRREGULAR[w];
   for (const suffix of ["ing", "ed", "er", "or", "es", "s"]) {
@@ -311,6 +311,14 @@ const STOPWORDS = new Set(
     "can will just have has had do does did").split(" "),
 );
 
+/** Words that carry meaning (no stopwords, 3+ letters). Shared with sentence provenance. */
+export function contentWords(text: string): string[] {
+  return words(text).filter((w) => !STOPWORDS.has(w.toLowerCase()) && w.length > 2);
+}
+
+/** How rewrites are split into sentences for loose-claim checks and provenance. */
+export const SENTENCE_SPLIT = /[.!?\n|•]+/;
+
 /**
  * A valid fact ID proves nothing about entailment. Flag sentences that share almost no
  * content words with the original or confirmed facts so a human reviews them.
@@ -318,8 +326,8 @@ const STOPWORDS = new Set(
 function checkLooseClaims(content: string, corpus: string): GuardWarning[] {
   const known = new Set(words(corpus).map(stem));
   const warnings: GuardWarning[] = [];
-  for (const sentence of content.split(/[.!?\n|•]+/)) {
-    const content_ = words(sentence).filter((w) => !STOPWORDS.has(w.toLowerCase()) && w.length > 2);
+  for (const sentence of content.split(SENTENCE_SPLIT)) {
+    const content_ = contentWords(sentence);
     if (content_.length < 4) continue;
     const hits = content_.filter((w) => known.has(stem(w))).length;
     if (hits / content_.length < 0.5) {

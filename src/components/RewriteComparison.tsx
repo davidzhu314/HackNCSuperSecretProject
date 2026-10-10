@@ -1,10 +1,11 @@
 "use client";
 
-import { Check, Clipboard, LoaderCircle, PenLine, ShieldCheck, Sparkles, TriangleAlert } from "lucide-react";
+import { Check, Clipboard, LoaderCircle, PenLine, ReceiptText, ShieldCheck, Sparkles, TriangleAlert } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { checkRewrite } from "@/lib/fact-guard";
 import { WARNING_LABEL, wordDiff } from "@/lib/persona-ui";
+import { traceSentences, type ReceiptStatus } from "@/lib/provenance";
 import {
   LIMITS,
   type GuardWarning,
@@ -16,6 +17,12 @@ import {
   type Segment,
 } from "@/lib/schemas";
 import { checkStyle } from "@/lib/style-check";
+
+const RECEIPT_LABEL: Record<ReceiptStatus, string> = {
+  traced: "Traced",
+  weak: "Partly traced",
+  untraced: "No source",
+};
 
 const STYLE_LABEL: Record<RewriteStyle, string> = {
   direct: "Option A: Direct",
@@ -137,6 +144,8 @@ function VariationResult(props: {
   const styleWarnings = useMemo(() => (edited ? checkStyle(text) : variation.styleWarnings), [edited, text, variation]);
 
   const diff = useMemo(() => wordDiff(original, text), [original, text]);
+  const receipts = useMemo(() => traceSentences(text, segments, confirmedFacts), [text, segments, confirmedFacts]);
+  const tracedCount = receipts.filter((r) => r.status === "traced").length;
   const rangesFor = (list: GuardWarning[]) => {
     const content = text.toLowerCase();
     return list.filter(literal).flatMap((warning) => {
@@ -223,6 +232,44 @@ function VariationResult(props: {
           )}
         </section>
       </div>
+      <section className="receipts-panel" aria-live="polite">
+        <h3 className="section-heading">
+          <ReceiptText />
+          Receipts <span className="empty-note">where each sentence comes from</span>
+        </h3>
+        <p className="empty-note">
+          {tracedCount} of {receipts.length} sentences trace back to your own words or facts you confirmed. Click a
+          sentence to see its sources.
+        </p>
+        <div className="receipt-list">
+          {receipts.map((r, index) => (
+            <details className="receipt-row" data-status={r.status} key={`${index}|${r.text}`} open={r.status !== "traced"}>
+              <summary>
+                <span className="receipt-sentence">{r.text}</span>
+                <span className="receipt-status" data-status={r.status}>
+                  {RECEIPT_LABEL[r.status]}
+                </span>
+              </summary>
+              {r.sources.length ? (
+                r.sources.map((source) => (
+                  <div className="source-segment" data-highlighted="true" key={`${source.kind}|${source.id}`}>
+                    <span>{source.kind === "segment" ? source.id : "fact"}</span>
+                    <p>
+                      {source.kind === "segment" && source.prompt && <strong className="source-prompt">{source.prompt}</strong>}
+                      {source.text}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <p className="missing-evidence">Nothing in your text or confirmed facts supports this. Review it before using it.</p>
+              )}
+              {r.status === "weak" && (
+                <p className="missing-evidence">Most of this sentence isn&apos;t in these sources. Check it says only what&apos;s true.</p>
+              )}
+            </details>
+          ))}
+        </div>
+      </section>
       <section className="factcheck-panel" data-warnings={warnings.length > 0} aria-live="polite">
         <h3 className="section-heading">
           <ShieldCheck />
