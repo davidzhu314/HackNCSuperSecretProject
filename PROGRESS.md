@@ -1,14 +1,25 @@
 # PERSONA: progress so far
 
-Updated 2026-10-10. This covers the backend work since setup finished. For the product idea and rules, see [SPEC.md](SPEC.md) and [CLAUDE.md](CLAUDE.md).
+Updated 2026-10-10. This covers the work since setup finished. For the product idea and rules, see [SPEC.md](SPEC.md) and [CLAUDE.md](CLAUDE.md).
 
 ## Where things stand
 
-The backend is done and works against the real AI. There is no UI yet: the home page is still the starter page. Next step is the UI.
+The LinkedIn flow works end to end with the real AI. The screens are plain placeholders, waiting for the Lovable designs to be ported in. The public site is not updated yet: it needs the API key in Vercel and a deploy.
 
-- **Built:** data shapes, demo data, FactCheck, the AI client, and three API routes.
-- **Checked:** 27 automated tests pass, lint is clean, and `npm run build` passes. All three routes were tested live with the fictitious demo persona.
-- **Not built:** every screen, Hinge testing end to end, blind A/B (stretch goal).
+- **Built:** data shapes, demo data, FactCheck, the AI client, three API routes, and a working six-step page.
+- **Checked:** 31 automated tests pass, lint is clean, and `npm run build` passes. The whole flow was driven in a real Chrome browser, both in sample mode and live, on desktop and phone width.
+- **Not built:** Hinge screens, blind A/B (stretch goal).
+
+## The page (UI)
+
+`src/components/PersonaFlow.tsx` runs the six steps: Profile, Consent, Facts, Audiences, Feedback, Rewrite.
+
+- **Consent comes before the facts step**, because suggesting facts already sends the text to the AI. Nothing is sent before the user agrees.
+- **Only ticked facts** are sent to the rewrite. AI-suggested facts start unticked.
+- **Sample mode** is offered only for the demo persona, so sample results never appear next to someone's real text. Sample results are always labeled "Sample result".
+- **Editing the rewrite re-runs FactCheck** instantly in the browser.
+- Each screen is its own component that only takes data and callbacks (`InputStep`, `ConsentStep`, `IdentityFacts`, `AudiencePicker`, `AudienceClash`, `RewriteComparison`). A Lovable version can replace one at a time without touching the flow.
+- `src/lib/api-client.ts` is how the screens call the API. It never touches the API key.
 
 ## What each file does
 
@@ -25,6 +36,7 @@ All of these are in `src/lib/` unless noted.
 | `prompts.ts` | The instructions sent to the AI for each step. |
 | `postprocess.ts` | Cleans up the AI's answer: drops unknown segment numbers, trims long text, never marks a fact confirmed. |
 | `api.ts` | Shared code for the API routes: reads the request, checks consent, turns errors into clear messages. |
+| `api-client.ts` | Browser-side helper the screens use to call the routes. Handles sample mode. |
 | `src/app/api/…` | The three routes listed below. |
 
 ## The three API routes
@@ -66,6 +78,9 @@ The rewrite model can be changed with `OPENROUTER_REWRITE_MODEL`, with no code c
 - **vitest wouldn't install.** It needed newer Node type definitions. `@types/node` was updated from 20 to 26.
 - **A teammate's push removed `.venv/` from `.gitignore`.** That line is back, so the Python environment can't be committed by accident. Their `example.py` reads the Gemini key from the environment and does not contain a key.
 - **FactCheck flagged ordinary words** like "Student", "Apps", and headings like "What I've worked on". These are now allowed. Job titles like "Developer" and names like "Google" are still flagged.
+- **FactCheck flagged "Builder"** when the facts said "built". Irregular verbs (built, wrote, taught, led, ...) now match their other forms.
+- **The page font fell back to a serif** because of a setup bug in `globals.css`. Fixed.
+- **The before/after view lost spaces** ("courseand"). Switched to a diff that keeps whitespace exactly.
 
 ## Environment variables
 
@@ -84,8 +99,10 @@ The rewrite model can be changed with `OPENROUTER_REWRITE_MODEL`, with no code c
 
 ## Still to do
 
-1. **UI:** paste screen, fact checkboxes, consent screen, audience feedback, and rewrite comparison. Build it against the sample data in `demo-data.ts` first.
-2. **Hinge:** the backend supports it, but it hasn't been tested end to end.
-3. **Vercel:** add `OPENROUTER_API_KEY` and `OPENROUTER_MODEL` to Vercel before deploying the real app.
-4. **Security:** revoke the old Gemini key that was briefly committed in `933a9c6`, at https://aistudio.google.com/apikey.
-5. **Demo:** rehearse it and record a backup video.
+1. **Vercel:** add `OPENROUTER_API_KEY` to Vercel (`vercel env add OPENROUTER_API_KEY production`), then deploy with `vercel --prod`. The public URL still shows the starter page.
+2. **Check the deployed site:** the live flow plus error cases (empty input, declined consent, missing key).
+3. **Lovable:** consent goes before the facts screen (the brief was corrected). Port the finished screens into `src/components/`.
+4. **Demo:** rehearse the 90-second script and record a backup video.
+5. **Security:** revoke the old Gemini key that was briefly committed in `933a9c6`, at https://aistudio.google.com/apikey.
+6. **`example.py`:** a teammate's Gemini test script, not used by the app. Decide whether to keep it.
+7. **If time allows:** Hinge screens, then blind A/B.
