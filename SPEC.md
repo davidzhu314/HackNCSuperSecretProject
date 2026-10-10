@@ -13,20 +13,20 @@ Superseded idea: SkinOS spec is archived at `archive/SKINOS-SPEC.md`.
 - Audiences are **simulated evaluation lenses**, not real recruiters or daters. Label all feedback "simulated AI feedback". Never claim to predict hiring, matches, or engagement. No percentages, no hireability scores.
 - Never invent credentials, employers, numbers, dates, skills, hobbies, or romantic preferences. Only **confirmed** facts may support generated personal claims. Inferred facts are never auto-confirmed.
 - Never say a rewrite is "verified true". Say "no unsupported concrete claims detected" when the guard finds nothing.
-- Explicit consent before any text goes to Gemini. Don't persist profiles by default. Don't log profile text. No scraping, OAuth, or auto-posting.
+- Explicit consent before any text goes to the AI provider (OpenRouter and the underlying model provider). Don't persist profiles by default. Don't log profile text. No scraping, OAuth, or auto-posting.
 - No silent fake results. Demo/cached outputs are visibly labeled and never disguised as live runs.
 - Avoid demographic stereotypes in audience descriptions.
 
 ## Stack
-Next.js 16 App Router (`src/app/`), TypeScript, Tailwind, shadcn/ui, lucide-react, zod, `@google/genai` (server-side only). React state plus localStorage for non-sensitive prefs only. No DB, no auth. Deploy on Vercel.
+Next.js 16 App Router (`src/app/`), TypeScript, Tailwind, shadcn/ui, lucide-react, zod, the `openai` SDK pointed at OpenRouter (`https://openrouter.ai/api/v1`, server-side only). React state plus localStorage for non-sensitive prefs only. No DB, no auth. Deploy on Vercel.
 
-Env: `GEMINI_API_KEY`, `GEMINI_MODEL` (configurable, must support structured output). Provide `.env.example`. Follow current official `@google/genai` docs, not remembered examples. Use low temperature; it reduces variation but doesn't guarantee reproducibility.
+Env: `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` (configurable, must support structured JSON output; verify by test, since support varies by model/provider). Provide `.env.example`. Follow current official OpenRouter docs, not remembered examples. Validate every response with zod and retry once on invalid JSON. Use low temperature; it reduces variation but doesn't guarantee reproducibility.
 
 ## User flow
 1. Choose platform: LinkedIn or Hinge.
 2. Paste existing text (LinkedIn headline + About; or 1–3 Hinge prompt question/answer pairs). A preloaded fictitious demo persona and sample profiles are available.
 3. **Confirm Identity DNA:** AI proposes candidate facts, user ticks which are true and may edit or add. Demo default: 4–6 facts. Keep it short: paste → tick facts → choose audience.
-4. **Consent** screen: selected text and confirmed facts are sent to Gemini.
+4. **Consent** screen: selected text and confirmed facts are sent to OpenRouter and the underlying model provider.
 5. Choose goal traits and 2–3 audiences. LinkedIn: optionally paste a real job description to target.
 6. **Audience Clash:** categorical critique cards plus audience × trait matrix. Click a critique to highlight its source text or show "missing evidence".
 7. **Rewrite:** 1–2 versions grounded in confirmed facts. Hinge edits the user's own prompt answers (default: minimal edit; toggle "keep closer to my words" vs "more playful").
@@ -59,7 +59,7 @@ type GuardWarning = {
 Validate every request and response with zod. Bound input lengths.
 
 ## Evidence citations (design decision)
-Do not ask Gemini for free-text quotes: it alters whitespace, quotes, and punctuation, so exact-substring checks fail often. Instead, split the input into numbered `Segment`s server-side, have the model cite `segmentIds`, and resolve quotes from the segments on the server. Quotes are then guaranteed to exist and highlighting is trivial. Reject or flag any unknown segment ID as `unverified_segment`.
+Do not ask the model for free-text quotes: it alters whitespace, quotes, and punctuation, so exact-substring checks fail often. Instead, split the input into numbered `Segment`s server-side, have the model cite `segmentIds`, and resolve quotes from the segments on the server. Quotes are then guaranteed to exist and highlighting is trivial. Reject or flag any unknown segment ID as `unverified_segment`.
 
 ## API routes (server-side only)
 - `POST /api/facts/extract`: input text → candidate facts, never marked confirmed.
@@ -94,7 +94,7 @@ Fictitious persona with 4–6 confirmed facts and a deliberately vague LinkedIn 
 
 Cut rules: if LinkedIn isn't end-to-end by hour 12, cut Hinge. If the core isn't solid by hour 17, skip A/B. Never sacrifice FactCheck for visual polish.
 
-Split: **Person 1** UI (landing, input, fact checkboxes, comparison). **Person 2** AI (Gemini client, extraction, rubrics, structured outputs, rewrite prompts). **Person 3** trust (FactCheck, segment validation, matrix interactions, tests, deploy, integration).
+Split: **Person 1** UI (landing, input, fact checkboxes, comparison). **Person 2** AI (LLM client, extraction, rubrics, structured outputs, rewrite prompts). **Person 3** trust (FactCheck, segment validation, matrix interactions, tests, deploy, integration).
 
 ## 90-second demo
 1. Hook (15s): "Different platforms need different versions of your voice, but every version should still be you."
@@ -111,12 +111,12 @@ Split: **Person 1** UI (landing, input, fact checkboxes, comparison). **Person 2
 - Unconfirmed facts can't support generated claims.
 - Rewrite adding an unsupported number, employer, or stronger verb is flagged.
 - Hinge uses question/answer pairs and keeps the user's own context.
-- Empty input, invalid Gemini JSON, rate limits, missing API key, and denied consent each give a sensible error.
+- Empty input, invalid model JSON, rate limits, missing API key, and denied consent each give a sensible error.
 - Mobile view, all buttons, and copy-to-clipboard work.
 - No hireability percentages, simulated human endorsement, or auto-posting anywhere.
 
 ## Deliverables
-Working deployed Next.js app, `.env.example`, README (install, Gemini API key setup, dev server, Vercel deploy), and an honest feature checklist (implemented / cached demo / not built). `npm run build`, typecheck, lint, and FactCheck tests passing. Don't claim tests passed unless they ran.
+Working deployed Next.js app, `.env.example`, README (install, OpenRouter API key setup, dev server, Vercel deploy), and an honest feature checklist (implemented / cached demo / not built). `npm run build`, typecheck, lint, and FactCheck tests passing. Don't claim tests passed unless they ran.
 
 ## Out of scope
 Login, database, payments, OAuth, scraping, auto-publishing, photo scoring, Identity Drift, shareable human voting, Instagram/Handshake/email (future platform configs).
