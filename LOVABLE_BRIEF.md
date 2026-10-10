@@ -67,17 +67,19 @@ Principle shown in the UI: **improve expression, not invent identity.**
 - Button "Rewrite my profile".
 
 ### 6. Rewrite + FactCheck (component name: `RewriteComparison`)
-- Options before generating: tone (Closer to my words / Balanced / More playful), optional goal text.
-- **Side by side** (stacked on mobile): Original vs Rewritten. Word-level diff highlighting (added words green, removed words red/strikethrough). The rewrite `content` uses `\n` line breaks: first line is the headline, then a blank line, then the About text.
-- **Change summary** list (`changeSummary`).
-- **Facts used** chips (from `usedFactIds`, show the fact text).
-- **FactCheck panel**:
-  - If `warnings` is empty: green "No unsupported concrete claims detected" + the limitation note above.
-  - Otherwise: a red/amber list, one item per warning, showing the flagged `text`, a friendly label for `kind`, and the `explanation`. Also highlight the flagged words inside the rewritten text.
-  - Friendly labels: `unsupported_number` = "Number not in your facts", `unsupported_entity` = "Name not in your facts", `inflated_verb` = "Stronger claim than your facts", `invalid_fact_id` = "Unknown or unconfirmed fact", `unsupported_claim` = "Needs your review", `unverified_segment` = "Unknown source".
-  - If there are warnings, the copy button says "Copy anyway" and the user can edit the rewritten text before copying.
-- **Copy** button (copies the rewritten text, shows "Copied").
-- A small **"Show FactCheck demo"** toggle that swaps in the `adversarial` mock (an intentionally exaggerated rewrite) so we can show FactCheck catching made-up claims. Label it "Intentional test case".
+- Before generating: an optional goal text field and a **"Generate rewrites"** button. (No tone buttons.)
+- The result has **two versions** of the same profile (`variations`), shown as **tabs**: "Option A: Direct" (`style: "direct"`) and "Option B: Narrative" (`style: "narrative"`). If a version has FactCheck warnings, show the count on its tab. If there is only one variation (the FactCheck demo), hide the tabs.
+- Each tab shows the same layout for its version:
+  - **Side by side** (stacked on mobile): Original vs Rewritten, with word-level diff highlighting (added words green, removed words red/strikethrough). The rewrite `content` uses `\n` line breaks: first line is the headline, then a blank line, then the About text, which may include `-` bullet lines.
+  - **FactCheck panel** (from `warnings`):
+    - If empty: green "No unsupported concrete claims detected" + the limitation note above.
+    - Otherwise: a red list, one item per warning, showing the flagged `text`, a friendly label for `kind`, and the `explanation`. Highlight the flagged words in red inside the rewritten text.
+  - **Style suggestions panel** (from `styleWarnings`, only when not empty): amber list of AI clichés found (e.g. "leverage"). Highlight those words in amber. These are suggestions about wording, not about truth, so keep them visually separate from FactCheck.
+  - **Change summary** list (`changeSummary`) and **Facts used** chips (from `usedFactIds`, show the fact text; an unknown id shows "(not one of your confirmed facts)").
+  - The user can **edit** the rewritten text. If there are FactCheck warnings, the copy button says "Copy anyway".
+  - **Copy** button (copies that version's text, shows "Copied").
+- Friendly labels: `unsupported_number` = "Number not in your facts", `unsupported_entity` = "Name not in your facts", `inflated_verb` = "Stronger claim than your facts", `invalid_fact_id` = "Unknown or unconfirmed fact", `unsupported_claim` = "Needs your review", `unverified_segment` = "Unknown source", `ai_cliche` = "AI cliché".
+- A small **"Show FactCheck demo"** button that swaps in the `adversarial` mock (one intentionally exaggerated version) so we can show FactCheck catching made-up claims. Label it "Intentional test case".
 
 ### General states
 - Loading: skeletons or spinners with text ("Getting simulated feedback...").
@@ -101,7 +103,8 @@ type AudienceCritique = {
 };
 type GuardWarning = {
   kind: "unsupported_number" | "unsupported_entity" | "inflated_verb"
-      | "invalid_fact_id" | "unsupported_claim" | "unverified_segment";
+      | "invalid_fact_id" | "unsupported_claim" | "unverified_segment"
+      | "ai_cliche";   // ai_cliche is a style suggestion, shown separately
   text: string;          // the flagged words
   explanation: string;
 };
@@ -109,8 +112,14 @@ type Rewrite = { platform: Platform; content: string; usedFactIds: string[]; cha
 type ResultSource = "live" | "sample";
 
 type EvaluateResponse = { source: ResultSource; critiques: AudienceCritique[]; warnings: GuardWarning[] };
-type RewriteResponse  = { source: ResultSource; rewrite: Rewrite; warnings: GuardWarning[] };
-type RewriteTone = "closer_to_my_words" | "balanced" | "more_playful";
+type RewriteStyle = "direct" | "narrative";
+type RewriteVariation = {
+  style: RewriteStyle;
+  rewrite: Rewrite;
+  warnings: GuardWarning[];       // FactCheck
+  styleWarnings: GuardWarning[];  // AI-cliche suggestions
+};
+type RewriteResponse  = { source: ResultSource; variations: RewriteVariation[] };  // 1 or 2 variations
 ```
 
 ## Mock data (`src/mockData.ts`, use exactly)
@@ -265,6 +274,26 @@ type RewriteTone = "closer_to_my_words" | "balanced" | "more_playful";
     "critiques": [
       {
         "audience": "startup_founder",
+        "trait": "clarity",
+        "rating": "weak",
+        "segmentIds": [
+          "s1"
+        ],
+        "missingEvidence": false,
+        "rationale": "\"Aspiring tech professional\" says what you hope to be, not what you do, so a founder skimming can't place you.",
+        "suggestion": "Open with what you are now (your field and stage) and one thing you have made."
+      },
+      {
+        "audience": "startup_founder",
+        "trait": "technical_specificity",
+        "rating": "not_evident",
+        "segmentIds": [],
+        "missingEvidence": true,
+        "rationale": "There is nothing a founder could check: no project, tool, or piece of technical work is named.",
+        "suggestion": "Name a real project and the tools you used for it."
+      },
+      {
+        "audience": "startup_founder",
         "trait": "ownership_impact",
         "rating": "weak",
         "segmentIds": [
@@ -275,6 +304,39 @@ type RewriteTone = "closer_to_my_words" | "balanced" | "more_playful";
         "suggestion": "Name one project and your specific part in it."
       },
       {
+        "audience": "startup_founder",
+        "trait": "relevance",
+        "rating": "weak",
+        "segmentIds": [
+          "s4"
+        ],
+        "missingEvidence": false,
+        "rationale": "\"Looking for opportunities\" is open-ended, so it's unclear what kind of role or team would fit.",
+        "suggestion": "Say what kind of work you want next, if you know it."
+      },
+      {
+        "audience": "startup_founder",
+        "trait": "approachability",
+        "rating": "moderate",
+        "segmentIds": [
+          "s2"
+        ],
+        "missingEvidence": false,
+        "rationale": "The tone is friendly and positive, which makes it easy to reach out.",
+        "suggestion": "Keep the warm tone, but pair it with one concrete detail."
+      },
+      {
+        "audience": "technical_recruiter",
+        "trait": "clarity",
+        "rating": "weak",
+        "segmentIds": [
+          "s1"
+        ],
+        "missingEvidence": false,
+        "rationale": "The headline doesn't state a role or level, so it's hard to match to an opening.",
+        "suggestion": "Put your field and current stage (for example, a student year) in the headline."
+      },
+      {
         "audience": "technical_recruiter",
         "trait": "technical_specificity",
         "rating": "not_evident",
@@ -282,6 +344,38 @@ type RewriteTone = "closer_to_my_words" | "balanced" | "more_playful";
         "missingEvidence": true,
         "rationale": "No languages, tools, or technical work are mentioned anywhere in the text.",
         "suggestion": "Add the technologies you have actually used, drawn from your confirmed facts."
+      },
+      {
+        "audience": "technical_recruiter",
+        "trait": "ownership_impact",
+        "rating": "not_evident",
+        "segmentIds": [],
+        "missingEvidence": true,
+        "rationale": "Nothing describes a responsibility or result that a recruiter could point to.",
+        "suggestion": "Describe one thing you were responsible for, in plain terms."
+      },
+      {
+        "audience": "technical_recruiter",
+        "trait": "relevance",
+        "rating": "weak",
+        "segmentIds": [
+          "s1",
+          "s4"
+        ],
+        "missingEvidence": false,
+        "rationale": "\"Tech professional\" and \"opportunities\" are too broad to match against a specific job.",
+        "suggestion": "Paste a job description to see feedback against a real target."
+      },
+      {
+        "audience": "technical_recruiter",
+        "trait": "approachability",
+        "rating": "moderate",
+        "segmentIds": [
+          "s2"
+        ],
+        "missingEvidence": false,
+        "rationale": "Reads as friendly and collaborative.",
+        "suggestion": "Fine as is; specificity matters more for this reader."
       },
       {
         "audience": "research_lead",
@@ -294,73 +388,147 @@ type RewriteTone = "closer_to_my_words" | "balanced" | "more_playful";
         "missingEvidence": false,
         "rationale": "The headline and opening use general phrases (\"passionate\", \"innovation\") that could describe anyone.",
         "suggestion": "Lead with your field and one concrete thing you have done."
+      },
+      {
+        "audience": "research_lead",
+        "trait": "technical_specificity",
+        "rating": "not_evident",
+        "segmentIds": [],
+        "missingEvidence": true,
+        "rationale": "There is no method, system, or technical depth to evaluate.",
+        "suggestion": "Describe one technical problem you worked on and how you approached it."
+      },
+      {
+        "audience": "research_lead",
+        "trait": "ownership_impact",
+        "rating": "weak",
+        "segmentIds": [
+          "s3"
+        ],
+        "missingEvidence": false,
+        "rationale": "Projects are mentioned only in general, so it's unclear what you personally contributed.",
+        "suggestion": "Separate what you did yourself from what a group did."
+      },
+      {
+        "audience": "research_lead",
+        "trait": "relevance",
+        "rating": "not_evident",
+        "segmentIds": [],
+        "missingEvidence": true,
+        "rationale": "Without a target role or area, there's nothing to judge fit against.",
+        "suggestion": "Name the area of work you're aiming for, or paste a job description."
+      },
+      {
+        "audience": "research_lead",
+        "trait": "approachability",
+        "rating": "moderate",
+        "segmentIds": [
+          "s2",
+          "s3"
+        ],
+        "missingEvidence": false,
+        "rationale": "Enthusiasm for learning comes through and reads as genuine.",
+        "suggestion": "Keep it, and back it up with something you learned or built."
       }
     ]
   },
   "rewrite": {
     "source": "sample",
-    "warnings": [],
-    "rewrite": {
-      "platform": "linkedin",
-      "content": "Computer science senior | Python and React | Teaching assistant and open-source contributor\n\nI am a computer science senior who builds practical tools and enjoys explaining technical ideas to non-technical people. I built a course-planning web app with Python and React, contributed bug fixes and documentation to an open-source data visualization library, and was a teaching assistant for an introductory programming course.",
-      "usedFactIds": [
-        "f1",
-        "f2",
-        "f3",
-        "f4",
-        "f5"
-      ],
-      "changeSummary": [
-        "Replaced generic phrases with your confirmed projects and roles.",
-        "Headline now states your field and tools instead of \"aspiring\" and \"passionate\".",
-        "No numbers, employers, or dates were added."
-      ]
-    }
+    "variations": [
+      {
+        "style": "direct",
+        "warnings": [],
+        "styleWarnings": [],
+        "rewrite": {
+          "platform": "linkedin",
+          "content": "Computer science senior | Python and React | Teaching assistant\n\nComputer science senior who enjoys explaining technical ideas clearly.\n\n- Built a course-planning web app with Python and React for a class project\n- Contributed bug fixes and documentation to an open-source data visualization library\n- Teaching assistant for an introductory programming course\n\nI enjoy explaining technical ideas to non-technical people, and I'm looking for opportunities to grow.",
+          "usedFactIds": [
+            "f1",
+            "f2",
+            "f3",
+            "f4",
+            "f5"
+          ],
+          "changeSummary": [
+            "Headline now states your field, tools, and role instead of \"aspiring\" and \"passionate\".",
+            "Listed your confirmed projects and roles as bullets.",
+            "No numbers, employers, or dates were added."
+          ]
+        }
+      },
+      {
+        "style": "narrative",
+        "warnings": [],
+        "styleWarnings": [],
+        "rewrite": {
+          "platform": "linkedin",
+          "content": "Computer science senior | Teaching assistant | Open-source contributor\n\nI'm a computer science senior, and I enjoy explaining technical ideas to non-technical people.\n\nI was a teaching assistant for an introductory programming course. For a class project, I built a course-planning web app with Python and React.\n\nI've also contributed bug fixes and documentation to an open-source data visualization library.\n\nI love learning new things, and I'm looking for opportunities to grow.",
+          "usedFactIds": [
+            "f1",
+            "f2",
+            "f3",
+            "f4",
+            "f5"
+          ],
+          "changeSummary": [
+            "Opened with what you enjoy, in your own first-person voice.",
+            "Told your experience as a short sequence: teaching, building, open source.",
+            "Kept \"love learning new things\" from your original text; added nothing new."
+          ]
+        }
+      }
+    ]
   },
   "adversarial": {
     "source": "sample",
-    "rewrite": {
-      "platform": "linkedin",
-      "content": "Software engineer who led the open-source data visualization library and improved model accuracy by 95% at Google. Led a team of 200 students as head teaching assistant.",
-      "usedFactIds": [
-        "f2",
-        "f3",
-        "f9"
-      ],
-      "changeSummary": [
-        "Intentionally embellished test case."
-      ]
-    },
-    "warnings": [
+    "variations": [
       {
-        "kind": "unsupported_number",
-        "text": "95%",
-        "explanation": "This number does not appear in your original text or confirmed facts."
-      },
-      {
-        "kind": "unsupported_number",
-        "text": "200",
-        "explanation": "This number does not appear in your original text or confirmed facts."
-      },
-      {
-        "kind": "unsupported_entity",
-        "text": "Google",
-        "explanation": "This name does not appear in your original text or confirmed facts. (Heuristic check.)"
-      },
-      {
-        "kind": "inflated_verb",
-        "text": "led",
-        "explanation": "Your confirmed fact says \"contributed\"; \"led\" claims a stronger role."
-      },
-      {
-        "kind": "invalid_fact_id",
-        "text": "f9",
-        "explanation": "The model cited a fact ID that does not exist."
-      },
-      {
-        "kind": "unsupported_claim",
-        "text": "Software engineer who led the open-source data visualization library and improved model accuracy by 95% at Google",
-        "explanation": "Most of this sentence isn't traceable to your original text or confirmed facts. Review it before using it."
+        "style": "direct",
+        "styleWarnings": [],
+        "rewrite": {
+          "platform": "linkedin",
+          "content": "Software engineer who led the open-source data visualization library and improved model accuracy by 95% at Google. Led a team of 200 students as head teaching assistant.",
+          "usedFactIds": [
+            "f2",
+            "f3",
+            "f9"
+          ],
+          "changeSummary": [
+            "Intentionally embellished test case."
+          ]
+        },
+        "warnings": [
+          {
+            "kind": "unsupported_number",
+            "text": "95%",
+            "explanation": "This number does not appear in your original text or confirmed facts."
+          },
+          {
+            "kind": "unsupported_number",
+            "text": "200",
+            "explanation": "This number does not appear in your original text or confirmed facts."
+          },
+          {
+            "kind": "unsupported_entity",
+            "text": "Google",
+            "explanation": "This name does not appear in your original text or confirmed facts. (Heuristic check.)"
+          },
+          {
+            "kind": "inflated_verb",
+            "text": "led",
+            "explanation": "Your confirmed fact says \"contributed\"; \"led\" claims a stronger role."
+          },
+          {
+            "kind": "invalid_fact_id",
+            "text": "f9",
+            "explanation": "The model cited a fact ID that does not exist."
+          },
+          {
+            "kind": "unsupported_claim",
+            "text": "Software engineer who led the open-source data visualization library and improved model accuracy by 95% at Google",
+            "explanation": "Most of this sentence isn't traceable to your original text or confirmed facts. Review it before using it."
+          }
+        ]
       }
     ]
   }
