@@ -1,9 +1,14 @@
-import { checkSegmentCitations } from "./fact-guard";
+import { checkRewrite, checkSegmentCitations } from "./fact-guard";
 import { LlmError } from "./llm";
 import {
   EvaluateResponseSchema,
   LIMITS,
+  RewriteSchema,
+  RewriteStyleSchema,
   type AudienceCritique,
+  type Platform,
+  type RewriteStyle,
+  type RewriteVariation,
   type EvaluateResponse,
   type GuardWarning,
   type HingeAnswer,
@@ -11,7 +16,8 @@ import {
   type Segment,
 } from "./schemas";
 import type { z } from "zod";
-import type { ModelEvaluateSchema, ModelHingeRewriteSchema } from "./schemas";
+import type { ModelEvaluateSchema, ModelHingeRewriteSchema, ModelRewriteSchema } from "./schemas";
+import { checkStyle } from "./style-check";
 
 // Server-side cleanup of model output. The model is never trusted: ids are checked,
 // strings are clamped, and unrequested audience/trait combinations are dropped.
@@ -68,12 +74,61 @@ export function buildCritiques(
   return parsed.data;
 }
 
+type VariationDraft = {
+  content: string;
+  answers?: HingeAnswer[];
+  usedFactIds: string[];
+  changeSummary: string[];
+};
+
+/** Clamp one version, then run FactCheck and the AI-cliche lint on it. */
+function finishVariation(
+  style: RewriteStyle,
+  platform: Platform,
+  draft: VariationDraft,
+  extraWarnings: GuardWarning[],
+  segments: Segment[],
+  confirmedFacts: IdentityFact[],
+): RewriteVariation {
+  const parsed = RewriteSchema.safeParse({
+    platform,
+    content: draft.content.trim().slice(0, LIMITS.maxRewriteChars),
+    ...(draft.answers ? { answers: draft.answers } : {}),
+    usedFactIds: draft.usedFactIds.slice(0, LIMITS.maxFacts),
+    changeSummary: draft.changeSummary.slice(0, 8).map((s) => s.slice(0, 300)),
+  });
+  if (!parsed.success) {
+    throw new LlmError("invalid_model_output", "The AI returned an unusable rewrite. Please try again.");
+  }
+  return {
+    style,
+    rewrite: parsed.data,
+    warnings: [...extraWarnings, ...checkRewrite({ rewrite: parsed.data, segments, facts: confirmedFacts })],
+    styleWarnings: checkStyle(parsed.data.content),
+  };
+}
+
+/**
+ * Clamp each model version, then run FactCheck (against the original text and confirmed
+ * facts only) and the AI-cliche lint on it. The model's usedFactIds are never trusted.
+ */
+export function buildVariations(
+  model: z.infer<typeof ModelRewriteSchema>,
+  platform: Platform,
+  segments: Segment[],
+  confirmedFacts: IdentityFact[],
+): RewriteVariation[] {
+  return RewriteStyleSchema.options.map((style) =>
+    finishVariation(style, platform, model[style], [], segments, confirmedFacts),
+  );
+}
+
 /**
  * Hinge rewrite: exactly one answer per original segment, in original order. A missing answer
  * keeps the user's original text (and says so); answers for unknown segment ids are dropped and flagged.
  */
 export function buildHingeAnswers(
-  model: Pick<z.infer<typeof ModelHingeRewriteSchema>, "answers">,
+  model: { answers: { segmentId: string; text: string }[] },
   segments: Segment[],
 ): { answers: HingeAnswer[]; content: string; warnings: GuardWarning[]; keptOriginal: Segment[] } {
   const byId = new Map<string, string>();
@@ -89,4 +144,28 @@ export function buildHingeAnswers(
     return { segmentId: seg.id, ...(seg.prompt ? { prompt: seg.prompt } : {}), text: text ?? seg.text };
   });
   return { answers, content: answers.map((a) => a.text).join("\n\n"), warnings, keptOriginal };
+}
+
+/** Both Hinge versions, each with per-answer cleanup, FactCheck, and the AI-cliche lint. */
+export function buildHingeVariations(
+  model: z.infer<typeof ModelHingeRewriteSchema>,
+  segments: Segment[],
+  confirmedFacts: IdentityFact[],
+): RewriteVariation[] {
+  return RewriteStyleSchema.options.map((style) => {
+    const v = model[style];
+    const built = buildHingeAnswers(v, segments);
+    const draft: VariationDraft = {
+      content: built.content,
+      answers: built.answers,
+      usedFactIds: v.usedFactIds,
+      changeSummary: [
+        ...built.keptOriginal.map(
+          (s) => `Kept your answer to "${s.prompt ?? s.id}" as written (the AI returned no rewrite for it).`,
+        ),
+        ...v.changeSummary,
+      ],
+    };
+    return finishVariation(style, "hinge", draft, built.warnings, segments, confirmedFacts);
+  });
 }

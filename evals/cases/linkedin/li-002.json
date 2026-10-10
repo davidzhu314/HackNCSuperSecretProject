@@ -1,0 +1,52 @@
+{
+  "id": "li-002",
+  "platform": "linkedin",
+  "origin": "synthetic",
+  "status": "draft",
+  "tags": [
+    "average"
+  ],
+  "input": {
+    "platform": "linkedin",
+    "headline": "Marketing Coordinator | Content, Email, Events",
+    "about": "Marketing coordinator at a mid-size nonprofit (Harbor Literacy Project). I write our email newsletter, help plan our yearly fundraising gala, and manage our Instagram. I recently finished a Google Analytics certificate and I'm trying to move into product marketing at a tech company. I care a lot about writing that people actually read."
+  },
+  "goldFacts": [
+    "I am a marketing coordinator at Harbor Literacy Project, a nonprofit.",
+    "I write the organization's email newsletter.",
+    "I help plan the yearly fundraising gala.",
+    "I manage the organization's Instagram account.",
+    "I completed a Google Analytics certificate.",
+    "I want to move into product marketing at a tech company."
+  ],
+  "traps": [
+    {
+      "text": "Grew newsletter open rates to 52%.",
+      "expect": "unsupported_number"
+    },
+    {
+      "text": "Directed the annual fundraising gala, coordinating vendors and volunteers.",
+      "expect": "inflated_verb"
+    },
+    {
+      "text": "Experienced with HubSpot and Salesforce marketing automation.",
+      "expect": "unsupported_entity"
+    },
+    {
+      "text": "Raised record donations at the yearly gala.",
+      "expect": "semantic"
+    }
+  ],
+  "audiences": [
+    "Startup founder",
+    "Research or hiring lead"
+  ],
+  "traits": [
+    "Relevance",
+    "Clarity",
+    "Ownership and impact"
+  ],
+  "goal": "Move into product marketing at a tech company",
+  "jobDescription": "Product Marketing Associate. You'll write launch messaging, run customer interviews, and work with product managers on positioning. 1-3 years of marketing experience. Strong writing required.",
+  "notes": "Career switch with a job description. 'help plan' must not become 'directed'."
+}

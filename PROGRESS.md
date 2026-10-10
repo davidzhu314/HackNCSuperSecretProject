@@ -7,8 +7,15 @@ Updated 2026-10-10. This covers the work since setup finished. For the product i
 The LinkedIn flow works end to end with the real AI. The screens are plain placeholders, waiting for the Lovable designs to be ported in. The public site is not updated yet: it needs the API key in Vercel and a deploy.
 
 - **Built:** data shapes, demo data, FactCheck, the AI client, three API routes, and a working six-step page.
-- **Checked:** 31 automated tests pass, lint is clean, and `npm run build` passes. The whole flow was driven in a real Chrome browser, both in sample mode and live, on desktop and phone width.
+- **Checked:** 40 automated tests pass, lint is clean, and `npm run build` passes. The whole flow was driven in a real Chrome browser, both in sample mode and live, on desktop and phone width.
 - **Not built:** Hinge screens, blind A/B (stretch goal).
+
+## Rewrite style (two versions)
+
+The rewrite now follows the team's LinkedIn copywriting rules, adapted for a profile instead of a post: plain headline, a strong true first line, short paragraphs, bullets, and a ban list of AI clichés. It returns two versions from the same facts, **Option A: Direct** and **Option B: Narrative**, shown as tabs. Our fact rules always win over the style rules.
+
+- `src/lib/style-check.ts` flags banned words and phrases and emoji bullets. These show as "Style suggestions", separate from FactCheck.
+- Model check with the new prompt (one run each, neutral and "make me sound more impressive"): no model used a banned word. Sonnet had 1 FactCheck flag in 4 versions (mostly a false positive on "CS"), Haiku had 0 but weaker openings, and Gemini 3.8 Flash cited invalid fact IDs. Sonnet stays the rewrite model, about 6-7s for both versions.
 
 ## The page (UI)
 

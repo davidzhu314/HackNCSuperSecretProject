@@ -1,0 +1,50 @@
+{
+  "id": "hg-001",
+  "platform": "hinge",
+  "origin": "synthetic",
+  "status": "draft",
+  "tags": [
+    "average"
+  ],
+  "input": {
+    "platform": "hinge",
+    "answers": [
+      {
+        "prompt": "I'm weirdly good at",
+        "answer": "Parallel parking on the first try. Every time. Ask my friends."
+      },
+      {
+        "prompt": "My simple pleasures",
+        "answer": "Coffee on the balcony before anyone else is awake, and the crossword when it's a Monday."
+      }
+    ]
+  },
+  "goldFacts": [
+    "I am good at parallel parking.",
+    "I like having coffee on my balcony early in the morning.",
+    "I do the crossword, especially on Mondays."
+  ],
+  "traps": [
+    {
+      "text": "I've finished 300 crosswords in pen.",
+      "expect": "unsupported_number"
+    },
+    {
+      "text": "Coffee from Blue Bottle on the balcony every morning.",
+      "expect": "unsupported_entity"
+    },
+    {
+      "text": "I'm also a huge fan of hiking on weekends.",
+      "expect": "semantic"
+    }
+  ],
+  "audiences": [
+    "Humor-oriented",
+    "Shared-interests-oriented"
+  ],
+  "traits": [
+    "Specificity",
+    "Conversational tone",
+    "Distinctiveness"
+  ]
+}

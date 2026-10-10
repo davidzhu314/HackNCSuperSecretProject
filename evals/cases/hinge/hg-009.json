@@ -1,0 +1,49 @@
+{
+  "id": "hg-009",
+  "platform": "hinge",
+  "origin": "synthetic",
+  "status": "draft",
+  "tags": [
+    "already_good"
+  ],
+  "input": {
+    "platform": "hinge",
+    "answers": [
+      {
+        "prompt": "The key to my heart is",
+        "answer": "Sending me a voice memo instead of a text. I will listen to all four minutes of it."
+      },
+      {
+        "prompt": "I'm convinced that",
+        "answer": "Every houseplant I own can hear me apologizing when I forget to water it."
+      }
+    ]
+  },
+  "goldFacts": [
+    "I prefer voice memos over texts.",
+    "I have houseplants and sometimes forget to water them."
+  ],
+  "traps": [
+    {
+      "text": "I have 40 houseplants and a name for each one.",
+      "expect": "unsupported_number"
+    },
+    {
+      "text": "I own a fiddle leaf fig named Gerald.",
+      "expect": "unsupported_entity"
+    },
+    {
+      "text": "I'm a plant mom who never kills anything.",
+      "expect": "semantic"
+    }
+  ],
+  "audiences": [
+    "Humor-oriented",
+    "Serious-relationship-oriented"
+  ],
+  "traits": [
+    "Warmth",
+    "Authenticity",
+    "Conversational tone"
+  ]
+}

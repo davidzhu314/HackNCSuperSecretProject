@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { errorMessage, evaluateProfile, extractFacts, rewriteProfile } from "@/lib/api-client";
 import { DEMO_LINKEDIN_FACTS, DEMO_LINKEDIN_INPUT } from "@/lib/demo-data";
 import { LINKEDIN_CONFIG } from "@/lib/rubrics";
-import type { EvaluateResponse, IdentityFact, RewriteResponse, RewriteTone } from "@/lib/schemas";
+import type { EvaluateResponse, IdentityFact, RewriteResponse } from "@/lib/schemas";
 import { segmentLinkedIn } from "@/lib/segments";
 import { useMemo, useRef, useState } from "react";
 
@@ -52,7 +52,6 @@ export function PersonaFlow() {
   const [traits, setTraits] = useState<string[]>(config.traits.slice(0, 3).map((t) => t.id));
   const [evaluation, setEvaluation] = useState<Async<EvaluateResponse>>(idle());
 
-  const [tone, setTone] = useState<RewriteTone>("balanced");
   const [goal, setGoal] = useState("");
   const [rewrite, setRewrite] = useState<Async<RewriteResponse>>(idle());
 
@@ -144,7 +143,7 @@ export function PersonaFlow() {
           facts: confirmedFacts.map((f) => ({ ...f, confirmed: true as const })),
           audiences,
           goal: goal.trim() || undefined,
-          tone,
+          tone: "balanced", // LinkedIn offers two styles instead of a tone control
           jobDescription: input.jobDescription.trim() || undefined,
         },
         { sample, adversarial },
@@ -260,12 +259,8 @@ export function PersonaFlow() {
           original={original}
           segments={segments}
           confirmedFacts={confirmedFacts}
-          tone={tone}
           goal={goal}
-          onOptionsChange={(o) => {
-            setTone(o.tone);
-            setGoal(o.goal);
-          }}
+          onGoalChange={setGoal}
           onGenerate={() => void runRewrite()}
           onShowAdversarial={() => void runRewrite(true)}
           result={rewrite.data}

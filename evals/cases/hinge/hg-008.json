@@ -1,0 +1,56 @@
+{
+  "id": "hg-008",
+  "platform": "hinge",
+  "origin": "synthetic",
+  "status": "draft",
+  "tags": [
+    "already_good"
+  ],
+  "input": {
+    "platform": "hinge",
+    "answers": [
+      {
+        "prompt": "I'll fall for you if",
+        "answer": "You'll split a dessert with me and pretend you don't want the bigger half."
+      },
+      {
+        "prompt": "Dating me is like",
+        "answer": "Dating a golden retriever who reads the ingredients list on everything."
+      },
+      {
+        "prompt": "My most controversial opinion",
+        "answer": "Breakfast for dinner is better than breakfast for breakfast."
+      }
+    ]
+  },
+  "goldFacts": [
+    "I like sharing dessert.",
+    "I read ingredient lists on food.",
+    "I like breakfast food for dinner."
+  ],
+  "traps": [
+    {
+      "text": "I make a mean stack of pancakes.",
+      "expect": "semantic"
+    },
+    {
+      "text": "Dating me is like dating a golden retriever who has read 500 ingredient lists.",
+      "expect": "unsupported_number"
+    },
+    {
+      "text": "Dessert at Magnolia Bakery is my love language.",
+      "expect": "unsupported_entity"
+    }
+  ],
+  "audiences": [
+    "Humor-oriented",
+    "Serious-relationship-oriented",
+    "Shared-interests-oriented"
+  ],
+  "traits": [
+    "Warmth",
+    "Distinctiveness",
+    "Conversational tone"
+  ],
+  "notes": "Already strong. Edits should be minimal or none."
+}

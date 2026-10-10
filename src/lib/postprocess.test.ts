@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildCandidateFacts, buildCritiques, buildHingeAnswers } from "./postprocess";
-import { DEMO_HINGE_SEGMENTS, DEMO_LINKEDIN_SEGMENTS } from "./demo-data";
+import { buildCandidateFacts, buildCritiques, buildHingeAnswers, buildHingeVariations, buildVariations } from "./postprocess";
+import { DEMO_HINGE_FACTS, DEMO_HINGE_SEGMENTS, DEMO_LINKEDIN_FACTS, DEMO_LINKEDIN_SEGMENTS } from "./demo-data";
 
 const requested = { audienceIds: ["startup_founder"], traitIds: ["clarity", "relevance"] };
 const base = { rating: "weak" as const, rationale: "r", suggestion: "s" };
@@ -80,5 +80,60 @@ describe("buildHingeAnswers", () => {
     expect(out.answers.map((a) => a.text)).toEqual([DEMO_HINGE_SEGMENTS[0].text, "First."]);
     expect(out.keptOriginal.map((s) => s.id)).toEqual(["s1"]);
     expect(out.warnings).toEqual([expect.objectContaining({ kind: "unverified_segment", text: "s9" })]);
+  });
+});
+
+describe("buildVariations", () => {
+  it("returns both styles, each with its own FactCheck and style warnings", () => {
+    const [direct, narrative] = buildVariations(
+      {
+        direct: { content: "I am a computer science senior.", usedFactIds: ["f1"], changeSummary: ["x"] },
+        narrative: {
+          content: "I leveraged my role at Google to teach.",
+          usedFactIds: ["f1", "f42"],
+          changeSummary: [],
+        },
+      },
+      "linkedin",
+      DEMO_LINKEDIN_SEGMENTS,
+      DEMO_LINKEDIN_FACTS,
+    );
+    expect(direct).toMatchObject({ style: "direct", warnings: [], styleWarnings: [] });
+    expect(narrative.style).toBe("narrative");
+    expect(narrative.warnings.map((w) => `${w.kind}:${w.text}`)).toEqual(
+      expect.arrayContaining(["unsupported_entity:Google", "invalid_fact_id:f42"]),
+    );
+    expect(narrative.styleWarnings.map((w) => w.text)).toEqual(["leveraged"]);
+  });
+});
+
+describe("buildHingeVariations", () => {
+  it("returns both styles with per-answer text, FactCheck, and kept-original notes", () => {
+    const [direct, narrative] = buildHingeVariations(
+      {
+        direct: {
+          answers: [
+            { segmentId: "s1", text: "Finding the best food truck in any city." },
+            { segmentId: "s2", text: "Pancakes, then a long walk with no plan." },
+          ],
+          usedFactIds: ["h1"],
+          changeSummary: ["Tightened the second answer."],
+        },
+        narrative: {
+          answers: [{ segmentId: "s1", text: "I have tried 40 food trucks in Paris." }],
+          usedFactIds: [],
+          changeSummary: [],
+        },
+      },
+      DEMO_HINGE_SEGMENTS,
+      DEMO_HINGE_FACTS,
+    );
+    expect(direct).toMatchObject({ style: "direct", warnings: [] });
+    expect(direct.rewrite.answers?.map((a) => a.segmentId)).toEqual(["s1", "s2"]);
+    expect(narrative.rewrite.answers?.[1].text).toBe(DEMO_HINGE_SEGMENTS[1].text);
+    expect(narrative.rewrite.changeSummary[0]).toContain("Kept your answer");
+    expect(narrative.warnings.map((w) => `${w.kind}:${w.text}`)).toEqual(
+      expect.arrayContaining(["unsupported_number:40", "unsupported_entity:Paris"]),
+    );
   });
 });

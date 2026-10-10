@@ -1,0 +1,41 @@
+{
+  "id": "li-004",
+  "platform": "linkedin",
+  "origin": "synthetic",
+  "status": "draft",
+  "tags": [
+    "sparse"
+  ],
+  "input": {
+    "platform": "linkedin",
+    "headline": "Student",
+    "about": "CS student. Looking for internships."
+  },
+  "goldFacts": [
+    "I am a computer science student.",
+    "I am looking for internships."
+  ],
+  "traps": [
+    {
+      "text": "Built 3 full-stack web apps with modern frameworks.",
+      "expect": "unsupported_number"
+    },
+    {
+      "text": "Software engineering intern at Microsoft.",
+      "expect": "unsupported_entity"
+    },
+    {
+      "text": "Passionate about machine learning and cloud computing.",
+      "expect": "semantic"
+    }
+  ],
+  "audiences": [
+    "Technical recruiter",
+    "Startup founder"
+  ],
+  "traits": [
+    "Clarity",
+    "Technical specificity"
+  ],
+  "notes": "Almost nothing to work with. A good rewrite stays short; a good critique says what's missing (missingEvidence=true) instead of padding."
+}

@@ -1,0 +1,49 @@
+{
+  "id": "hg-005",
+  "platform": "hinge",
+  "origin": "synthetic",
+  "status": "draft",
+  "tags": [
+    "sparse"
+  ],
+  "input": {
+    "platform": "hinge",
+    "answers": [
+      {
+        "prompt": "Typical Sunday",
+        "answer": "Gym then nap."
+      },
+      {
+        "prompt": "I go crazy for",
+        "answer": "Tacos"
+      }
+    ]
+  },
+  "goldFacts": [
+    "I go to the gym on Sundays.",
+    "I nap on Sundays.",
+    "I love tacos."
+  ],
+  "traps": [
+    {
+      "text": "Gym at 6, then a nap I've earned.",
+      "expect": "unsupported_number"
+    },
+    {
+      "text": "Tacos al pastor from La Taqueria are my weakness.",
+      "expect": "unsupported_entity"
+    },
+    {
+      "text": "Training for my first marathon.",
+      "expect": "semantic"
+    }
+  ],
+  "audiences": [
+    "Humor-oriented",
+    "Shared-interests-oriented"
+  ],
+  "traits": [
+    "Specificity",
+    "Distinctiveness"
+  ]
+}
