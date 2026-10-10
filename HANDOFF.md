@@ -1,57 +1,73 @@
-# Handoff: PERSONA hackathon app
+# Handoff: PERSONA / Personify hackathon app
 
-Written 2026-10-10 for the next Claude session. Read this, then [CLAUDE.md](CLAUDE.md) (rules, stack, status checklist), then [SPEC.md](SPEC.md) (full product spec). Also read [AGENTS.md](AGENTS.md): this is Next.js 16.4 / React 19.3, newer than your training data, so check `node_modules/next/dist/docs/` before writing Next code.
+Updated 2026-10-10 (evening) for the next Claude session. Read this, then [CLAUDE.md](CLAUDE.md) (rules, stack), then [SPEC.md](SPEC.md) (product spec). Also read [AGENTS.md](AGENTS.md): this is Next.js 16.4 / React 19.3, newer than your training data, so check `node_modules/next/dist/docs/` before writing Next code. [PROGRESS.md](PROGRESS.md) and [README.md](README.md) have more detail but predate the Personify UI (see "Stale docs").
 
 ## State in one paragraph
-Setup is finished and nothing product-side is built yet. The user (davidzhu314) is in a 24-hour hackathon with two teammates (all beginners) and the clock is running. The idea is decided (PERSONA), the spec is written, accounts and tooling work, the LLM key is verified, and `main` is pushed. The next job is to write code, starting with the schemas and FactCheck.
+The app works end to end and is deployed. LinkedIn and Hinge both run live against OpenRouter: paste profile, consent, confirm facts, simulated audience feedback with clickable sentence citations, then two grounded rewrites (Option A direct, Option B narrative), each checked by deterministic FactCheck and an AI-cliché lint. The UI is the teammates' Lovable design ("Personify"), ported into `src/` by Izad Khokhar and wired to the real API. 146 tests pass, lint and build are clean. What's left is mostly demo prep, docs, and one urgent security item for the user.
 
-## The idea (decided)
-**PERSONA**: users paste a LinkedIn or Hinge profile, tick the facts about themselves that are true ("Identity DNA"), pick simulated audiences, and get evidence-linked feedback plus rewrites grounded only in confirmed facts. A deterministic **FactCheck** layer flags invented numbers, entities, and inflated verbs ("contributed" becoming "led"). Principle: improve expression, don't invent identity. MVP is LinkedIn first, then Hinge. Everything else is out of scope. See SPEC.md for the data model, routes, FactCheck design, demo script, and the hour-by-hour plan with cut rules (if LinkedIn isn't end to end by hour 12, cut Hinge; never sacrifice FactCheck for polish).
+## URGENT for the user (not for you to do)
+- **The repo is now PUBLIC** (https://github.com/davidzhu314/HackNCSuperSecretProject), so the Gemini key committed in `933a9c6` (`.env.example`, `GEMINI_API_KEY=AQ.…`) is publicly readable in history. The user must revoke it at https://aistudio.google.com/apikey. A full history scan found no other keys; the OpenRouter key was never committed. Don't rewrite history without the user's explicit say-so.
 
-How we got here, so you don't re-litigate it: the user first explored SkinOS (skincare budget optimizer, spec archived at `archive/SKINOS-SPEC.md`), then chose PERSONA after three drafts of the brief (original at `~/Downloads/IDEA (2).md`). The decision was based on feasibility and on FactCheck being a real deterministic feature. Don't reopen it unless asked.
+## Live
+- **URL:** https://hackathon-app-nu.vercel.app (public, no login). Home page at `/`, the flow at `/studio`.
+- **Deploys are manual:** `vercel --prod --yes` from the repo root. Pushing to GitHub does **not** deploy (no Git integration; every deployment so far was a CLI deploy by davidzhu314). Ask the user before each deploy.
+- Vercel env: `OPENROUTER_API_KEY` is set for Production. The model vars are not set there; the code defaults apply.
+- **Cold start:** right after a deploy, the first scripted runs failed; reruns a minute later passed. Before a demo, click through one sample run to warm it up. Sample mode is the fallback if the API is slow.
+- Deployment Protection is on (Vercel default): per-deployment URLs (`hackathon-xxxx-dz-ll.vercel.app`) ask for a login; the main domain doesn't. Share only the main domain.
 
-## Key design decisions already made
-- **Citations use segment IDs, not quoted text.** Split input into numbered segments server-side, have the model cite IDs, resolve quotes on the server. Free-text quotes fail exact-match checks because models alter whitespace and punctuation.
-- **FactCheck never trusts the model's `usedFactIds`.** It checks numbers, entities, inflated verbs, and fact IDs deterministically. It must have tests. Never output "verified true"; say "no unsupported concrete claims detected".
-- **Categorical ratings only** (`not_evident` / `weak` / `moderate` / `strong`). No percentages or hireability scores.
-- **Demo/cached outputs are always labeled.** Consent screen names OpenRouter and the underlying model provider.
+## Team
+- **davidzhu314** (the user): runs these Claude sessions.
+- **Izad Khokhar**: merged PR #1 (evals scaffold), #2 (Hinge prompts and per-answer rewrites), #3 (Lovable UI port). Uses Claude too (`.claude/launch.json`).
+- **VedhK123**: pushed earlier fixes (long-sentence chunking in `segments.ts`, layout changes). Their change narrowing `.gitignore` to `.env.local` was reverted to `.env*`; tell them why if it comes up.
+- Teammates push to `main` directly and via PRs. **Always `git fetch` and check `HEAD..origin/main` before pushing or deploying.**
 
-## What exists
-- **Repo:** https://github.com/davidzhu314/HackNCSuperSecretProject (private), branch `main`, at `940a72f`, in sync with origin when this was written. Local path: `/Users/davidzhu/Desktop/hackathon-app`.
-- **App:** create-next-app scaffold plus shadcn/ui (button, card, tabs, checkbox, badge, textarea, label) and `src/lib/utils.ts`. Installed: `zod` 4, `openai` 7 (for OpenRouter), `diff` 9, `lucide-react`. `npm run build` passes. No test runner yet; add `vitest` for FactCheck.
-- **Deployed:** Vercel project `dz-ll/hackathon-app`, hello-world live at https://hackathon-app-nu.vercel.app (assigned to production on first deploy). `.vercel/` is gitignored. Vercel env vars are **not** set yet.
-- **Logins:** `gh` and `vercel` are both logged in as davidzhu314. Also installed: `uv`, Node v26, Python 3.10.13.
-- **Python:** `.venv/` (gitignored) with `openai` and `python-dotenv`. `scripts/llm_check.py` tests the OpenRouter key and a strict-JSON-schema call: `.venv/bin/python scripts/llm_check.py`. It passed.
+## Architecture (what's where)
+- `src/lib/schemas.ts`: zod contract for everything. Rewrite response is `{ source, variations: [{ style: "direct"|"narrative", rewrite, warnings, styleWarnings }] }`.
+- `src/lib/segments.ts`: splits input into `s1, s2…` (long sentences are chunked, never truncated). The model cites IDs; the server resolves them and drops unknown ones.
+- `src/lib/fact-guard.ts`: **FactCheck**, deterministic: numbers (incl. word numbers, %), capitalized entities (heuristic, with an allowlist of generic title-case words; job titles stay flagged), inflated verbs (ranked list, irregular forms), fact IDs, and a loose-claim word-overlap check ("Needs your review").
+- `src/lib/style-check.ts`: AI-cliché lint (banned words/phrases from the team's copywriting prompt, emoji bullets). Shown as "Style suggestions", separate from FactCheck. The prompt's ban list is generated from the same list.
+- `src/lib/llm.ts`: OpenRouter via `openai` SDK, strict `json_schema`, `provider.require_parameters: true`, zod validation, one retry. Server only.
+- `src/lib/prompts.ts`, `rubrics.ts`, `postprocess.ts`: prompts (fact rules always above style rules), audience/trait configs, server-side cleanup (`buildCritiques`, `buildVariations`).
+- `src/app/api/{facts/extract,evaluate,rewrite}/route.ts`: all require `consent: true` (403 otherwise).
+- `src/lib/api-client.ts`: browser-side calls plus labeled sample mode.
+- `src/components/PersonaFlow.tsx`: the six-step flow and its rules (no AI call before consent; only confirmed facts reach rewrite; sample mode only for the demo persona; new text means new consent; editing a fact un-ticks it).
+- `evals/`: 20 synthetic draft cases (LinkedIn and Hinge) with traps; `evals/cases.test.ts` runs in `npm test`. Its README mentions `src/lib/models.ts`, **which doesn't exist yet**.
 
-## LLM setup
-- Provider is **OpenRouter** via the `openai` SDK with `baseURL: https://openrouter.ai/api/v1`. Server-side only.
-- `.env.local` (gitignored) holds `OPENROUTER_API_KEY` (set, verified working) and `OPENROUTER_MODEL=anthropic/claude-haiku-5.5`, plus a `VERCEL_OIDC_TOKEN` that `vercel link` added. Leave that line alone.
-- Haiku passed a strict-JSON-schema test, but that is one small sample. It was picked from a price-sorted list (about $0.10 in / $0.50 out per 1M tokens), not from a quality comparison. Fallback: `google/gemini-3.1-flash-lite`.
-- **Suggested experiment:** once the real rewrite prompt exists, run it on Haiku and a stronger model and compare how often FactCheck flags each. If the stronger one is clearly better, add `OPENROUTER_REWRITE_MODEL` and use it for `/api/rewrite` only; keep Haiku for `/api/evaluate`.
-- Why not Gemini directly: the user's Google AI Studio keys (new "auth key" format, `AQ.` prefix, introduced May 28, 2026) returned 401 on every endpoint and SDK. Cause never found. Don't spend time on it.
+## Model decisions (measured, one sample each, so first impressions)
+- Extract and evaluate: `anthropic/claude-haiku-5.5` (cheap, fast, sensible). Rewrite: `anthropic/claude-sonnet-5.5` (`OPENROUTER_REWRITE_MODEL` overrides). Two versions take about 11-12s live.
+- `gemini-3.1-flash-lite`: invented skills, useless feedback. `gemini-3.8-flash`: slow, cited segment IDs as fact IDs. Not used.
+- **No Anthropic model on OpenRouter accepts `temperature`**; with `require_parameters` the request 404s. So temperature is opt-in via `OPENROUTER_TEMPERATURE` and unset by default. Don't "fix" this by adding temperature back.
+- Known blind spot: models make small soft inferences ("my TA role gave me practice explaining") that FactCheck can't see. It catches concrete claims only; say so in the demo.
 
-## Do first (in order)
-1. `src/lib/schemas.ts`: zod schemas from SPEC.md's data model. This is the contract the three teammates build against.
-2. `src/lib/demo-data.ts`: fictitious persona, 4–6 facts, a vague LinkedIn bio, a Hinge sample, labeled cached outputs.
-3. `src/lib/segments.ts` and `src/lib/fact-guard.ts` with `vitest` tests (fabricated metric, company, date, qualification, inflated verb, correct quote, legitimate paraphrase, unconfirmed fact, invalid ID). No API key needed.
-4. `src/lib/llm.ts` (OpenRouter client, one retry on invalid JSON, zod validation) and `src/lib/rubrics.ts`.
-5. API routes `facts/extract`, `evaluate`, `rewrite`, then the UI against mock JSON first.
+## Testing the real app (browser)
+`chromium-cli` isn't installed. What worked: `playwright-core` installed in a scratch folder (not the project), driving the installed Chrome with `chromium.launch({ channel: "chrome", headless: true })`. Run `npm run dev`, poll `http://localhost:3000`, then script the flow at `/studio`. Gotchas:
+- In sample mode the consent button is **"Continue with samples"**, not "I agree, continue".
+- The step tab "6 Rewrite + FactCheck" also matches `/rewrite/i` and is disabled; use exact names ("Rewrite my profile", "Generate rewrites").
+- Next's dev server sometimes serves stale CSS after edits to `globals.css`; restart it.
+- Kill the dev server by port when done: `lsof -ti:3000 -sTCP:LISTEN | xargs kill`.
+If the user wants this repeatable, suggest `/run-skill-generator` to save it as a project skill.
 
-## Open items for the user (not for you to do silently)
-- **Revoke the leaked Gemini key.** Commit `933a9c6` put a real `AQ.` key in `.env.example` on GitHub (removed a minute later in `9b6e2be`, but still in history). Probably already dead, but it should be revoked at https://aistudio.google.com/apikey. History was not rewritten and shouldn't be without the user's say-so.
-- Add teammates as collaborators on the repo.
-- Add `OPENROUTER_API_KEY` and `OPENROUTER_MODEL` to Vercel (`vercel env add ...`) before deploying the real app. The user pastes secrets themselves.
+## Stale docs
+`README.md` and `PROGRESS.md` describe the earlier plain UI ("PERSONA", no Hinge, PROGRESS says 40 tests; it's now 146). The app is now branded **Personify** on screen. Update both once the user confirms the name. `CLAUDE.md`'s status checklist is also behind (Hinge is now done; the deploy is live).
+
+## Still to do
+1. User: revoke the leaked Gemini key (above).
+2. Demo: rehearse the 90-second script in SPEC.md and record a backup video. Warm the site first.
+3. Update README, PROGRESS.md, and the CLAUDE.md checklist for Personify, Hinge, and the live URL.
+4. Evals: the 20 cases are drafts awaiting human review; a runner that compares models and a `src/lib/models.ts` don't exist yet.
+5. Optional: blind A/B (stretch) only if everything else is solid.
 
 ## Working with this user
 - Wants brutally honest assessments, concise answers, and a recommendation instead of a survey.
-- Prefers you do installs and setup yourself. Confirm before outward-facing actions (push, deploy, deleting). The user approved pushes to this repo as part of "merge on top", and normal non-force pushes have been fine.
-- **Never ask for or print API keys.** The user edits `.env.local` themselves; `open -e .env.local` opens it in TextEdit (it's a hidden file in Finder). Verify keys by length/prefix or a live test without echoing them.
-- Don't build ahead of a decision. When the user said "don't do it", they meant read and advise only.
+- Prefers you do installs and setup yourself. **Confirm before outward-facing actions** (push, deploy, deleting). They have approved pushes and deploys case by case; get a yes each time.
+- **Never ask for or print API keys.** The user edits `.env.local` and Vercel env themselves (`vercel env add OPENROUTER_API_KEY production`). Verify by length/prefix or a live call without echoing values.
+- Don't build ahead of a decision. When asked "what if…", answer and recommend; build when they say go.
 
 ## Gotchas
-- `.gitignore` has `.env*` then `!.env.example`, so `.env.example` is tracked. Keep real values out of it; it is the file that leaked a key once.
-- A stray `~/hackathon-app` folder still holds old duplicate copies of CLAUDE.md, SPEC.md, and `archive/`. They are outdated (they still mention Gemini). Ignore them. The user hasn't decided whether to delete them.
-- No dev server should be running. Check port 3000 before starting one.
-- Commit with `-c user.name=davidzhu314 -c user.email=davidzhu314@gmail.com`, and add the attribution line your session's system reminder specifies. Don't commit `.env.local`, `.venv/`, or `.vercel/`.
-- `CLAUDE.md` status checklist was last updated before the OpenRouter key verification and the push of the switch. Tick items as you finish them.
-- This file is uncommitted. Commit it with your first batch of work if you want it in the repo.
+- **Never chain a deploy after a push with `| tail` or `;`.** That's how my local code got deployed without a teammate's commits once (pipe hid the rejected push). Use `git push origin main && vercel --prod --yes`.
+- `.gitignore` must keep `.env*` then `!.env.example`. `.env.example` lists names only; it's the file that leaked a key.
+- zsh doesn't word-split variables: `G="git -c …"; $G commit` fails. Write the command out.
+- Commit with `-c user.name=davidzhu314 -c user.email=davidzhu314@gmail.com` plus the attribution line from your system reminder. Don't commit `.env.local`, `.venv/`, or `.vercel/`.
+- shadcn components here are the **base-ui** variant (`Checkbox` uses `checked`/`onCheckedChange` and renders a hidden input too; `TabsContent` needs `keepMounted` to keep state).
+- `diff`'s `diffWords` loses whitespace on the "old" side; use `diffWordsWithSpace`.
+- A stray `~/hackathon-app` folder has outdated copies of the docs. Ignore it.
