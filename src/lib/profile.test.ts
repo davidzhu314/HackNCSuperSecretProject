@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { SYNTHETIC_LINKEDIN_LINES } from "./__fixtures__/linkedin-synthetic";
 import { DEMO_LINKEDIN_FACTS, DEMO_LINKEDIN_PROFILE } from "./demo-data";
+import { parseLinkedInLines } from "./linkedin-pdf";
 import {
   emptyLinkedInProfile,
   factCheckSegments,
@@ -180,5 +182,52 @@ describe("factCoverage", () => {
     expect(demo.summary.confirmed).toBe(DEMO_LINKEDIN_FACTS.length);
     expect(demo.summary.covered).toBeGreaterThan(0);
     expect(demo.summary.covered).toBeLessThanOrEqual(demo.summary.confirmed);
+  });
+});
+
+describe("factCoverage on a realistic (synthetic) import", () => {
+  const { profile: rowan } = parseLinkedInLines(SYNTHETIC_LINKEDIN_LINES);
+  const fact = (id: string, text: string) => ({ id, text, confirmed: true, source: "user" as const });
+  const facts = [
+    fact("f1", "I tuned PID loops for rover platforms."), // paraphrase of exp1
+    fact("f2", "I wrote an EKF state estimator for field trials."), // exp1
+    fact("f3", "I worked on motor control firmware at Kestrel Labs."), // exp3 (and its title line)
+    fact("f4", "I have a master's in mechanical engineering."), // edu1
+    fact("f5", "I mentor a high school robotics team."), // About
+    fact("f6", "I speak fluent Portuguese."), // not on the profile
+    fact("f7", "I tuned 60 PID loops."), // number not on the profile
+    fact("f8", "I like robots."), // one common word must not be enough
+  ];
+  const cov = factCoverage(rowan, facts);
+  const where = Object.fromEntries(cov.perFact.map((f) => [f.factId, f.sectionKeys]));
+
+  it("finds paraphrased facts in the right section", () => {
+    expect(where.f1).toEqual(["exp1"]);
+    expect(where.f2).toEqual(["exp1"]);
+    expect(where.f3).toContain("exp3");
+    expect(where.f4).toEqual(["edu1"]);
+    expect(where.f5).toEqual(["about"]);
+  });
+
+  it("doesn't count facts that aren't there, changed numbers, or one shared word", () => {
+    expect(where.f6).toEqual([]);
+    expect(where.f7).toEqual([]);
+    expect(where.f8).toEqual([]);
+    expect(cov.summary).toEqual({ confirmed: 8, covered: 5 });
+  });
+
+  it("lists every section in profile order with its facts, including empty ones", () => {
+    expect(cov.bySection.map((s) => s.sectionKey)).toEqual([
+      "headline", "about", "exp1", "exp2", "exp3", "edu1", "edu2", "skills", "honors",
+    ]);
+    expect(cov.bySection.find((s) => s.sectionKey === "exp1")).toEqual({
+      sectionKey: "exp1",
+      label: "Experience · Brightwater Robotics · Controls Engineer",
+      factIds: ["f1", "f2"],
+    });
+    expect(cov.bySection.find((s) => s.sectionKey === "honors")?.factIds).toEqual([]);
+    // Counts agree with perFact.
+    const total = cov.bySection.reduce((n, s) => n + s.factIds.length, 0);
+    expect(total).toBe(cov.perFact.reduce((n, f) => n + f.sectionKeys.length, 0));
   });
 });
