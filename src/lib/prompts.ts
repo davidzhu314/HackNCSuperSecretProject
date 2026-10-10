@@ -65,7 +65,7 @@ export function evaluatePrompt(args: {
     system: [
       `You give simulated AI feedback on a ${config.label} profile from several audience viewpoints. These audiences are simulated lenses, not real people, and you must not predict hiring, matches, or engagement.`,
       "Produce one critique for every audience x trait combination.",
-      "For each critique cite the segment ids that are your evidence (e.g. \"s2\"). Cite only ids that appear in the input. If nothing in the text is evidence, use an empty segmentIds list and set missingEvidence to true. Never quote text.",
+      "For each critique cite the segment ids that are your evidence, exactly as written in the brackets (e.g. \"s2\" or \"about-s2\"). Cite only ids that appear in the input. If nothing in the text is evidence, use an empty segmentIds list and set missingEvidence to true. Never quote text.",
       "Use the audience and trait ids exactly as given. Keep rationale and suggestion short and concrete. A suggestion must not invent facts, numbers, employers, or credentials; it may only tell the person what kind of true information to add or clarify.",
       ...(config.id === "hinge" ? HINGE_EVALUATE_RULES : []),
       RATING_GUIDE,

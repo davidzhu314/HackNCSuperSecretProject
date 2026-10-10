@@ -78,10 +78,23 @@ describe("sectioned sample evaluate", () => {
     expect(SAMPLE_PROFILE_EVALUATE.source).toBe("sample");
   });
 
-  it("covers the default lenses x every trait once", () => {
+  it("covers every LinkedIn lens x every trait once, including the defaults", () => {
     const keys = SAMPLE_PROFILE_EVALUATE.critiques.map((c) => `${c.audience}|${c.trait}`);
-    const expected = DEFAULT_LINKEDIN_AUDIENCES.flatMap((a) => LINKEDIN_CONFIG.traits.map((t) => `${a}|${t.id}`));
+    const expected = LINKEDIN_CONFIG.audiences.flatMap((a) => LINKEDIN_CONFIG.traits.map((t) => `${a.id}|${t.id}`));
     expect([...keys].sort()).toEqual([...expected].sort());
+    for (const id of DEFAULT_LINKEDIN_AUDIENCES) expect(LINKEDIN_CONFIG.audiences.some((a) => a.id === id)).toBe(true);
+  });
+
+  it("has exactly 2 lenses in each of the 4 categories", () => {
+    const categories = LINKEDIN_CONFIG.categories!.map((c) => c.id);
+    expect(categories).toHaveLength(4);
+    for (const c of categories) expect(LINKEDIN_CONFIG.audiences.filter((a) => a.category === c)).toHaveLength(2);
+  });
+
+  it("fits within the critique limit and the default lenses span 3 categories", () => {
+    expect(SAMPLE_PROFILE_EVALUATE.critiques.length).toBeLessThanOrEqual(LIMITS.maxCritiques);
+    const cats = DEFAULT_LINKEDIN_AUDIENCES.map((id) => LINKEDIN_CONFIG.audiences.find((a) => a.id === id)!.category);
+    expect(new Set(cats).size).toBe(3);
   });
 
   it("only cites real profile segments, and missingEvidence matches", () => {
