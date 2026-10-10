@@ -1,6 +1,19 @@
-# PERSONA: progress so far
+# Personify: progress so far
 
-Updated 2026-10-10. This covers the work since setup finished. For the product idea and rules, see [SPEC.md](SPEC.md) and [CLAUDE.md](CLAUDE.md).
+For the product idea and rules, see [SPEC.md](SPEC.md) and [CLAUDE.md](CLAUDE.md); for the current handoff, [HANDOFF.md](HANDOFF.md).
+
+## Latest (2026-10-10, late): LinkedIn by sections, data and AI side
+
+The product is named **Personify** (it was PERSONA in earlier notes below). Since the notes below were written: the Lovable UI was ported in, Hinge was built end to end, the site was deployed, and the sections phase began. Data and AI side, merged:
+
+- **Profile by sections** (`profile.ts`, #7): headline, About, and Experience / Education / Projects / Volunteering entries. Segment ids are per section (`exp2-s1`); only free text is ever rewritten.
+- **PDF import** (`linkedin-pdf.ts`, #9): LinkedIn's "Save to PDF" export parsed in the browser with `pdfjs-dist`; drops name, contact details, and location. Tested on a synthetic export; checked locally on one real export.
+- **Per-section rewrites** (`/api/rewrite-section`, #10): one section and one style per call, about 2-3.5s per section (About ~10-13s), "rewrite all" for 8 sections in 8-14s at 3 at a time. FactCheck checks an entry only against its own text.
+- **8 lenses in 4 categories** (#11), traits shown as plain questions; sample feedback covers all 8.
+- **Fact coverage** (#12): real counts of which confirmed facts appear in which section, for the demo hub.
+- **UI side** (Person 2, in progress): section editor and PDF upload, lens picker, Audience Clash redesign, per-section rewrite screen, consent once per browser, demo hub.
+
+The notes below describe the earlier plain UI and are kept as a record.
 
 ## Where things stand
 
