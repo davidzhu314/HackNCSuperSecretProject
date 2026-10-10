@@ -12,9 +12,27 @@ function splitSentences(text: string): string[] {
 }
 
 function makeSegments(pieces: { text: string; prompt?: string }[]): Segment[] {
-  return pieces.slice(0, LIMITS.maxSegments).map((p, i) => ({
+  const expanded = pieces.flatMap((piece) => {
+    const remaining = piece.text.trim();
+    if (!remaining) return [];
+    const chunks: string[] = [];
+    let start = 0;
+    while (start < remaining.length) {
+      let end = Math.min(start + LIMITS.segmentText, remaining.length);
+      if (end < remaining.length) {
+        const boundary = remaining.lastIndexOf(" ", end);
+        if (boundary > start + LIMITS.segmentText * 0.6) end = boundary;
+      }
+      chunks.push(remaining.slice(start, end).trim());
+      start = end;
+      while (remaining[start] === " ") start++;
+    }
+    return chunks.map((text) => ({ ...piece, text }));
+  });
+
+  return expanded.slice(0, LIMITS.maxSegments).map((p, i) => ({
     id: `s${i + 1}`,
-    text: p.text.slice(0, LIMITS.segmentText),
+    text: p.text,
     ...(p.prompt ? { prompt: p.prompt.slice(0, 200) } : {}),
   }));
 }
