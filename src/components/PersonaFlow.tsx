@@ -44,7 +44,7 @@ import { DEFAULT_LINKEDIN_AUDIENCES, PLATFORM_CONFIGS, PLATFORM_GROUPS } from "@
 import { PARALLEL_REWRITES, runLimited } from "@/lib/run-limited";
 import { EXPECTED_MS } from "@/lib/progress";
 import { ProgressBar } from "@/components/ProgressBar";
-import { compareOverallTraitScores } from "@/lib/trait-scores";
+import { compareAnswered } from "@/lib/answered";
 import {
   LIMITS,
   LinkedInProfileSchema,
@@ -201,7 +201,8 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
   const [customQuestions, setCustomQuestions] = useState<CustomQuestion[]>([]);
   const [evaluating, setEvaluating] = useState(false);
   const [evaluation, setEvaluation] = useState<EvaluateResponse | null>(null);
-  const [improvedEvaluation, setImprovedEvaluation] = useState<EvaluateResponse | null>(null);
+  // The selected rewrite as the same lenses read it, with its segments (so a lens's cited lines can be quoted).
+  const [improvedEvaluation, setImprovedEvaluation] = useState<{ evaluation: EvaluateResponse; segments: Segment[] } | null>(null);
   // The text the feedback was given on, so Audience Clash stays consistent after rewrites are used.
   const [evaluatedOn, setEvaluatedOn] = useState<{ profile: LinkedInProfile; segments: Segment[] } | null>(null);
 
@@ -670,8 +671,8 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
       ...(customQuestions.length ? { customQuestions } : {}),
       jobDescription: targetJob,
     });
-    setImprovedEvaluation(result);
-    return compareOverallTraitScores(evaluation, result, audiences, evalTraits);
+    setImprovedEvaluation({ evaluation: result, segments: candidateSegments });
+    return compareAnswered(evaluation, result, audiences, evalTraits);
   }
 
   function patchSection(key: string, patch: Partial<SectionRewriteState>) {
@@ -1145,6 +1146,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
           {step === REWRITE && evaluation && (
             <TraitScorecard
               baseline={evaluation}
+              baselineSegments={evaluatedOn?.segments ?? segments}
               improved={improvedEvaluation}
               config={evalConfig}
               audiences={audiences}

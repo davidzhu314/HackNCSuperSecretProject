@@ -16,8 +16,7 @@ import type {
   Segment,
 } from "@/lib/schemas";
 import { LENGTH_STEPS, STYLE_ORDER, STYLES, targetChars } from "@/lib/styles";
-import type { compareOverallTraitScores } from "@/lib/trait-scores";
-type ScoreComparison = ReturnType<typeof compareOverallTraitScores>;
+import type { AnsweredComparison as ScoreComparison } from "@/lib/answered";
 import { ProgressBar } from "@/components/ProgressBar";
 import { EXPECTED_MS, expectedBatchMs } from "@/lib/progress";
 import { PARALLEL_REWRITES } from "@/lib/run-limited";

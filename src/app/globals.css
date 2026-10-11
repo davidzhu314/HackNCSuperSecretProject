@@ -963,14 +963,38 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .trait-scorecard-head h2 { margin: 0; font-size: 18px; }
 .trait-scorecard-head p, .trait-scorecard-note { margin: 5px 0 0; color: var(--muted-foreground); font-size: 12px; }
 .trait-score-list { display: grid; gap: 12px; }
-.trait-score-legend { display: flex; justify-content: space-between; margin: 2px 8px 0 0; color: var(--muted-foreground); font-size: 11px; }
 .trait-score-row { display: grid; gap: 6px; }
 .trait-score-title { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; }
 .trait-score-title span { color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
-.trait-score-track { position: relative; height: 24px; overflow: hidden; border-radius: 6px; background: var(--secondary); }
-.trait-score-fill { display: block; height: 100%; min-width: 0; background: color-mix(in oklab, var(--primary) 55%, transparent); transition: width .35s ease; }
-.trait-score-track.improved .trait-score-fill { background: var(--primary); }
-.trait-score-number { position: absolute; inset: 0 8px; display: flex; align-items: center; font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
+/* One segment per lens: filled when that lens can tell (Moderate or Strong); Strong is the full color. */
+.answered-total { display: flex; align-items: center; gap: 6px; margin: 0; flex-shrink: 0; color: var(--muted-foreground); font-size: 13px; font-variant-numeric: tabular-nums; }
+.answered-total strong { font-size: 26px; line-height: 1; color: var(--foreground); }
+.answered-total strong[data-verdict=better] { color: var(--success); }
+.answered-total strong[data-verdict=worse], .answered-total strong[data-verdict=mixed] { color: var(--warning); }
+.lens-bar { display: grid; grid-template-columns: 64px 1fr; align-items: center; gap: 8px; }
+.lens-bar-label { font-size: 11px; color: var(--muted-foreground); }
+.lens-bar-segments { display: flex; gap: 4px; height: 12px; }
+.lens-seg { flex: 1; border-radius: 4px; background: var(--secondary); box-shadow: inset 0 0 0 1px var(--border); transition: background .3s ease; }
+.lens-seg[data-rating=moderate] { background: color-mix(in oklab, var(--primary) 55%, transparent); box-shadow: none; }
+.lens-seg[data-rating=strong] { background: var(--primary); box-shadow: none; }
+.lens-key { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin: 0 0 12px; color: var(--muted-foreground); font-size: 11px; }
+.lens-key > span { display: inline-flex; align-items: center; gap: 5px; }
+.lens-key .lens-seg { flex: none; width: 18px; height: 8px; }
+.answered-changes, .answered-open { margin-top: 18px; }
+.answered-changes h3, .answered-open h3 { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; font-size: 13px; }
+.answered-changes ul, .answered-open ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.answered-changes li { display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px; border-radius: 8px; font-size: 12.5px; background: var(--success-surface); }
+.answered-changes li > svg { margin-top: 3px; flex-shrink: 0; color: var(--success); }
+.answered-changes li[data-kind=lost] { background: var(--warning-surface); }
+.answered-changes li[data-kind=lost] > svg { color: var(--warning); }
+.answered-changes p, .answered-open p { margin: 0; }
+.answered-open li { padding: 9px 12px; border-left: 3px solid var(--border); font-size: 12.5px; }
+.answered-open details summary { margin-top: 8px; cursor: pointer; color: var(--muted-foreground); font-size: 12px; }
+.answered-open details ul { margin-top: 8px; }
+.answered-rating { color: var(--muted-foreground); font-size: 11.5px; }
+.answered-reason { color: var(--muted-foreground); font-size: 12px; line-height: 1.55; margin-top: 2px !important; }
+.answered-quote { display: block; margin-top: 4px; font-style: italic; font-size: 12px; }
+.answered-reason .answered-quote { display: inline; }
 .trait-scorecard-error { color: var(--destructive); font-size: 13px; }
 @media (max-width: 600px) { .trait-scorecard-head { align-items: flex-start; flex-direction: column; } }
 .profile-input-hint { margin: 7px 0 0; color: var(--muted-foreground); font-size: 12px; line-height: 1.45; }
@@ -985,7 +1009,8 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .rewrite-key-points .change-list { margin: 6px 0 0; padding-left: 18px; }
 .rewrite-key-points .change-list li + li { margin-top: 3px; }
 .score-comparison-note { display: block; color: var(--muted-foreground); font-size: 12px; }
-.score-comparison-note[data-better=true] { color: var(--primary); font-weight: 600; }
+.score-comparison-note[data-verdict=better] { color: var(--success); font-weight: 600; }
+.score-comparison-note[data-verdict=worse], .score-comparison-note[data-verdict=mixed] { color: var(--warning); font-weight: 600; }
 .custom-question-details { margin-top: 12px; }
 .custom-question-details .custom-question-row { margin-top: 8px; }
 @media (max-width: 680px) {

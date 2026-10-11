@@ -24,8 +24,7 @@ import { PLATFORM_CONFIGS } from "@/lib/rubrics";
 import { checkLength, checkStyle } from "@/lib/style-check";
 import { checkTinderLength, TINDER_ABOUT_PROMPT, tinderLimitFor } from "@/lib/tinder";
 import { findRepeatedPhrases, type QualityField } from "@/lib/profile-quality";
-import type { compareOverallTraitScores } from "@/lib/trait-scores";
-type ScoreComparison = ReturnType<typeof compareOverallTraitScores>;
+import { comparisonSummary, applyLabel, type AnsweredComparison as ScoreComparison } from "@/lib/answered";
 import { ProgressBar } from "@/components/ProgressBar";
 import { EXPECTED_MS } from "@/lib/progress";
 
@@ -496,13 +495,15 @@ export function VariationResult(props: {
         <span className="empty-note">
           {use?.applied && inUse ? "Selected as your current draft." : "Review your words before sharing them."}
         </span>
-        {scoreComparison && <span className="score-comparison-note" data-better={scoreComparison.improved} role="status">
-          {scoreComparison.delta === null ? "Rewrite scores could not be compared." : scoreComparison.improved ? `Selected audiences rated this rewrite ${scoreComparison.delta} points higher on average.` : scoreComparison.delta === 0 ? "The average audience rating was unchanged." : `Selected audiences rated this rewrite ${Math.abs(scoreComparison.delta)} points lower on average.`}
-        </span>}
+        {scoreComparison && (
+          <span className="score-comparison-note" data-verdict={scoreComparison.verdict} role="status">
+            {comparisonSummary(scoreComparison)} See what changed below.
+          </span>
+        )}
         <div className="action-buttons">
-          {props.onScore && <Button variant="glass" disabled={scoring || source === "sample"} title={source === "sample" ? "Sample mode does not send text for scoring" : undefined} onClick={async () => { setScoring(true); setScoreComparison(null); try { setScoreComparison(await props.onScore?.(text, props.qualityTargetKey) ?? null); } catch (error) { onError(error instanceof Error ? error.message : "Could not compare scores. Try again."); } finally { setScoring(false); } }}>
+          {props.onScore && <Button variant="glass" disabled={scoring || source === "sample"} title={source === "sample" ? "Sample mode doesn't send text to the AI" : "Have the lenses you picked read this version, and count which of their questions it answers"} onClick={async () => { setScoring(true); setScoreComparison(null); try { setScoreComparison(await props.onScore?.(text, props.qualityTargetKey) ?? null); } catch (error) { onError(error instanceof Error ? error.message : "Couldn't get the lenses' read on this version. Try again."); } finally { setScoring(false); } }}>
             {scoring ? <LoaderCircle className="animate-spin" /> : <Sparkles />}
-            {scoring ? "Scoring…" : "Compare scores"}
+            {scoring ? "Asking the lenses…" : scoreComparison ? "Ask the lenses again" : "Ask the same lenses"}
           </Button>}
           {history.length > 0 && <details className="version-history"><summary>Version history ({history.length})</summary>{history.map((version, index) => <button type="button" key={`${index}-${version}`} onClick={() => { setHistory((items) => [...items, text].slice(-8)); setText(version); setEditing(false); }}>{`Restore version ${index + 1}`}</button>)}</details>}
           {use?.applied && (
@@ -525,7 +526,7 @@ export function VariationResult(props: {
           {use && (
             <Button variant="aero" disabled={inUse} onClick={() => use.onUse(text)}>
               <Check />
-              {inUse ? "In your profile" : scoreComparison?.improved ? "Use higher-scoring version" : warnings.length ? "Use anyway" : "Use this version"}
+              {inUse ? "In your profile" : applyLabel(scoreComparison, warnings.length > 0)}
             </Button>
           )}
         </div>
