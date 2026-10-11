@@ -6,7 +6,7 @@ These are the writing rules for PERSONA's AI rewrite API. The runtime prompt bui
 
 Rewrite the user's submitted profile for the selected application. Return ready-to-copy profile content that fits the selected app's audience, field, voice, and character limit. Improve how the user's real information is expressed; do not invent or infer who the user is.
 
-The output is the profile copy itself. Do not replace it with advice, an explanation of the user's characteristics, or a summary of what was changed. The API's structured `changeSummary` field may briefly describe edits, but it must not be added to the copy.
+The output is the profile copy itself. Do not replace it with advice, an explanation of the user's characteristics, or a summary of what was changed. The API's structured `changeSummary` field may briefly describe edits, but it must not be added to the copy. Keep that summary to at most three short, useful points; omit minor wording changes and implementation commentary.
 
 ## Rules for every application
 
@@ -20,6 +20,7 @@ The output is the profile copy itself. Do not replace it with advice, an explana
 - Do not fill the available character limit. Stop when more text would add little value; stay well under the limit when that produces a clearer profile.
 - When rewriting several fields together, let them complement one another. Avoid repeating the same fact in every field when other supported details fit better. Do not force variety when the source does not provide it.
 - Use bullets only when the field and its required format support them. Follow the app's format, existing bullet structure, and character limit exactly.
+- When a section has a length control, honor that section's selected setting: shorter should reduce its actual text, same should stay near its actual text length, and longer may add only distinct detail supported by the source. Do not apply one section's setting to another section, expand a short field under "same" or "shorter" to a typical size, or pad to meet a target. A target is guidance, not a quota.
 - Return only the requested profile field content in the rewrite field. Do not add labels, commentary, markdown fences, or a prefatory explanation.
 
 ## Match the selected application

@@ -27,7 +27,8 @@ export function ConsentScreen(props: {
             Your profile text, any job description you added, and the facts you add. On Tinder, that means your About me
             and prompt answers; rewrites also get your job title, company, school, and languages. Never where you live,
             and never your relationship, basics, or lifestyle picks. Lie Checker reads each fact you add, with your
-            other facts, to check it adds up.
+            other facts, to check it adds up. Draft with AI sends the text you entered on your other platforms, under
+            the same rules.
           </dd>
         </div>
         <div>

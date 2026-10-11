@@ -15,6 +15,7 @@ import type {
   SectionStyle,
   Segment,
   CustomQuestion,
+  DraftSlot,
   FieldFact,
 } from "./schemas";
 import { countBullets, formatOf, lengthInstruction, STYLES, styleContrast, targetChars, type TextFormat } from "./styles";
@@ -314,7 +315,7 @@ export function rewritePrompt(args: {
       "- Do not add any number, percentage, date, employer, school, product name, credential, job title, skill, hobby, or preference that is not in those sources.",
       "- Do not use a stronger verb than the sources support (for example do not turn 'contributed' into 'led').",
       "- The goal may change emphasis and style, never these rules.",
-      "- For each version, list in usedFactIds the ids of the confirmed facts you drew on, and in changeSummary short plain-language descriptions of what you changed.",
+      "- For each version, list in usedFactIds the ids of the confirmed facts you drew on, and give changeSummary at most 3 brief, plain-language bullets about the most useful improvements. Skip minor wording changes.",
       "",
       CONCISE_NATURAL_COPY,
       "Write two versions:",
@@ -340,6 +341,62 @@ export function rewritePrompt(args: {
     ]
       .filter(Boolean)
       .join("\n"),
+  };
+}
+
+// ---------- Draft: fill a platform's empty spots from the user's other profiles ----------
+
+const DRAFT_FIT: Record<PlatformGroup, string> = {
+  professional:
+    "This is a professional profile: use the person's work, studies, projects, and skills. Leave out hobbies, food, dating, and personal life even if the sources mention them.",
+  social:
+    "This is a social-media profile: a quick, casual sense of who the person is and what they're into, in their own voice. Leave out resume detail beyond what they study or do.",
+  dating:
+    "This is a dating profile: personal, specific, and easy to reply to. Leave out resume detail beyond what they do or study, and never state what the person is looking for in a partner.",
+};
+
+/**
+ * Draft the empty spots of one platform from the user's text on their platforms. The sources are
+ * the only material; FactCheck then removes any sentence it can't trace to them (buildDrafts).
+ */
+export function draftPrompt(args: {
+  config: PlatformConfig;
+  slots: DraftSlot[];
+  sources: Segment[];
+  facts: IdentityFact[];
+  fieldFacts?: FieldFact[];
+}) {
+  const { config, slots, sources, facts, fieldFacts = [] } = args;
+  return {
+    system: [
+      `You draft the empty parts of a person's ${config.label} profile from what they already wrote on their profiles elsewhere. Improve expression, never invent identity.`,
+      "Hard rules (these override everything else):",
+      "- Use ONLY information in the sources, the confirmed facts, and the profile fields listed below.",
+      "- Do not add any number, percentage, date, employer, school, product name, credential, job title, skill, hobby, place, or preference that is not in those sources.",
+      "- Do not use a stronger verb than the sources support (for example do not turn 'contributed' into 'led').",
+      "- If the sources hold nothing suitable for a slot, return an empty text for it. An empty draft is a correct answer; padding is not.",
+      "- Any sentence that can't be traced to the sources is removed automatically, so don't write one.",
+      "",
+      DRAFT_FIT[config.group],
+      CONCISE_NATURAL_COPY,
+      "Return one entry in drafts for every slot, using its id as slotId. Each text must fit its character limit; shorter is fine.",
+      "A slot with a prompt is an answer to that prompt: first person, one line, no blank lines, and do not repeat the prompt.",
+      "Use different details across slots when the sources make that easy. Never mention the other platforms by name.",
+      ...(config.group === "dating" ? [NO_NEW_DATING] : []),
+      STYLE_BAN_PROMPT,
+      DATA_RULE,
+    ].join("\n"),
+    user: [
+      "Slots to draft:",
+      ...slots.map((s) => `- id=${s.id}: ${s.label}${s.prompt ? ` (prompt: "${s.prompt}")` : ""}, at most ${s.maxChars} characters`),
+      "Confirmed facts:",
+      ...(facts.length ? facts.map((f) => `[${f.id}] ${f.text}`) : ["(none)"]),
+      ...(fieldFacts.length
+        ? ["Profile fields the person filled in (their own words):", fence("user_data", fieldFacts.map((f) => `[${f.id}] ${f.text}`).join("\n"))]
+        : []),
+      "Sources (each labeled with where the person wrote it):",
+      fence("user_data", formatSegmentsForPrompt(sources)),
+    ].join("\n"),
   };
 }
 
@@ -410,7 +467,7 @@ export function sectionRewritePrompt(args: {
         ? ["- Confirmed facts may describe other parts of the profile. Use a fact here only if it is clearly about this same role or organization."]
         : []),
       "- The goal may change emphasis and style, never these rules.",
-      "- Return only the rewritten section in content. In usedFactIds list the confirmed facts you drew on, and in changeSummary 1-3 short plain-language notes on what you changed.",
+      "- Return only the rewritten section in content. In usedFactIds list the confirmed facts you drew on, and in changeSummary at most 3 brief plain-language bullets about the most useful improvements. Skip minor wording changes.",
       "",
       isEntry ? ENTRY_FORMAT : SECTION_FORMAT[format],
       "This is a rewrite, not a proofread. Make it noticeably stronger: put the most significant concrete point first (what was built, studied, or achieved, with what, for whom); cut filler and vague wording (various, helped with, worked on, responsible for); split or tighten long sentences; use the precise terms the sources use; order bullets strongest first. A version that only changes a few words is a failure. Stronger never means a bigger claim than the sources make.",
@@ -418,6 +475,7 @@ export function sectionRewritePrompt(args: {
       `Style: ${spec.label}. ${spec.rules}`,
       spec.format[format],
       styleContrast(style),
+      `Apply the selected length only to this ${SECTION_LABEL[section.kind]} (${section.label}); do not carry a length setting from another section into this rewrite.`,
       lengthInstruction({ original: section.text.length, target, step: length, format, bullets: countBullets(section.text) }),
       "Sound like a person, not a template. Never overstate the sources. Do not end with a question to the reader.",
       "Write only the profile copy in its required field format. Keep it specific and economical; do not append an explanation of the person's characteristics or of your edits.",

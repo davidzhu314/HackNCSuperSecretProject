@@ -151,7 +151,7 @@ export function IdentityHub() {
                     <div>
                       <h3 id="src-linkedin">LinkedIn</h3>
                       <p className="empty-note">
-                        {linkedin ? `${linkedinSections} sections` : "Not added yet."}
+                        {linkedin ? `${linkedinSections} sections` : "Not added yet. Import your PDF or add your headline, About, and experience."}
                       </p>
                     </div>
                   </div>
@@ -196,13 +196,10 @@ export function IdentityHub() {
                       <p className="empty-note">
                         {hingeAnswers
                           ? `${hingeAnswers} prompt ${hingeAnswers === 1 ? "answer" : "answers"}`
-                          : "Not added yet. Up to three prompt answers."}
+                          : "Not added yet. Add your prompt answers."}
                       </p>
                     </div>
                   </div>
-                  <p className="empty-note">
-                    Facts you confirmed on LinkedIn come with you, so Hinge starts from the same true facts.
-                  </p>
                   <div className="hub-actions">
                     <Button variant="aero" size="sm" nativeButton={false} render={<Link href="/studio?platform=hinge" />}>
                       {hingeAnswers ? "Review in studio" : "Open studio"} <ArrowUpRight />
@@ -259,11 +256,10 @@ function TinderSource({ fields }: { fields: number }) {
         <div>
           <h3 id="src-tinder">Tinder</h3>
           <p className="empty-note">
-            {any ? parts.join(" · ") : `Not added yet. About me (up to ${LIMITS.tinderAbout} characters), prompts, and profile fields.`}
+            {any ? parts.join(" · ") : "Not added yet. Add your About me, prompts, and profile fields."}
           </p>
         </div>
       </div>
-      <p className="empty-note">Job title, company, school, and languages can come from your LinkedIn.</p>
       <div className="hub-actions">
         <Button variant="aero" size="sm" nativeButton={false} render={<Link href="/studio?platform=tinder" />}>
           {any ? "Review in studio" : "Open studio"} <ArrowUpRight />
@@ -288,7 +284,7 @@ function BioSource({ platform, bio }: { platform: Platform; bio: string }) {
           <p className="empty-note">
             {length
               ? `${fieldLabel}: ${length}${maxChars ? ` of ${maxChars}` : ""} characters`
-              : `Not added yet.${maxChars ? ` ${fieldLabel}, up to ${maxChars} characters.` : ""}`}
+              : `Not added yet. Add your ${fieldLabel.toLowerCase()}.`}
           </p>
         </div>
       </div>
@@ -398,6 +394,7 @@ function FactsCard(props: {
           {facts.map((fact) => {
             const keys = linkedinCoverage?.perFact.find((f) => f.factId === fact.id)?.sectionKeys ?? [];
             const shared = platformsOf(fact, factPlatforms);
+            const sharedWithEveryPlatform = PLATFORMS.every((platform) => shared.includes(platform));
             return (
               <li key={fact.id} className="hub-fact hub-fact-wide">
                 <Check size={15} aria-hidden="true" />
@@ -405,6 +402,23 @@ function FactsCard(props: {
                   <p>{fact.text}</p>
                   <span className="fact-share" role="group" aria-label="Platforms this fact is used on">
                     Use on
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="share-all-button"
+                      aria-label={sharedWithEveryPlatform ? "Stop sharing this fact with every platform" : "Share this fact with every platform"}
+                      onClick={() => {
+                        const current = getSession().factPlatforms;
+                        updateSession({
+                          factPlatforms: {
+                            ...current,
+                            [fact.id]: sharedWithEveryPlatform ? [] : [...PLATFORMS],
+                          },
+                        });
+                      }}
+                    >
+                      {sharedWithEveryPlatform ? "Clear all" : "Select all"}
+                    </Button>
                     {PLATFORMS.map((p) => (
                       <button
                         type="button"

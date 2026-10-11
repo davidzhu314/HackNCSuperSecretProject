@@ -21,6 +21,7 @@ import {
   RewriteSectionResponseSchema,
 } from "./schemas";
 import type { z } from "zod";
+import type { DraftSlot, Draft, ModelDraftSchema } from "./schemas";
 import type { ModelEvaluateSchema, ModelHingeRewriteSchema, ModelRewriteSchema, ModelSectionRewriteSchema, ModelVerifyFactSchema, VerifyFactResponse } from "./schemas";
 import { splitSentences } from "./segments";
 import { PLATFORM_CONFIGS } from "./rubrics";
@@ -321,4 +322,53 @@ export function mergeEvaluations(parts: EvaluateResponse[], audienceOrder: strin
       return true;
     });
   return EvaluateResponseSchema.parse({ source: "live", critiques: critiques.slice(0, LIMITS.maxCritiques), warnings });
+}
+
+// ---------- Drafts from the user's other profiles ----------
+
+/** FactCheck warnings that point at text in the draft (not at ids or lengths). */
+const textWarning = (w: GuardWarning) => w.kind !== "invalid_fact_id" && w.kind !== "unverified_segment" && w.kind !== "over_limit";
+
+/**
+ * Each requested slot's draft, in slot order. Every sentence is FactChecked against the sources and
+ * facts on its own; any it flags (including ones it can't trace at all) is removed and reported, never
+ * shown as part of the draft. What's left is cut to the slot's limit at a sentence boundary.
+ */
+export function buildDrafts(
+  model: z.infer<typeof ModelDraftSchema>,
+  slots: DraftSlot[],
+  sources: Segment[],
+  facts: IdentityFact[],
+): Draft[] {
+  const byId = new Map<string, string>();
+  for (const d of model.drafts) if (!byId.has(d.slotId)) byId.set(d.slotId, d.text);
+  const out: Draft[] = [];
+  for (const slot of slots) {
+    const raw = (byId.get(slot.id) ?? "").trim();
+    // Answers are one line; anything else keeps single line breaks only.
+    const text = slot.prompt ? raw.replace(/\s*\n\s*/g, " ") : raw.replace(/\n\s*\n+/g, "\n");
+    const kept: string[] = [];
+    const dropped: string[] = [];
+    let length = 0;
+    for (const sentence of splitSentences(text)) {
+      const flagged = checkRewrite({ rewrite: { content: sentence, usedFactIds: [] }, segments: sources, facts }).some(textWarning);
+      if (flagged) {
+        dropped.push(sentence.slice(0, LIMITS.segmentText));
+        continue;
+      }
+      const add = [...sentence].length + (kept.length ? 1 : 0);
+      if (length + add > slot.maxChars) break;
+      kept.push(sentence);
+      length += add;
+    }
+    const final = kept.join(" ");
+    out.push({
+      slotId: slot.id,
+      text: final,
+      dropped: dropped.slice(0, 20),
+      warnings: final ? checkRewrite({ rewrite: { content: final, usedFactIds: [] }, segments: sources, facts }) : [],
+      styleWarnings: final ? checkStyle(final) : [],
+    });
+  }
+  return out;
 }

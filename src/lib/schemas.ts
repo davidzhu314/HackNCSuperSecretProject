@@ -411,6 +411,47 @@ export const RewriteResponseSchema = z.object({
 });
 export type RewriteResponse = z.infer<typeof RewriteResponseSchema>;
 
+// ---------- API: POST /api/draft (fill a platform from the user's other profiles) ----------
+
+/** One empty spot to draft: an About, a headline, a bio, or one prompt's answer. */
+export const DraftSlotSchema = z.object({
+  id: z.string().regex(/^[a-z][a-z0-9-]{0,15}$/),
+  label: z.string().min(1).max(60),
+  /** Prompt platforms: the question this answer responds to. */
+  prompt: z.string().max(200).optional(),
+  maxChars: z.number().int().min(20).max(LIMITS.sectionText),
+});
+export type DraftSlot = z.infer<typeof DraftSlotSchema>;
+
+export const DraftRequestSchema = z.object({
+  consent: z.literal(true),
+  /** The platform being filled. */
+  platform: PlatformSchema,
+  /** The user's text on their platforms (draftSources in autofill.ts). The only material a draft may use. */
+  sources: z.array(SegmentSchema).min(1).max(LIMITS.maxSegments),
+  facts: z.array(IdentityFactSchema.extend({ confirmed: z.literal(true) })).max(LIMITS.maxFacts),
+  fieldFacts: z.array(FieldFactSchema).max(4).optional(),
+  slots: z.array(DraftSlotSchema).min(1).max(6),
+});
+export type DraftRequest = z.infer<typeof DraftRequestSchema>;
+
+export const DraftSchema = z.object({
+  slotId: z.string().max(16),
+  text: z.string().max(LIMITS.sectionText),
+  /** Sentences FactCheck couldn't trace to the sources, removed before the draft is shown. */
+  dropped: z.array(z.string().max(LIMITS.segmentText)).max(20),
+  /** FactCheck on the kept text (normally empty), and the AI-cliche lint. */
+  warnings: z.array(GuardWarningSchema),
+  styleWarnings: z.array(GuardWarningSchema),
+});
+export type Draft = z.infer<typeof DraftSchema>;
+
+export const DraftResponseSchema = z.object({
+  source: ResultSourceSchema,
+  drafts: z.array(DraftSchema).max(6),
+});
+export type DraftResponse = z.infer<typeof DraftResponseSchema>;
+
 // ---------- API: POST /api/rewrite-section (LinkedIn) ----------
 
 /** Section rewrite styles (LinkedIn and future professional platforms). Hinge keeps RewriteStyle. */
@@ -546,6 +587,10 @@ const ModelHingeRewriteVariantSchema = z.object({
   answers: z.array(z.object({ segmentId: z.string(), text: z.string() })),
   usedFactIds: z.array(z.string()),
   changeSummary: z.array(z.string()),
+});
+
+export const ModelDraftSchema = z.object({
+  drafts: z.array(z.object({ slotId: z.string(), text: z.string() })),
 });
 
 export const ModelHingeRewriteSchema = z.object({

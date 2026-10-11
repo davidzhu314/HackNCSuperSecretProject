@@ -26,6 +26,10 @@ export function AudienceSelection(props: {
     props;
   const maxAudiences = Math.min(config.audiences.length, LIMITS.maxAudiences);
   const maxTraits = Math.min(config.traits.length, LIMITS.maxTraits);
+  const selectableAudiences = config.audiences.slice(0, maxAudiences);
+  const selectableTraits = config.traits.slice(0, maxTraits);
+  const allAudiencesSelected = selectableAudiences.length > 0 && selectableAudiences.every((item) => audiences.includes(item.id));
+  const allTraitsSelected = selectableTraits.length > 0 && selectableTraits.every((item) => traits.includes(item.id));
   const [draft, setDraft] = useState("");
   const canAddQuestion = !sampleMode && customQuestions.length < LIMITS.maxCustomQuestions && draft.trim().length > 0;
   const addQuestion = () => {
@@ -45,12 +49,23 @@ export function AudienceSelection(props: {
       </h2>
       <div className="selection-grid">
         <div>
-          <h3 className="section-heading">
-            Through whose eyes?{" "}
-            <span className="selection-count">
-              {audiences.length} / {maxAudiences}
-            </span>
-          </h3>
+          <div className="selection-heading-row">
+            <h3 className="section-heading">
+              Through whose eyes?{" "}
+              <span className="selection-count">
+                {audiences.length} / {maxAudiences}
+              </span>
+            </h3>
+            <Button
+              variant="glass"
+              size="sm"
+              disabled={loading}
+              aria-label={allAudiencesSelected ? "Clear all audience lenses" : "Select all audience lenses"}
+              onClick={() => onAudiences(allAudiencesSelected ? [] : selectableAudiences.map((item) => item.id))}
+            >
+              {allAudiencesSelected ? "Clear all" : "Select all"}
+            </Button>
+          </div>
           {/* LinkedIn groups its lenses by category; Hinge has a flat list. */}
           {groups.map((group) => (
             <div key={group.id} className="audience-group">
@@ -80,10 +95,21 @@ export function AudienceSelection(props: {
           ))}
         </div>
         <div>
-          <h3 className="section-heading">
-            {config.categories?.length ? "What should they be able to tell?" : "What should they look for?"}{" "}
-            <span className="selection-count">{traits.length + customQuestions.length} selected</span>
-          </h3>
+          <div className="selection-heading-row">
+            <h3 className="section-heading">
+              {config.categories?.length ? "What should they be able to tell?" : "What should they look for?"}{" "}
+              <span className="selection-count">{traits.length + customQuestions.length} selected</span>
+            </h3>
+            <Button
+              variant="glass"
+              size="sm"
+              disabled={loading}
+              aria-label={allTraitsSelected ? "Clear all profile traits" : "Select all profile traits"}
+              onClick={() => onTraits(allTraitsSelected ? [] : selectableTraits.map((item) => item.id))}
+            >
+              {allTraitsSelected ? "Clear all" : "Select all"}
+            </Button>
+          </div>
           <div className="trait-options mt-4">
             {config.traits.map((option) => (
               <Button
@@ -120,7 +146,9 @@ export function AudienceSelection(props: {
             </ul>
           )}
           {customQuestions.length < LIMITS.maxCustomQuestions && (
-            <div className="custom-question-row">
+            <details className="custom-question-details">
+              <summary>Add a custom question <span className="optional">(optional)</span></summary>
+              <div className="custom-question-row">
               <label className="sr-only" htmlFor="custom-question">
                 Your own question
               </label>
@@ -140,7 +168,8 @@ export function AudienceSelection(props: {
                 <Plus />
                 Add
               </Button>
-            </div>
+              </div>
+            </details>
           )}
         </div>
       </div>
