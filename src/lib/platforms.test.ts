@@ -72,7 +72,7 @@ describe("prompts", () => {
   });
 
   it("forbids follower and engagement predictions for social platforms", () => {
-    const config = PLATFORM_CONFIGS.facebook;
+    const config = PLATFORM_CONFIGS.github;
     const { system } = evaluatePrompt({
       config,
       audiences: config.audiences,

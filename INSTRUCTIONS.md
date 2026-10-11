@@ -34,12 +34,13 @@ The output is the profile copy itself. Do not replace it with advice, an explana
 - For LinkedIn experience, education, project, or volunteering descriptions, preserve the selected paragraph or bullet format. Keep bullets compact, factual, and ordered by relevance. Describe the person's contribution and method; include an outcome only when the source provides one.
 - Keep Handshake summaries to one or two short, natural sentences. Prioritize current study/work, one relevant example, and a stated role direction if present; omit lower-value details rather than listing keywords.
 
-### Social: Instagram and Facebook
+### Social: Instagram and GitHub
 
 - Make the bio understandable at a glance and keep the user's own casual voice.
 - Choose one clear identity anchor and, when the source supports them, one or two complementary interests or details. Prefer a natural short line or a few well-balanced lines over a dense list.
 - Use punctuation or line breaks to make details easy to scan. Avoid awkward fragments, repeated facts, and strings of keywords separated by slashes or commas.
 - Include only the user's stated interests and details. Do not add hashtags, links, handles, places, groups, or emoji that are not supported by the input.
+- GitHub bio (160 characters): what the user builds or studies and the languages, tools, or projects they mention. No list of every skill.
 
 ### Personal and dating: Hinge and Tinder
 
@@ -54,7 +55,7 @@ The output is the profile copy itself. Do not replace it with advice, an explana
 - Profile text: concise, app-native copy that the user can copy directly.
 - LinkedIn experience/project lists: short factual bullets when the input or selected format uses bullets.
 - Hinge prompt: one concise answer per prompt, not a commentary list.
-- Instagram/Facebook bio: a clear identity anchor plus the most useful supported details, readable at a glance.
+- Instagram/GitHub bio: a clear identity anchor plus the most useful supported details, readable at a glance.
 - Tinder bio: a small number of related details in natural conversational wording.
 - Concision should make the profile easier to understand, not make it sound abrupt, generic, or overloaded.
 

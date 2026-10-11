@@ -74,14 +74,15 @@
   --tour-orange: #dd2a7b; --tour-apricot: #fcaf45;
   --brand-fill: linear-gradient(90deg, #f58529, #dd2a7b 45%, #8134af 80%, #515bd4); --brand-solid: #dd2a7b; --brand-ink: #fff; --brand-tint: oklch(.93 .045 350); --brand-line: oklch(.76 .11 350);
 }
-.app-root[data-theme=facebook] {
-  --background: #f0f2f5; --foreground: #1c1e21;
-  --primary: #0866ff; --secondary: #e7f0ff; --muted: #f5f6f7; --muted-foreground: #65676b;
-  --accent: #e7f0ff; --border: #dadde1; --sky: #6aa6ff;
-  --glass: oklch(.97 .015 255 / .95); --shadow-color: oklch(.3 .05 255 / .12); --deep-ocean: #0047b3;
-  --button-gradient: linear-gradient(180deg, #2b7bff, #0866ff); --glass-gradient: linear-gradient(180deg, oklch(1 0 0 / .95), oklch(.97 .012 255 / .9));
-  --tour-orange: #0866ff; --tour-apricot: #6aa6ff;
-  --brand-fill: #0866ff; --brand-solid: #0866ff; --brand-ink: #fff; --brand-tint: #dfe9fb; --brand-line: #9dbcf5;
+/* GitHub is near-black on white, with its link blue as the accent. */
+.app-root[data-theme=github] {
+  --background: #f6f8fa; --foreground: #1f2328;
+  --primary: #1f2328; --secondary: #eaeef2; --muted: #f6f8fa; --muted-foreground: #59636e;
+  --accent: #ddf4ff; --border: #d1d9e0; --sky: #0969da;
+  --glass: oklch(.98 .005 250 / .95); --shadow-color: oklch(.25 .02 250 / .12); --deep-ocean: #0969da;
+  --button-gradient: linear-gradient(180deg, #2f363d, #1f2328); --glass-gradient: linear-gradient(180deg, oklch(1 0 0 / .95), oklch(.975 .005 250 / .9));
+  --tour-orange: #1f2328; --tour-apricot: #54aeff;
+  --brand-fill: #1f2328; --brand-solid: #1f2328; --brand-ink: #fff; --brand-tint: #eaeef2; --brand-line: #afb8c1;
 }
 /* Hinge is black and white. */
 .app-root[data-theme=hinge] {
@@ -593,7 +594,7 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .tour-button[data-brand=linkedin] { background: #0a66c2; }
 .tour-button[data-brand=handshake] { background: #d3fb52; color: #0f2b1e !important; }
 .tour-button[data-brand=instagram] { background: linear-gradient(45deg, #f58529, #dd2a7b 45%, #8134af 75%, #515bd4); }
-.tour-button[data-brand=facebook] { background: #0866ff; }
+.tour-button[data-brand=github] { background: #1f2328; }
 .tour-button[data-brand=hinge] { background: #fff; color: #000 !important; }
 .tour-button[data-brand=tinder] { background: linear-gradient(45deg, #fd267a, #ff6036); }
 .destination:hover .destination-photo { transform: scale(1.045); }
@@ -622,7 +623,7 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .tour-root { padding: 0; min-height: 100svh; display: flex; flex-direction: column; }
 .scenic-backdrop { position: fixed; inset: 0; z-index: -1; overflow: hidden; background: var(--tour-ink); }
 .scenic-photo { object-fit: cover; animation: tour-arrival 1.2s ease-out; }
-.scenic-photo[data-platform=instagram], .scenic-photo[data-platform=facebook] { object-position: 55% center; }
+.scenic-photo[data-platform=instagram], .scenic-photo[data-platform=github] { object-position: 55% center; }
 .scenic-photo[data-platform=hinge], .scenic-photo[data-platform=tinder] { object-position: center 55%; }
 .scenic-shade { position: absolute; inset: 0; background: var(--tour-photo-gradient); }
 /* The couple photo (Hinge, Tinder) is bright, so the intro text needs a darker shade. */
@@ -720,7 +721,7 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .hub-root [data-platform=linkedin] .platform-icon { background: #0a66c2; }
 .hub-root [data-platform=handshake] .platform-icon { background: #d3fb52; color: #0f2b1e; }
 .hub-root [data-platform=instagram] .platform-icon { background: linear-gradient(45deg, #f58529, #dd2a7b 45%, #8134af 75%, #515bd4); }
-.hub-root [data-platform=facebook] .platform-icon { background: #0866ff; }
+.hub-root [data-platform=github] .platform-icon { background: #1f2328; }
 .hub-root [data-platform=hinge] .platform-icon { background: #111; }
 .hub-root [data-platform=tinder] .platform-icon { background: linear-gradient(45deg, #fd267a, #ff6036); }
 .hub-warnings { list-style: none; margin: 0; padding: 10px 12px; display: grid; gap: 6px; background: var(--warning-surface); color: var(--warning); border-radius: 6px; font-size: 11px; line-height: 1.6; }
@@ -947,7 +948,7 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .platform-menu-logo[data-platform=linkedin] { background: #0a66c2; }
 .platform-menu-logo[data-platform=handshake] { background: #d3fb52; color: #0f2b1e; }
 .platform-menu-logo[data-platform=instagram] { background: linear-gradient(45deg, #f58529, #dd2a7b 45%, #8134af 75%, #515bd4); }
-.platform-menu-logo[data-platform=facebook] { background: #0866ff; }
+.platform-menu-logo[data-platform=github] { background: #1f2328; }
 .platform-menu-logo[data-platform=tinder] { background: linear-gradient(45deg, #fd267a, #ff6036); }
 .platform-menu-check { margin-left: auto; display: inline-flex; }
 .bio-count[data-over=true] { color: var(--destructive); font-weight: 600; }
@@ -1045,7 +1046,7 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .fit-logo[data-platform=linkedin] { background: #0a66c2; }
 .fit-logo[data-platform=handshake] { background: #d3fb52; color: #0f2b1e; }
 .fit-logo[data-platform=instagram] { background: linear-gradient(45deg, #f58529, #dd2a7b 45%, #8134af 75%, #515bd4); }
-.fit-logo[data-platform=facebook] { background: #0866ff; }
+.fit-logo[data-platform=github] { background: #1f2328; }
 .fit-logo[data-platform=tinder] { background: linear-gradient(45deg, #fd267a, #ff6036); }
 .fit-field { color: var(--muted-foreground); }
 .fit-count { font-variant-numeric: tabular-nums; color: var(--success); font-weight: 600; }
@@ -1184,3 +1185,10 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .autofill-result summary { cursor: pointer; font-weight: 600; }
 .perspective-panel > .autofill-panel { margin-bottom: 20px; padding-bottom: 18px; border-bottom: 1px solid var(--border); }
 .perspective-panel > .autofill-panel .seed-heading { margin-top: 0; }
+
+/* The Hub's title is the user's name, typed in place ("Your Identity Hub" until they do). */
+.hub-name-input { width: 100%; max-width: 640px; font: inherit; color: inherit; letter-spacing: inherit; background: transparent; border: 0; border-bottom: 1px dashed transparent; border-radius: 0; padding: 0 0 2px; outline: none; }
+.hub-name-input::placeholder { color: inherit; opacity: 1; }
+.hub-name-input:hover { border-bottom-color: var(--border); }
+.hub-name-input:focus { border-bottom-color: var(--primary); }
+.hub-name-input:focus::placeholder { opacity: .35; }

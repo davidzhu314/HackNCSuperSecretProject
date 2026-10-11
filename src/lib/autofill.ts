@@ -135,7 +135,7 @@ const join = (used: SourceSentence[]) => used.map((s) => s.text).join(" ");
 const fromNote = (what: string, used: SourceSentence[]) =>
   `${what}: from ${[...new Set(used.map((s) => LABEL(s.from)))].join(", ")}`;
 
-/** A bio platform (Handshake, Instagram, Facebook): an empty bio becomes whole sentences that fit its limit. */
+/** A bio platform (Handshake, Instagram, GitHub): an empty bio becomes whole sentences that fit its limit. */
 export function fillBio(target: Platform, bio: string, sentences: SourceSentence[]): Fill<string> {
   if (bio.trim()) return { value: bio, notes: [] };
   const config = PLATFORM_CONFIGS[target];
@@ -265,7 +265,7 @@ export function canFill(target: Platform, s: ProfileSources, facts: IdentityFact
 
 // ---------- For "Draft with AI": what the model may read ----------
 
-const SOURCE_PREFIX: Record<Platform, string> = { linkedin: "li", handshake: "hs", instagram: "ig", facebook: "fb", hinge: "hi", tinder: "ti" };
+const SOURCE_PREFIX: Record<Platform, string> = { linkedin: "li", handshake: "hs", instagram: "ig", github: "gh", hinge: "hi", tinder: "ti" };
 
 /**
  * The user's text on every platform as segments, labeled by platform: the same text the studio

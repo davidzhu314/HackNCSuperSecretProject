@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 export type AutofillResult = { kind: "fill" | "draft"; notes: string[]; dropped: string[] };
 
 export function AutofillPanel(props: {
-  /** Where material comes from, e.g. ["LinkedIn", "Hinge", "3 facts"]. Empty: nothing to fill from. */
+  /** Where material comes from, e.g. ["your LinkedIn", "your Hinge", "your 3 confirmed facts"]. Empty: nothing to fill from. */
   sources: string[];
   /** Fill has something to put in an empty spot. */
   canFill: boolean;
@@ -33,7 +33,7 @@ export function AutofillPanel(props: {
       </h2>
       {sources.length ? (
         <p className="section-subtitle">
-          Uses what you entered on {listOf(sources)}. Only empty spots get filled; nothing you typed changes.
+          Uses {listOf(sources)}. Only empty spots get filled; nothing you typed changes.
         </p>
       ) : (
         <p className="section-subtitle">

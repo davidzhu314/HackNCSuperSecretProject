@@ -229,29 +229,29 @@ export const INSTAGRAM_CONFIG: PlatformConfig = {
   traits: SOCIAL_TRAITS,
 };
 
-export const FACEBOOK_CONFIG: PlatformConfig = {
-  id: "facebook",
-  label: "Facebook",
+export const GITHUB_CONFIG: PlatformConfig = {
+  id: "github",
+  label: "GitHub",
   group: "social",
   input: "bio",
-  fieldLabel: "Intro",
-  maxChars: 101,
+  fieldLabel: "Bio",
+  maxChars: 160,
   jobDescription: false,
   audiences: [
     {
-      id: "old_friend",
-      label: "Old friend reconnecting",
-      description: "Wants to know what you're up to now, in plain words.",
+      id: "fellow_developer",
+      label: "Fellow developer",
+      description: "Lands on your profile from a repo or a PR and wants to know what you build and with what.",
     },
     {
-      id: "community_member",
-      label: "Group or community member",
-      description: "Looks for a shared interest, school, or local connection.",
+      id: "maintainer",
+      label: "Open-source maintainer",
+      description: "Deciding whether to work with you: looks for the projects, languages, and areas you actually work in.",
     },
     {
-      id: "new_acquaintance",
-      label: "New acquaintance",
-      description: "Met you once and wants a quick, friendly sense of who you are.",
+      id: "tech_recruiter",
+      label: "Recruiter browsing GitHub",
+      description: "Skims the bio for what you study or do and the kind of work you'd want next.",
     },
   ],
   traits: SOCIAL_TRAITS,
@@ -275,7 +275,7 @@ export const PLATFORM_CONFIGS: Record<Platform, PlatformConfig> = {
   linkedin: LINKEDIN_CONFIG,
   handshake: HANDSHAKE_CONFIG,
   instagram: INSTAGRAM_CONFIG,
-  facebook: FACEBOOK_CONFIG,
+  github: GITHUB_CONFIG,
   hinge: HINGE_CONFIG,
   tinder: TINDER_CONFIG,
 };
@@ -283,7 +283,7 @@ export const PLATFORM_CONFIGS: Record<Platform, PlatformConfig> = {
 /** The three groups, in display order, each listing its platforms in display order. */
 export const PLATFORM_GROUPS: { group: PlatformGroup; label: string; platforms: Platform[] }[] = [
   { group: "professional", label: "Professional", platforms: ["linkedin", "handshake"] },
-  { group: "social", label: "Social", platforms: ["instagram", "facebook"] },
+  { group: "social", label: "Social", platforms: ["instagram", "github"] },
   { group: "dating", label: "Dating", platforms: ["hinge", "tinder"] },
 ];
 

@@ -48,7 +48,7 @@ export function segmentLinkedIn(input: { headline: string; about: string }): Seg
   return makeSegments(pieces);
 }
 
-/** Bio platforms (Handshake, Instagram, Facebook, X, Tinder): one field, split into lines and sentences. */
+/** Bio platforms (Handshake, Instagram, GitHub): one field, split into lines and sentences. */
 export function segmentBio(bio: string): Segment[] {
   return makeSegments(splitSentences(bio).map((text) => ({ text })));
 }
