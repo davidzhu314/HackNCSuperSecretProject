@@ -671,10 +671,12 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .hub-root { --hub-bg: #fff; --hub-surface: #fff; --hub-ink: oklch(.22 .01 260); --hub-muted: oklch(.52 .01 260); --hub-line: oklch(.92 .004 260); --hub-wash: oklch(.975 .003 260); --hub-on-ink: #fff;
   --hub-texture: url(/textures/hub-waves-light.svg); /* wave ridges, from scripts/hub_textures.py */
   padding: 0; display: flex; flex-direction: column; min-height: 100svh; color: var(--hub-ink);
-  /* Fixed to the viewport so the ridges stay put while the cards scroll over them. Longhands on purpose: the
-     CSS build collapses a two-layer `background` shorthand of var()s into the color alone. */
-  background-color: var(--hub-bg); background-image: var(--hub-texture); background-position: center; background-size: cover;
-  background-repeat: no-repeat; background-attachment: fixed; }
+  position: relative; isolation: isolate; background-color: var(--hub-bg); }
+/* The ridges stay put while the cards scroll over them. A fixed layer of its own, not background-attachment:
+   fixed, which repaints the blurred SVG on every scroll frame (scrolling froze for up to ~0.5 s a frame).
+   Longhands on purpose: the CSS build collapses a `background` shorthand of var()s into the color alone. */
+.hub-root::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; will-change: transform;
+  background-image: var(--hub-texture); background-position: center; background-size: cover; background-repeat: no-repeat; }
 /* Dark Hub (HubThemeToggle sets data-hub-theme on <html>; with none set, the system setting decides, see the
    prefers-color-scheme block at the end). Also remaps the shared theme colors the
    Hub's cards, chips, and notes use, only inside the Hub. */
