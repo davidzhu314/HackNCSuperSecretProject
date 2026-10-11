@@ -16,12 +16,15 @@ import { checkTinderLength, fieldFactsAsFacts } from "./tinder";
 import { sectionOfSegment } from "./profile";
 import {
   ApiErrorSchema,
+  DraftResponseSchema,
   EvaluateResponseSchema,
   ExtractFactsResponseSchema,
   RewriteResponseSchema,
   RewriteSectionResponseSchema,
   VerifyFactResponseSchema,
   type ApiError,
+  type DraftRequest,
+  type DraftResponse,
   type EvaluateRequest,
   type EvaluateResponse,
   type ExtractFactsRequest,
@@ -179,4 +182,9 @@ export async function rewriteSection(
 /** Lie Checker: one fact against the profile and other facts. No sample mode: it always runs live, after consent. */
 export async function verifyFact(req: VerifyFactRequest, opts: { signal?: AbortSignal } = {}): Promise<VerifyFactResponse> {
   return post("/api/facts/verify", req, VerifyFactResponseSchema, opts.signal);
+}
+
+/** Draft a platform's empty spots from the user's other profiles. Always live: there are no sample drafts. */
+export async function draftProfile(req: DraftRequest): Promise<DraftResponse> {
+  return post("/api/draft", req, DraftResponseSchema);
 }

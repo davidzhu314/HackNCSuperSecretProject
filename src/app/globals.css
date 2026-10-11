@@ -1132,3 +1132,13 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .extra-facts-flagged { color: var(--warning); font-weight: 600; }
 .fact-check-draft { display: flex; gap: 6px; align-items: flex-start; margin: 8px 0 0; font-size: 11px; line-height: 1.6; color: var(--warning); }
 .fact-check-draft > svg { margin-top: 3px; flex-shrink: 0; }
+
+/* Fill from your other profiles */
+.autofill-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.autofill-help { margin-top: 10px; line-height: 1.6; }
+.autofill-result { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--glass-light); font-size: 11px; line-height: 1.6; }
+.autofill-result ul { margin: 0 0 6px; padding-left: 16px; list-style: disc; }
+.autofill-result details { margin-bottom: 6px; }
+.autofill-result summary { cursor: pointer; font-weight: 600; }
+.perspective-panel > .autofill-panel { margin-bottom: 20px; padding-bottom: 18px; border-bottom: 1px solid var(--border); }
+.perspective-panel > .autofill-panel .seed-heading { margin-top: 0; }
