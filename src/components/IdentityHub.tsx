@@ -137,11 +137,7 @@ export function IdentityHub() {
             <div>
               <h2 id="src-linkedin">LinkedIn</h2>
               <p className="empty-note">
-                {session.linkedinImport
-                  ? `Imported from ${session.linkedinImport.fileName} · ${linkedinSections} sections`
-                  : linkedin
-                    ? `${linkedinSections} sections, entered in the studio`
-                    : "Not added yet. Import LinkedIn’s “Save to PDF” export, or type it in the studio."}
+                {linkedin ? `${linkedinSections} sections` : "Not added yet."}
               </p>
             </div>
           </div>

@@ -1,18 +1,31 @@
 "use client";
 
-import { ArrowRight, Eye, PenLine, Search, TriangleAlert } from "lucide-react";
+import { ArrowRight, ChevronDown, Eye, PenLine, Search, TriangleAlert } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { critiquesBySection, findDisagreements, missingEvidence } from "@/lib/clash";
+import { critiquesBySection, findDisagreements, missingEvidence, RATING_LEVEL } from "@/lib/clash";
 import { profileSectionList, RATING_LABEL } from "@/lib/persona-ui";
 import { sectionOfSegment } from "@/lib/profile";
-import type { AudienceCritique, EvaluateResponse, LinkedInProfile, PlatformConfig, Rating, Segment } from "@/lib/schemas";
+import type { AudienceCritique, EvaluateResponse, LinkedInProfile, PlatformConfig, Segment } from "@/lib/schemas";
 
-// LinkedIn Audience Clash: the profile itself, annotated. Each audience's reactions sit on the
-// sentences they cite (segment ids, verified server-side), with what to change and a jump to
-// that section's rewrite. Hinge keeps the simpler AudienceClash screen.
+// LinkedIn Audience Clash, scan first and read on demand:
+// 1. a grid (questions x audiences) of ratings, readable in a few seconds;
+// 2. per section, one short line per reaction, expanding to its evidence and what to change.
+// Reactions cite segment ids (verified server-side). Hinge keeps the simpler AudienceClash screen.
 
-const RATINGS: Rating[] = ["strong", "moderate", "weak", "not_evident"];
+const keyOf = (c: AudienceCritique) => `${c.audience}|${c.trait}`;
+
+/** One row per audience in a section: its reactions, lowest rating first (that's the one shown). */
+function byAudience(critiques: AudienceCritique[], audiences: string[]) {
+  return audiences
+    .map((audience) => ({
+      audience,
+      items: critiques
+        .filter((c) => c.audience === audience)
+        .sort((a, b) => RATING_LEVEL[a.rating] - RATING_LEVEL[b.rating]),
+    }))
+    .filter((row) => row.items.length);
+}
 
 export function ProfileClash(props: {
   response: EvaluateResponse;
@@ -26,7 +39,7 @@ export function ProfileClash(props: {
 }) {
   const { response, config, audiences, traits, profile, segments, onRewriteSection, onRewrite } = props;
   const [filter, setFilter] = useState<string | null>(null);
-  const [selected, setSelected] = useState<AudienceCritique | null>(null);
+  const [open, setOpen] = useState<string | null>(null);
 
   const audienceLabel = (id: string) => config.audiences.find((a) => a.id === id)?.label ?? id;
   const question = (id: string) => {
@@ -35,28 +48,27 @@ export function ProfileClash(props: {
   };
   const tone = (id: string) => String(Math.max(0, audiences.indexOf(id)));
 
-  const all = response.critiques.filter((c) => audiences.includes(c.audience) && traits.includes(c.trait));
+  const all = useMemo(
+    () => response.critiques.filter((c) => audiences.includes(c.audience) && traits.includes(c.trait)),
+    [response, audiences, traits],
+  );
   const visible = filter ? all.filter((c) => c.audience === filter) : all;
+  const cell = (audience: string, trait: string) => all.find((c) => c.audience === audience && c.trait === trait);
   const segmentText = useMemo(() => new Map(segments.map((s) => [s.id, s.text])), [segments]);
   const segmentOrder = useMemo(() => segments.map((s) => s.id), [segments]);
   const disagreements = useMemo(() => findDisagreements(all, segmentOrder), [all, segmentOrder]);
   const bySection = critiquesBySection(visible, sectionOfSegment);
   const missing = missingEvidence(visible);
-  const sections = profileSectionList(profile);
-  // A reaction's card sits under the first section it cites; other sections it cites still show,
-  // highlighted, with a link to that card.
-  const anchorOf = (c: AudienceCritique) => sectionOfSegment(c.segmentIds[0]);
-  const citedElsewhere = (key: string) =>
-    visible.filter((c) => !c.missingEvidence && anchorOf(c) !== key && c.segmentIds.some((id) => sectionOfSegment(id) === key));
-  const shown = sections.filter((s) => bySection.has(s.key) || citedElsewhere(s.key).length);
-  const quiet = sections.filter((s) => !shown.includes(s));
-  const cited = new Set(visible.flatMap((c) => c.segmentIds));
-  const focused = new Set(selected && !selected.missingEvidence ? selected.segmentIds : []);
+  const sections = profileSectionList(profile).filter((s) => bySection.has(s.key));
   const invalidSource = response.warnings.some((w) => w.kind === "unverified_segment");
+  const gridAudiences = filter ? [filter] : audiences;
 
-  const jumpTo = (segmentId: string) => {
-    const key = sectionOfSegment(segmentId);
-    if (key) document.getElementById(`clash-${key}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  /** Open a reaction's row (its audience in its section) and bring it into view. */
+  const reveal = (c: AudienceCritique) => {
+    const section = c.segmentIds.length ? sectionOfSegment(c.segmentIds[0]) : null;
+    setOpen(section ? `${section}|${c.audience}` : keyOf(c));
+    const target = document.getElementById(section ? `clash-${section}` : "clash-missing");
+    target?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   return (
@@ -68,44 +80,70 @@ export function ProfileClash(props: {
         </h2>
         {response.source === "sample" && <span className="sample-badge">Sample result</span>}
       </div>
-      <p className="flow-description">
-        Your profile with each audience’s reactions attached to the sentences they’re about.
-      </p>
 
-      <div className="clash-filters" role="group" aria-label="Show reactions from">
-        <Button variant="trait" data-selected={filter === null} aria-pressed={filter === null} onClick={() => setFilter(null)}>
-          All audiences
-        </Button>
-        {audiences.map((id) => (
-          <Button
-            key={id}
-            variant="trait"
-            data-selected={filter === id}
-            aria-pressed={filter === id}
-            onClick={() => setFilter(filter === id ? null : id)}
-          >
-            <span className="aud-dot" data-tone={tone(id)} aria-hidden="true" />
-            {audienceLabel(id)}
+      {audiences.length > 1 && (
+        <div className="clash-filters" role="group" aria-label="Show reactions from">
+          <Button variant="trait" data-selected={filter === null} aria-pressed={filter === null} onClick={() => setFilter(null)}>
+            All
           </Button>
-        ))}
-      </div>
-
-      <div className="clash-summary">
-        {audiences.map((id) => {
-          const mine = all.filter((c) => c.audience === id);
-          return (
-            <div key={id} className="clash-summary-row">
+          {audiences.map((id) => (
+            <Button
+              key={id}
+              variant="trait"
+              data-selected={filter === id}
+              aria-pressed={filter === id}
+              onClick={() => setFilter(filter === id ? null : id)}
+            >
               <span className="aud-dot" data-tone={tone(id)} aria-hidden="true" />
-              <strong>{audienceLabel(id)}</strong>
-              <span className="empty-note">
-                {RATINGS.map((r) => ({ r, n: mine.filter((c) => c.rating === r).length }))
-                  .filter((x) => x.n)
-                  .map((x) => `${x.n} ${RATING_LABEL[x.r].toLowerCase()}`)
-                  .join(" · ") || "no feedback"}
-              </span>
-            </div>
-          );
-        })}
+              {audienceLabel(id)}
+            </Button>
+          ))}
+        </div>
+      )}
+
+      <div className="rating-grid-wrap">
+        <table className="rating-grid">
+          <thead>
+            <tr>
+              <th scope="col">
+                <span className="sr-only">Question</span>
+              </th>
+              {gridAudiences.map((id) => (
+                <th scope="col" key={id}>
+                  <span className="aud-dot" data-tone={tone(id)} aria-hidden="true" />
+                  {audienceLabel(id)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {traits.map((t) => (
+              <tr key={t}>
+                <th scope="row">{question(t)}</th>
+                {gridAudiences.map((a) => {
+                  const c = cell(a, t);
+                  return (
+                    <td key={a}>
+                      {c ? (
+                        <button
+                          type="button"
+                          className="rating-pill"
+                          data-rating={c.rating}
+                          title={c.rationale}
+                          onClick={() => reveal(c)}
+                        >
+                          {RATING_LABEL[c.rating]}
+                        </button>
+                      ) : (
+                        <span className="empty-note">–</span>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       {disagreements.length > 0 && (
@@ -114,25 +152,20 @@ export function ProfileClash(props: {
             Where they disagree
           </h3>
           <ul>
-            {disagreements.slice(0, 4).map((d) => (
+            {disagreements.slice(0, 3).map((d) => (
               <li key={d.segmentId}>
-                <button type="button" className="disagree-item" onClick={() => jumpTo(d.segmentId)}>
+                <button type="button" className="disagree-item" onClick={() => reveal(d.low)}>
                   <q>{segmentText.get(d.segmentId)}</q>
                   <span className="disagree-sides">
-                    <span>
-                      <span className="aud-dot" data-tone={tone(d.high.audience)} aria-hidden="true" />
-                      {audienceLabel(d.high.audience)}:{" "}
-                      <span className="rating-pill" data-rating={d.high.rating}>
-                        {RATING_LABEL[d.high.rating]}
+                    {[d.high, d.low].map((c) => (
+                      <span key={c.audience}>
+                        <span className="aud-dot" data-tone={tone(c.audience)} aria-hidden="true" />
+                        {audienceLabel(c.audience)}{" "}
+                        <span className="rating-pill" data-rating={c.rating}>
+                          {RATING_LABEL[c.rating]}
+                        </span>
                       </span>
-                    </span>
-                    <span>
-                      <span className="aud-dot" data-tone={tone(d.low.audience)} aria-hidden="true" />
-                      {audienceLabel(d.low.audience)}:{" "}
-                      <span className="rating-pill" data-rating={d.low.rating}>
-                        {RATING_LABEL[d.low.rating]}
-                      </span>
-                    </span>
+                    ))}
                   </span>
                 </button>
               </li>
@@ -148,100 +181,93 @@ export function ProfileClash(props: {
         </p>
       )}
 
-      <div className="annotated">
-        {shown.map((s) => {
-            const sectionSegments = segments.filter((x) => sectionOfSegment(x.id) === s.key);
-            return (
-              <section key={s.key} id={`clash-${s.key}`} className="annotated-section" aria-label={s.label}>
-                <div className="annotated-head">
-                  <h3 className="section-heading">{s.label}</h3>
-                  {s.rewritable && (
-                    <Button variant="link" size="sm" onClick={() => onRewriteSection(s.key)}>
-                      <PenLine />
-                      Rewrite this section
-                    </Button>
-                  )}
-                </div>
-                <div className="annotated-text">
-                  {sectionSegments.map((x) => (
-                    <span key={x.id} data-cited={cited.has(x.id)} data-focused={focused.has(x.id)}>
-                      {x.text}{" "}
-                    </span>
-                  ))}
-                </div>
-                {citedElsewhere(s.key).length > 0 && (
-                  <p className="cited-elsewhere">
-                    Also cited by:{" "}
-                    {citedElsewhere(s.key).map((c) => (
+      <div className="clash-sections">
+        {sections.map((s) => {
+          const sectionSegments = segments.filter((x) => sectionOfSegment(x.id) === s.key);
+          return (
+            <section key={s.key} id={`clash-${s.key}`} className="clash-section" aria-label={s.label}>
+              <div className="annotated-head">
+                <h3 className="section-heading">{s.label}</h3>
+                {s.rewritable && (
+                  <Button variant="link" size="sm" onClick={() => onRewriteSection(s.key)}>
+                    <PenLine />
+                    Rewrite
+                  </Button>
+                )}
+              </div>
+              <ul className="reaction-rows">
+                {byAudience(bySection.get(s.key) ?? [], audiences).map(({ audience, items }) => {
+                  const rowKey = `${s.key}|${audience}`;
+                  const isOpen = open === rowKey;
+                  const first = items[0];
+                  return (
+                    <li key={rowKey} data-open={isOpen}>
                       <button
                         type="button"
-                        key={`${c.audience}|${c.trait}`}
-                        className="cited-link"
-                        onClick={() => {
-                          setSelected(c);
-                          jumpTo(c.segmentIds[0]);
-                        }}
+                        className="reaction-row"
+                        aria-expanded={isOpen}
+                        onClick={() => setOpen(isOpen ? null : rowKey)}
                       >
-                        <span className="aud-dot" data-tone={tone(c.audience)} aria-hidden="true" />
-                        {audienceLabel(c.audience)} · {question(c.trait)}
+                        <span className="aud-dot" data-tone={tone(audience)} aria-hidden="true" />
+                        <span className="reaction-who">{audienceLabel(audience)}</span>
+                        <span className="rating-pill" data-rating={first.rating}>
+                          {RATING_LABEL[first.rating]}
+                        </span>
+                        <span className="reaction-line">{first.rationale}</span>
+                        {items.length > 1 && <span className="reaction-more">+{items.length - 1} more</span>}
+                        <ChevronDown className="reaction-chevron" size={15} aria-hidden="true" />
                       </button>
-                    ))}
-                  </p>
-                )}
-                <div className="reaction-list">
-                  {(bySection.get(s.key) ?? []).map((c) => (
-                    <button
-                      type="button"
-                      key={`${c.audience}|${c.trait}`}
-                      className="reaction-card"
-                      data-tone={tone(c.audience)}
-                      data-selected={selected === c}
-                      aria-pressed={selected === c}
-                      onClick={() => setSelected(selected === c ? null : c)}
-                    >
-                      <span className="reaction-head">
-                        <span className="aud-dot" data-tone={tone(c.audience)} aria-hidden="true" />
-                        <strong>{audienceLabel(c.audience)}</strong>
-                        <span className="rating-pill" data-rating={c.rating}>
-                          {RATING_LABEL[c.rating]}
-                        </span>
-                      </span>
-                      <span className="reaction-question">{question(c.trait)}</span>
-                      <span className="reaction-text">{c.rationale}</span>
-                      <span className="reaction-evidence">
-                        Evidence:{" "}
-                        {c.segmentIds.map((id) => (
-                          <q key={id}>{segmentText.get(id)}</q>
-                        ))}
-                      </span>
-                      {c.suggestion && (
-                        <span className="reaction-change">
-                          <strong>What to change:</strong> {c.suggestion}
-                        </span>
+                      {isOpen && (
+                        <div className="reaction-detail">
+                          {items.map((c) => (
+                            <div className="reaction-item" key={keyOf(c)}>
+                              <p className="reaction-question">
+                                {question(c.trait)}{" "}
+                                <span className="rating-pill" data-rating={c.rating}>
+                                  {RATING_LABEL[c.rating]}
+                                </span>
+                              </p>
+                              {c !== first && <p>{c.rationale}</p>}
+                              <p className="reaction-evidence">
+                                {c.segmentIds.map((id) => (
+                                  <q key={id}>{segmentText.get(id)}</q>
+                                ))}
+                              </p>
+                              {c.suggestion && (
+                                <p className="reaction-change">
+                                  <strong>Change:</strong> {c.suggestion}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       )}
-                    </button>
-                  ))}
-                </div>
-              </section>
-            );
-          })}
-        {quiet.length > 0 && (
-          <p className="empty-note">No reactions on: {quiet.map((s) => s.label).join(", ")}.</p>
-        )}
+                    </li>
+                  );
+                })}
+              </ul>
+              <details className="section-text">
+                <summary>Show text</summary>
+                <p>{sectionSegments.map((x) => x.text).join(" ")}</p>
+              </details>
+            </section>
+          );
+        })}
       </div>
 
       {missing.length > 0 && (
-        <section className="clash-missing" aria-labelledby="missing-h">
+        <section className="clash-missing" id="clash-missing" aria-labelledby="missing-h">
           <h3 id="missing-h" className="section-heading">
             <Search />
             Nobody could find
           </h3>
           <ul>
             {missing.map((c) => (
-              <li key={`${c.audience}|${c.trait}`}>
+              <li key={keyOf(c)} data-open={open === keyOf(c)}>
                 <span className="aud-dot" data-tone={tone(c.audience)} aria-hidden="true" />
                 <span>
-                  <strong>{question(c.trait)}</strong> ({audienceLabel(c.audience)}) {c.suggestion}
+                  <strong>{question(c.trait)}</strong> {audienceLabel(c.audience)}
+                  {c.suggestion ? `: ${c.suggestion}` : ""}
                 </span>
               </li>
             ))}
@@ -252,7 +278,7 @@ export function ProfileClash(props: {
       {!visible.length && <p className="empty-note">No feedback came back for this selection. Go back and try again.</p>}
 
       <div className="action-band">
-        <span className="empty-note">Click a reaction to highlight its evidence.</span>
+        <span />
         <Button variant="aero" onClick={onRewrite}>
           Rewrite sections <ArrowRight />
         </Button>

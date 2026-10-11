@@ -10,7 +10,11 @@ import { ENTRY_ID_PREFIX, LIMITS, profileCharCount, type EntrySectionKind, type 
 //   12pt organization, 11.5pt title, 10.5pt dates / location / "·" bullets, 9pt "Page 1 of 3" footer.
 // Name, contact details, URLs, and the person's location are dropped here and never stored.
 
-export type ParsedLinkedIn = { profile: LinkedInProfile; warnings: string[] };
+/**
+ * `warnings` need the user's attention (check these entries); `notes` are routine information
+ * (what wasn't imported, contact details removed) that the UI may leave out.
+ */
+export type ParsedLinkedIn = { profile: LinkedInProfile; warnings: string[]; notes: string[] };
 
 /** One visual line of the PDF. `y` grows upward (PDF coordinates). */
 export type PdfLine = { text: string; size: number; x: number; y: number; page: number };
@@ -259,6 +263,7 @@ function toEntries(kind: EntrySectionKind, raw: RawEntry[], warnings: string[], 
 /** Pure: lines of a LinkedIn PDF export -> sectioned profile plus anything the user should check. */
 export function parseLinkedInLines(input: PdfLine[]): ParsedLinkedIn {
   const warnings: string[] = [];
+  const notes: string[] = [];
   const contact = { removed: 0 };
   const profile = emptyLinkedInProfile();
   const lines = input.filter((l) => l.size > SIZE.footerMax && !/^Page \d+ of \d+$/i.test(l.text));
@@ -268,6 +273,7 @@ export function parseLinkedInLines(input: PdfLine[]): ParsedLinkedIn {
     return {
       profile,
       warnings: ["This doesn't look like a LinkedIn \"Save to PDF\" export. Enter your sections by hand instead."],
+      notes: [],
     };
   }
   const mainX = lines[nameIdx].x;
@@ -291,8 +297,8 @@ export function parseLinkedInLines(input: PdfLine[]): ParsedLinkedIn {
       flushSide();
       const key = l.text.trim().toLowerCase();
       sideTarget = SIDEBAR_SECTIONS[key] ?? null;
-      if (!(key in SIDEBAR_SECTIONS)) warnings.push(`Skipped the "${l.text.trim()}" sidebar section.`);
-      else if (sideTarget === null && key !== "contact") warnings.push(`"${l.text.trim()}" isn't imported.`);
+      if (!(key in SIDEBAR_SECTIONS)) notes.push(`Skipped the "${l.text.trim()}" sidebar section.`);
+      else if (sideTarget === null && key !== "contact") notes.push(`"${l.text.trim()}" isn't imported.`);
     } else sideLines.push(l);
   }
   flushSide();
@@ -309,7 +315,7 @@ export function parseLinkedInLines(input: PdfLine[]): ParsedLinkedIn {
   for (const l of main.slice(firstHeading)) {
     if (l.size >= SIZE.mainHeading && l.size < SIZE.name) {
       const kind = MAIN_SECTIONS[l.text.trim().toLowerCase()] ?? null;
-      if (!kind) warnings.push(`Skipped the "${l.text.trim()}" section; add anything important by hand.`);
+      if (!kind) notes.push(`Skipped the "${l.text.trim()}" section; add anything important by hand.`);
       sections.push({ kind, title: l.text.trim(), lines: [] });
     } else sections[sections.length - 1]?.lines.push(l);
   }
@@ -327,16 +333,16 @@ export function parseLinkedInLines(input: PdfLine[]): ParsedLinkedIn {
   }
 
   if (contact.removed) {
-    warnings.push(`Removed ${contact.removed} sentence${contact.removed === 1 ? "" : "s"} containing an email, link, or phone number.`);
+    notes.push(`Removed ${contact.removed} sentence${contact.removed === 1 ? "" : "s"} containing an email, link, or phone number.`);
   }
   if (!profile.projects.length && !profile.volunteering.length) {
-    warnings.push("No Projects or Volunteering sections were found in the PDF. Add them by hand if you have them.");
+    notes.push("No Projects or Volunteering sections were found in the PDF. Add them by hand if you have them.");
   }
   const total = profileCharCount(profile);
   if (total > LIMITS.profileText) {
     warnings.push(`The imported profile is ${total.toLocaleString("en-US")} characters; the limit is ${LIMITS.profileText.toLocaleString("en-US")}. Shorten it before continuing.`);
   }
-  return { profile, warnings };
+  return { profile, warnings, notes };
 }
 
 // ---------- 4. browser entry point ----------

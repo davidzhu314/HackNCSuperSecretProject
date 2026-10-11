@@ -5,7 +5,7 @@ import { factCheckSegments, findSection } from "@/lib/profile";
 import { sectionRewritePrompt } from "@/lib/prompts";
 import { resolveSelection } from "@/lib/rubrics";
 import { ModelSectionRewriteSchema, RewriteSectionRequestSchema, type RewriteSectionResponse } from "@/lib/schemas";
-import { formatOf, lengthIssue, styleIssues } from "@/lib/styles";
+import { changeIssue, formatOf, lengthIssue, styleIssues } from "@/lib/styles";
 
 // LinkedIn: one section, one style, one length per call. The UI runs at most 3 of these at a time.
 
@@ -45,13 +45,15 @@ export async function POST(req: Request) {
       return buildSectionRewrite(out, { section, style: data.style, length: data.length, segments: sources, facts: data.facts });
     };
 
-    // If the result breaks a checkable rule of its style (e.g. "I" in Professional) or misses its
-    // length step by a lot, try once more with the problems spelled out, and keep the better one:
-    // fewest FactCheck warnings first, then fewest style breaks, then (shorter steps only) closest
-    // to the target. For longer steps closeness isn't rewarded: growing past the sources is padding.
+    // If the result breaks a checkable rule of its style (e.g. "I" in Professional), misses its
+    // length step by a lot, or barely changes the original, try once more with the problems spelled
+    // out, and keep the better one: fewest FactCheck warnings, then fewest style breaks, then whether
+    // it changed enough, then (shorter steps only) closest to the target. For longer steps closeness
+    // isn't rewarded: growing past what the sources say is padding.
     const problems = (r: RewriteSectionResponse) => {
       const len = lengthIssue({ step: data.length, ...r.chars });
-      return [...styleIssues(data.style, r.rewrite.content, format), ...(len ? [len] : [])];
+      const same = changeIssue(section.text, r.rewrite.content);
+      return [...styleIssues(data.style, r.rewrite.content, format), ...(len ? [len] : []), ...(same ? [same] : [])];
     };
     const first = await attempt();
     const firstProblems = problems(first);
@@ -61,10 +63,12 @@ export async function POST(req: Request) {
       [
         r.warnings.length,
         styleIssues(data.style, r.rewrite.content, format).length,
+        changeIssue(section.text, r.rewrite.content) ? 1 : 0,
         r.chars.target < r.chars.original ? Math.abs(r.chars.actual - r.chars.target) : 0,
       ];
     const [a, b] = [score(first), score(second)];
-    const secondBetter = b[0] !== a[0] ? b[0] < a[0] : b[1] !== a[1] ? b[1] < a[1] : b[2] < a[2];
+    const i = a.findIndex((x, k) => x !== b[k]);
+    const secondBetter = i >= 0 && b[i] < a[i];
     return secondBetter ? second : first;
   });
 }

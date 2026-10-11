@@ -259,3 +259,22 @@ export function buildSectionRewrite(
   if (!out.success) throw new LlmError("invalid_model_output", "The AI returned an unusable rewrite. Please try again.");
   return out.data;
 }
+
+/** Combine per-lens evaluations: critiques in the given audience order, warnings deduplicated. */
+export function mergeEvaluations(parts: EvaluateResponse[], audienceOrder: string[]): EvaluateResponse {
+  const rank = (id: string) => {
+    const i = audienceOrder.indexOf(id);
+    return i < 0 ? audienceOrder.length : i;
+  };
+  const critiques = parts.flatMap((p) => p.critiques).sort((a, b) => rank(a.audience) - rank(b.audience));
+  const seen = new Set<string>();
+  const warnings = parts
+    .flatMap((p) => p.warnings)
+    .filter((w) => {
+      const key = `${w.kind}|${w.text}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  return EvaluateResponseSchema.parse({ source: "live", critiques: critiques.slice(0, LIMITS.maxCritiques), warnings });
+}

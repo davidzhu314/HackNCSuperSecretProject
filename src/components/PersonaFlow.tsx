@@ -36,6 +36,7 @@ import {
   type LinkedInProfile,
   type Platform,
   type RewriteResponse,
+  type CustomQuestion,
   type LengthStep,
   type SectionStyle,
   type Segment,
@@ -50,6 +51,15 @@ import { segmentHinge } from "@/lib/segments";
 
 const STEPS = ["Your profile", "Consent", "Identity DNA", "Audience lenses", "Audience Clash", "Rewrite + FactCheck"];
 const [INPUT, CONSENT, FACTS, AUDIENCES, CLASH, REWRITE] = [0, 1, 2, 3, 4, 5];
+/**
+ * The steps each platform walks through. LinkedIn has no Identity DNA step: the profile itself is
+ * the evidence (FactCheck accepts its text), so there's nothing to reconfirm. Facts that aren't on
+ * the profile can still be added on the rewrite screen.
+ */
+const STEP_ORDER: Record<Platform, number[]> = {
+  linkedin: [INPUT, CONSENT, AUDIENCES, CLASH, REWRITE],
+  hinge: [INPUT, CONSENT, FACTS, AUDIENCES, CLASH, REWRITE],
+};
 
 /** At most this many section rewrites run at once ("Rewrite all"). */
 const PARALLEL_REWRITES = 3;
@@ -147,6 +157,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
 
   const [audiences, setAudiences] = useState(() => defaultAudiences(initialPlatform));
   const [traits, setTraits] = useState(() => defaultTraits(initialPlatform));
+  const [customQuestions, setCustomQuestions] = useState<CustomQuestion[]>([]);
   const [evaluating, setEvaluating] = useState(false);
   const [evaluation, setEvaluation] = useState<EvaluateResponse | null>(null);
   // The text the feedback was given on, so Audience Clash stays consistent after rewrites are used.
@@ -159,7 +170,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
   const [adversarial, setAdversarial] = useState<RewriteResponse | null>(null);
   // LinkedIn: one rewrite per section per style, cached.
   const [sectionStates, setSectionStates] = useState<Record<string, SectionRewriteState>>({});
-  const [allStyle, setAllStyle] = useState<SectionStyle>("direct");
+  const [allStyle, setAllStyle] = useState<SectionStyle>("professional");
   const [allLength, setAllLength] = useState<LengthStep>("same");
   const [rewritingAll, setRewritingAll] = useState(false);
   const [focusSection, setFocusSection] = useState<string | null>(null);
@@ -392,7 +403,12 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
     }
   }
 
+  /** After consent: Hinge confirms facts first; LinkedIn goes straight to the lenses (its profile is the evidence). */
   function goToFacts(ok = allowed) {
+    if (platform === "linkedin") {
+      go(AUDIENCES);
+      return;
+    }
     go(FACTS);
     if (extractedFor.current !== sourceKey) void runExtract(ok);
   }
@@ -417,8 +433,8 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
       go(CONSENT);
       return;
     }
-    if (!audiences.length || !traits.length) {
-      setError({ message: "Choose at least one audience and trait." });
+    if (!audiences.length || (!traits.length && !customQuestions.length)) {
+      setError({ message: "Choose at least one audience and question." });
       return;
     }
     // Cached sample feedback belongs to the demo's original text, so in sample mode the feedback is
@@ -436,6 +452,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
           segments: platform === "linkedin" ? evalSegments : segments,
           audiences,
           traits,
+          ...(customQuestions.length && !sample ? { customQuestions } : {}),
           jobDescription: platform === "linkedin" ? jobDescription.trim() || undefined : undefined,
         },
         { sample },
@@ -458,7 +475,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
       go(CONSENT);
       return;
     }
-    if (!confirmedFacts.length) {
+    if (platform === "hinge" && mode === "normal" && !confirmedFacts.length) {
       setError({ message: "Confirm at least one fact first." });
       return;
     }
@@ -505,10 +522,6 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
     }
     const section = findSection(baseClean, key);
     if (!section) return;
-    if (!confirmedFacts.length) {
-      setError({ message: "Confirm at least one fact first." });
-      return;
-    }
     const gen = sectionGen.current;
     sectionInFlight.current.add(key);
     patchSection(key, { style, length, loading: { style, length }, error: null });
@@ -589,6 +602,35 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
   }
 
   const sourcesFor = (key: string): Segment[] => factCheckSegments(baseClean, key) ?? [];
+  // This platform's steps; `stepPos` is where the current step sits among them.
+  const order = STEP_ORDER[platform];
+  const stepPos = Math.max(0, order.indexOf(step));
+  const prevStep = order[Math.max(0, stepPos - 1)];
+  // Feedback screens label the user's own questions like the built-in ones.
+  const evalConfig = useMemo(
+    () => ({
+      ...config,
+      traits: [
+        ...config.traits,
+        ...customQuestions.map((q) => ({ id: q.id, label: q.text, question: q.text, description: q.text })),
+      ],
+    }),
+    [config, customQuestions],
+  );
+  const evalTraits = [...traits, ...customQuestions.map((q) => q.id)];
+
+  /** LinkedIn: a fact that isn't on the profile, typed on the rewrite screen. Used only on LinkedIn until shared. */
+  function addExtraFact(text: string) {
+    const t = text.trim().slice(0, LIMITS.factText);
+    if (!t) return;
+    setFacts((prev) => mergeFacts(prev, [{ id: "f1", text: t, confirmed: true, source: "user" }]));
+    clearRewrites();
+  }
+
+  function removeExtraFact(id: string) {
+    setFacts((prev) => prev.filter((f) => f.id !== id));
+    clearRewrites();
+  }
   const otherPlatform: Platform = platform === "linkedin" ? "hinge" : "linkedin";
   const feedbackStale = !!evaluatedOn && textKey(platform, evaluatedOn.segments) !== sourceKey;
 
@@ -657,7 +699,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
         </section>
       )}
 
-      <TourStops steps={STEPS} step={step} furthest={furthest} disabled={loading} onSelect={go} />
+      <TourStops steps={STEPS} order={order} step={step} furthest={furthest} disabled={loading} onSelect={go} />
 
       <main className="tour-workspace studio-shell">
         <div className="studio-body">
@@ -746,6 +788,8 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
               config={config}
               audiences={audiences}
               traits={traits}
+              customQuestions={customQuestions}
+              sampleMode={sample}
               loading={evaluating}
               onAudiences={(ids) => {
                 setAudiences(ids);
@@ -754,6 +798,11 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
               }}
               onTraits={(ids) => {
                 setTraits(ids);
+                setEvaluation(null);
+                setFurthest(AUDIENCES);
+              }}
+              onCustomQuestions={(qs) => {
+                setCustomQuestions(qs);
                 setEvaluation(null);
                 setFurthest(AUDIENCES);
               }}
@@ -777,9 +826,9 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
           {step === CLASH && evaluation && platform === "linkedin" && (
             <ProfileClash
               response={evaluation}
-              config={config}
+              config={evalConfig}
               audiences={audiences}
-              traits={traits}
+              traits={evalTraits}
               profile={evaluatedOn?.profile ?? clean}
               segments={evaluatedOn?.segments ?? segments}
               onRewriteSection={(key) => {
@@ -795,9 +844,9 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
           {step === CLASH && evaluation && platform === "hinge" && (
             <AudienceClash
               response={evaluation}
-              config={config}
+              config={evalConfig}
               audiences={audiences}
-              traits={traits}
+              traits={evalTraits}
               segments={evaluatedOn?.segments ?? segments}
               onRewrite={() => go(REWRITE)}
             />
@@ -808,6 +857,8 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
               states={sectionStates}
               sourcesFor={sourcesFor}
               confirmedFacts={confirmedFacts}
+              onAddFact={addExtraFact}
+              onRemoveFact={removeExtraFact}
               goal={goal}
               allStyle={allStyle}
               allLength={allLength}
@@ -862,7 +913,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
           {step > INPUT && (
             <div className="back-row">
               {step !== CONSENT ? (
-                <Button variant="ghost" disabled={loading} onClick={() => go(step - 1)}>
+                <Button variant="ghost" disabled={loading} onClick={() => go(prevStep)}>
                   <ArrowLeft />
                   Go back
                 </Button>
@@ -909,9 +960,9 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
           <CircleHelp />
           How this works
         </Button>
-        <span className="tour-progress" aria-label={`Step ${step + 1} of ${STEPS.length}: ${STEPS[step]}`}>
+        <span className="tour-progress" aria-label={`Step ${stepPos + 1} of ${order.length}: ${STEPS[step]}`}>
           <span className="tour-progress-label">{STEPS[step]}</span>
-          {String(step + 1).padStart(2, "0")} <span>/ {String(STEPS.length).padStart(2, "0")}</span>
+          {String(stepPos + 1).padStart(2, "0")} <span>/ {String(order.length).padStart(2, "0")}</span>
         </span>
       </footer>
     </div>

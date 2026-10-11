@@ -1,7 +1,7 @@
 "use client";
 
-import { Check, LoaderCircle, PenLine, Sparkles, TriangleAlert, Undo2 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { Check, LoaderCircle, PenLine, Plus, Sparkles, TriangleAlert, Undo2, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { VariationResult } from "@/components/RewriteComparison";
 import { Button } from "@/components/ui/button";
 import type {
@@ -83,7 +83,10 @@ export function SectionRewrites(props: {
   states: Record<string, SectionRewriteState>;
   /** FactCheck's corpus per section: the whole profile for headline/About, the entry itself otherwise. */
   sourcesFor: (key: string) => Segment[];
+  /** Facts this platform may use besides the profile itself (optional on LinkedIn). */
   confirmedFacts: IdentityFact[];
+  onAddFact: (text: string) => void;
+  onRemoveFact: (id: string) => void;
   goal: string;
   allStyle: SectionStyle;
   allLength: LengthStep;
@@ -113,7 +116,8 @@ export function SectionRewrites(props: {
 }) {
   const { sections, states, sourcesFor, confirmedFacts, goal, allStyle, allLength, sampleMode, rewritingAll, focusKey } = props;
   const { adversarial, adversarialOriginal, adversarialSegments } = props;
-  const { applied, currentText, onUse, onUndo } = props;
+  const { applied, currentText, onUse, onUndo, onAddFact, onRemoveFact } = props;
+  const [factDraft, setFactDraft] = useState("");
   const { onGoal, onStyle, onLength, onGenerate, onAllStyle, onAllLength, onRewriteAll, onAdversarial, onError } = props;
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -124,7 +128,6 @@ export function SectionRewrites(props: {
   }, [focusKey]);
 
   const anyLoading = Object.values(states).some((s) => s.loading);
-  const noFacts = !confirmedFacts.length;
 
   return (
     <section className="flow-section fade-in">
@@ -134,10 +137,6 @@ export function SectionRewrites(props: {
           Rewrite by section
         </h2>
       </div>
-      <p className="flow-description">
-        Each section is rewritten on its own, using only its text and the facts you confirmed. When you like a version,
-        choose “Use this version” to put it in your profile; you can undo it.
-      </p>
 
       <div className="rewrite-options rewrite-all-row">
         <div>
@@ -183,12 +182,59 @@ export function SectionRewrites(props: {
             onCommit={onAllLength}
           />
         </div>
-        <Button variant="aero" disabled={noFacts || rewritingAll || anyLoading} onClick={onRewriteAll}>
+        <Button variant="aero" disabled={rewritingAll || anyLoading} onClick={onRewriteAll}>
           {rewritingAll ? <LoaderCircle className="animate-spin" /> : <Sparkles />}
           {rewritingAll ? "Rewriting sections…" : "Rewrite all sections"}
         </Button>
       </div>
-      {noFacts && <p className="empty-note">Confirm at least one fact in Identity DNA before rewriting.</p>}
+      <details className="extra-facts">
+        <summary>
+          Add something that isn&apos;t in your profile{confirmedFacts.length ? ` (${confirmedFacts.length})` : ""}
+        </summary>
+        {confirmedFacts.length > 0 && (
+          <ul>
+            {confirmedFacts.map((f) => (
+              <li key={f.id}>
+                <span>{f.text}</span>
+                <Button variant="ghost" size="icon" aria-label={`Remove: ${f.text}`} onClick={() => onRemoveFact(f.id)}>
+                  <X />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="custom-question-row">
+          <label className="sr-only" htmlFor="extra-fact">
+            A true fact about you that isn&apos;t in your profile
+          </label>
+          <input
+            id="extra-fact"
+            className="goal-input"
+            maxLength={300}
+            value={factDraft}
+            placeholder="e.g. I presented my research at a regional conference"
+            onChange={(event) => setFactDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && factDraft.trim()) {
+                onAddFact(factDraft);
+                setFactDraft("");
+              }
+            }}
+          />
+          <Button
+            variant="glass"
+            size="sm"
+            disabled={!factDraft.trim()}
+            onClick={() => {
+              onAddFact(factDraft);
+              setFactDraft("");
+            }}
+          >
+            <Plus />
+            Add
+          </Button>
+        </div>
+      </details>
       {sampleMode && <p className="empty-note">Sample results exist at the same length only; turn off sample mode to change the length.</p>}
 
       <div className="section-cards" ref={listRef}>
@@ -223,7 +269,6 @@ export function SectionRewrites(props: {
                     id={`style-${section.key}`}
                     className="audience-select style-select"
                     value={st.style}
-                    disabled={noFacts}
                     onChange={(event) => onStyle(section.key, event.target.value as SectionStyle)}
                   >
                     {STYLE_ORDER.map((s) => (
@@ -233,7 +278,7 @@ export function SectionRewrites(props: {
                       </option>
                     ))}
                   </select>
-                  <Button variant="glass" size="sm" disabled={noFacts || Boolean(st.loading)} onClick={() => onGenerate(section.key)}>
+                  <Button variant="glass" size="sm" disabled={Boolean(st.loading)} onClick={() => onGenerate(section.key)}>
                     {st.loading ? <LoaderCircle className="animate-spin" /> : <PenLine />}
                     {st.loading ? "Rewriting…" : result ? "Rewrite again" : "Rewrite"}
                   </Button>
@@ -243,7 +288,7 @@ export function SectionRewrites(props: {
                 id={`length-${section.key}`}
                 label={`Length for ${section.label}`}
                 value={st.length}
-                disabled={noFacts || sampleMode}
+                disabled={sampleMode}
                 hint={`about ${target.toLocaleString("en-US")} characters`}
                 onChange={(length) => onLength(section.key, length, false)}
                 onCommit={(length) => onLength(section.key, length, true)}
