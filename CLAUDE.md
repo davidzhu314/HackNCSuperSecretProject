@@ -65,5 +65,6 @@ Start with [HANDOFF.md](HANDOFF.md) (current state and next steps), then the ful
 - [x] Sections phase, data/AI side: section schemas and `profile.ts` (#7), PDF import (#9), live `/api/rewrite-section` (#10), 8 lenses in 4 categories (#11), `factCoverage` per section
 - [x] Sections phase, UI side (#5, #6, #8, #14; Person 2: section editor and PDF upload, lens picker, Audience Clash redesign, per-section rewrite screen, consent once, demo hub)
 - [x] Sections build tested live and deployed
+- [x] Scenic UI merged from Lovable, Identity Hub with shared session, "Use this version", write once / per-platform facts (sample mode only; not yet deployed or run live)
 - [ ] Blind A/B (stretch)
 - [ ] Demo rehearsed and backup video recorded

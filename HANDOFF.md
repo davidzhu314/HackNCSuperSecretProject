@@ -1,9 +1,9 @@
 # Handoff: PERSONA / Personify hackathon app
 
-Updated 2026-10-10 (night) for the next Claude session. Read this, then [CLAUDE.md](CLAUDE.md) (rules, stack), then [SPEC.md](SPEC.md) (product spec). Also read [AGENTS.md](AGENTS.md): this is Next.js 16.4 / React 19.3, newer than your training data, so check `node_modules/next/dist/docs/` before writing Next code. [PROGRESS.md](PROGRESS.md) and [README.md](README.md) have more detail but predate the Personify UI (see "Stale docs").
+Updated 2026-10-10 (late night) for the next Claude session. Read this, then [CLAUDE.md](CLAUDE.md) (rules, stack), then [SPEC.md](SPEC.md) (product spec). Also read [AGENTS.md](AGENTS.md): this is Next.js 16.4 / React 19.3, newer than your training data, so check `node_modules/next/dist/docs/` before writing Next code. [PROGRESS.md](PROGRESS.md) and [README.md](README.md) have more detail.
 
 ## State in one paragraph
-The app works end to end, is deployed, and has been tested live. LinkedIn is entered by section (or imported from LinkedIn's PDF export), then consent (once per browser), confirm facts, pick up to 3 of 8 lenses, Audience Clash on the annotated profile, and per-section rewrites (Direct or Narrative) each checked by deterministic FactCheck, the AI-cliché lint, and receipts. Hinge keeps its prompt-answer flow. A demo Identity Hub is at `/hub`. The sections phase (Person 1: #7, #9–#13; Person 2: #5, #6, #8, #14) is merged and all branches are deleted. 252 tests pass, lint and build are clean. What's left is demo prep and one security item for the user.
+The app works end to end, is deployed, and has been tested live. LinkedIn is entered by section (or imported from LinkedIn's PDF export), then consent (once per browser), confirm facts, pick up to 3 of 8 lenses, Audience Clash on the annotated profile, and per-section rewrites (Direct or Narrative) each checked by deterministic FactCheck, the AI-cliché lint, and receipts. Hinge keeps its prompt-answer flow. The UI is the scenic design merged from the team's Lovable project (destinations home, the platform's photo behind the studio). The Identity Hub (`/hub`) and studio share an in-memory session (`identity-session.ts`): profiles, facts, and photo follow the user between pages, cleared on refresh. Facts are written once and shared per platform (`fact-platforms.ts`); "Use this version" puts a section rewrite into the profile while FactCheck keeps checking the original (`profile-edits.ts`). Everything is merged to `main`; **the live site has not been redeployed since the sections phase.** 266 tests pass, lint and build are clean. What's left is a deploy, one live run, demo prep, and one security item for the user.
 
 ## URGENT for the user (not for you to do)
 - **The repo is now PUBLIC** (https://github.com/davidzhu314/HackNCSuperSecretProject), so the Gemini key committed in `933a9c6` (`.env.example`, `GEMINI_API_KEY=AQ.…`) is publicly readable in history. The user must revoke it at https://aistudio.google.com/apikey. A full history scan found no other keys; the OpenRouter key was never committed. Don't rewrite history without the user's explicit say-so.
@@ -30,7 +30,10 @@ The app works end to end, is deployed, and has been tested live. LinkedIn is ent
 - `src/lib/prompts.ts`, `rubrics.ts`, `postprocess.ts`: prompts (fact rules always above style rules), audience/trait configs, server-side cleanup (`buildCritiques`, `buildVariations`).
 - `src/app/api/{facts/extract,evaluate,rewrite}/route.ts`: all require `consent: true` (403 otherwise).
 - `src/lib/api-client.ts`: browser-side calls plus labeled sample mode.
-- `src/components/PersonaFlow.tsx`: the six-step flow and its rules (no AI call before consent; only confirmed facts reach rewrite; sample mode only for the demo persona; new text means new consent; editing a fact un-ticks it).
+- `src/components/PersonaFlow.tsx`: the six-step flow and its rules (no AI call before consent; only confirmed facts shared with this platform reach a rewrite; sample mode only for the demo persona; editing a fact un-ticks it). The platform comes from the URL (`/studio?platform=hinge`); switching navigates.
+- `src/lib/identity-session.ts`: memory-only store (useSyncExternalStore) shared by studio and hub. Next 16 keeps left pages mounted but hidden (Cache Components / Activity), so the studio writes only values it actually changed, and hub edits bump `rev`, which the studio is keyed on (`StudioFromUrl`).
+- `src/lib/fact-platforms.ts`, `src/lib/profile-edits.ts`: per-platform facts and "Start from my facts"; "Use this version" / undo, with the pre-rewrite profile kept as `original`.
+- `src/components/IdentityHub.tsx`, `StudioFinish.tsx`, `TourStops.tsx`, `Chrome.tsx`: hub, end-of-studio next steps, step rail, scenic chrome.
 - `evals/`: 20 synthetic draft cases (LinkedIn and Hinge) with traps; `evals/cases.test.ts` runs in `npm test`. Its README mentions `src/lib/models.ts`, **which doesn't exist yet**.
 
 ## Model decisions (measured, one sample each, so first impressions)
@@ -49,7 +52,7 @@ The app works end to end, is deployed, and has been tested live. LinkedIn is ent
 If the user wants this repeatable, suggest `/run-skill-generator` to save it as a project skill.
 
 ## Stale docs
-None known. README, PROGRESS, CLAUDE.md, and this file were updated after the sections phase merged. `HANDOFF-PERSON-1.md` and `HANDOFF-PERSON-2.md` are finished work orders, kept as a record.
+None known. README, PROGRESS, CLAUDE.md, and this file were updated after the write-once work merged. `HANDOFF-PERSON-1.md` and `HANDOFF-PERSON-2.md` are finished work orders, kept as a record.
 
 ## Sections phase (done)
 LinkedIn by sections, PDF import, 8 lenses in 4 categories, Audience Clash redesign, per-section rewrites with a style dropdown, consent once per browser, and a demo-only Identity Hub. It was split so the two sessions didn't edit the same files:
@@ -59,9 +62,10 @@ User decisions for this phase are listed in both docs; notably the "Simulated AI
 
 ## Still to do
 1. User: revoke the leaked Gemini key (above).
-2. Demo: rehearse the 90-second script in SPEC.md, leading with "try to make me lie" (a judge edits a rewrite; FactCheck flags it in the browser with no AI call). Record a backup video. Warm the site first.
-3. Evals: the 20 cases are drafts awaiting human review. The live false-positive sweep exists (`evals/fp-sweep.test.ts`); a model-comparison runner doesn't.
-4. Optional: blind A/B (stretch) only if everything else is solid.
+2. Deploy `main` (ask first) and do one live run on the production URL: today's features were only checked in sample mode.
+3. Demo: rehearse the 90-second script in SPEC.md, leading with "try to make me lie" (a judge edits a rewrite; FactCheck flags it in the browser with no AI call). Record a backup video. Warm the site first.
+4. Evals: the 20 cases are drafts awaiting human review. The live false-positive sweep exists (`evals/fp-sweep.test.ts`); a model-comparison runner doesn't.
+5. Optional: "Use this version" for Hinge (needs per-answer rewrite output), blind A/B.
 
 ## Working with this user
 - Wants brutally honest assessments, concise answers, and a recommendation instead of a survey.

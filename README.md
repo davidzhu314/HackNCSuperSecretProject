@@ -1,8 +1,8 @@
 # Personify
 
-**One identity. Every platform. Authentically you.**
+**One identity. Every platform. Authentically you.** Write once, show up everywhere.
 
-**Live:** https://hackathon-app-nu.vercel.app (no login needed; click **Load demo persona** to try it). Studio at `/studio`, demo Identity Hub at `/hub`.
+**Live:** https://hackathon-app-nu.vercel.app (no login needed; click **Load demo persona** to try it). Home at `/` (pick LinkedIn or Hinge), the studio at `/studio`, your Identity Hub at `/hub`. Deploys are manual, so the live site can lag behind `main`.
 
 Personify helps you improve your LinkedIn or Hinge profile without inventing anything about yourself. You enter your profile (LinkedIn section by section, or import LinkedIn's "Save to PDF" export), confirm which facts about you are true, and get:
 
@@ -10,6 +10,14 @@ Personify helps you improve your LinkedIn or Hinge profile without inventing any
 2. **Rewrites (direct or narrative) that only use facts you confirmed**, checked by **FactCheck**, a deterministic layer that flags made-up numbers, names, and inflated verbs, plus a lint for AI clichés ("leverage", "delve", emoji bullets).
 
 Principle: improve expression, not invent identity.
+
+**Write once, show up everywhere.** You confirm each fact about yourself once and choose which platforms may use it. Every platform's rewrite is checked against that same set of facts, and the Identity Hub shows where each fact appears. Profiles themselves are never generated from scratch: each platform improves the text you already have, because that's what FactCheck checks against.
+
+### The flow
+1. **Home**: pick LinkedIn (city) or Hinge (town).
+2. **Studio**, six steps on the platform's scenery: your profile → consent → Identity DNA (tick true facts, choose where each is used) → audience lenses → Audience Clash → rewrite + FactCheck.
+3. **Use this version** on the rewrites you like (undoable), then **Copy updated profile**, **See it in your Identity Hub**, or take your facts to the other platform.
+4. **Identity Hub**: your photo and LinkedIn PDF, every confirmed fact with where it's used and found, and LinkedIn coverage before → after the rewrites you used.
 
 ## Why this isn't just "ChatGPT with a nicer UI"
 
@@ -23,6 +31,8 @@ Principle: improve expression, not invent identity.
   - sentences that barely match anything you said, for you to review
 - **Only confirmed facts count.** Suggested facts start unticked, and unticked facts can't support a claim.
 - **Receipts.** Each rewritten sentence shows which of your sentences or confirmed facts it came from, or that it couldn't be traced.
+- **Facts are per platform.** Each confirmed fact is shared with the platforms you choose; a fact you didn't share with Hinge can't support a claim on Hinge.
+- **Accepted rewrites don't become their own evidence.** After "Use this version", rewrites and FactCheck keep working from your original text.
 
 When FactCheck finds nothing, the app says "No unsupported concrete claims detected", never "verified". It catches concrete claims, not every subtle exaggeration.
 
@@ -46,7 +56,10 @@ When FactCheck finds nothing, the app says "No unsupported concrete claims detec
 | Import LinkedIn's "Save to PDF" export (parsed in the browser) | Implemented, with a review banner for parser warnings |
 | Audience Clash on the annotated profile (reaction cards, filters, "Where they disagree", "Nobody could find") | Implemented (LinkedIn; Hinge uses the simpler grid) |
 | Receipts: where each rewritten sentence came from | Implemented |
-| Demo Identity Hub (`/hub`) with real fact-coverage counts | Implemented, demo persona only (no accounts) |
+| Identity Hub (`/hub`): photo, LinkedIn PDF, your facts across platforms, coverage before → after | Implemented; session only (memory, cleared on refresh), no accounts |
+| Scenic UI: LinkedIn / Hinge destinations, the platform's scenery behind the studio, step "pearls" | Implemented (merged from the team's Lovable design) |
+| "Use this version" for a section rewrite (undoable), "Copy updated profile" | Implemented (LinkedIn; Hinge is copy-only) |
+| Write once, show up everywhere: per-fact LinkedIn / Hinge sharing, "Start from my facts" | Implemented |
 | Blind A/B comparison | Not built |
 | Accounts, saving profiles, auto-posting | Out of scope by design |
 
@@ -71,7 +84,7 @@ For a LinkedIn entry (one job, school, or project), FactCheck accepts only that 
 - **Structured output:** every AI response must match a strict JSON schema, is validated with zod, and is retried once if it doesn't.
 - **Privacy:** profile text is not stored or logged. The API key never reaches the browser.
 
-Key files: `src/lib/fact-guard.ts` (FactCheck), `src/lib/profile.ts` (profile sections and segment ids), `src/lib/linkedin-pdf.ts` (PDF import), `src/lib/style-check.ts` (cliché lint), `src/lib/schemas.ts` (data shapes), `src/lib/llm.ts` (AI client), `src/lib/prompts.ts`, `src/app/api/*`, `src/components/PersonaFlow.tsx` (the page flow).
+Key files: `src/lib/fact-guard.ts` (FactCheck), `src/lib/profile.ts` (profile sections and segment ids), `src/lib/linkedin-pdf.ts` (PDF import), `src/lib/identity-session.ts` (the in-memory session shared by hub and studio), `src/lib/fact-platforms.ts` (which platforms each fact is used on), `src/lib/profile-edits.ts` ("Use this version"), `src/lib/style-check.ts` (cliché lint), `src/lib/schemas.ts` (data shapes), `src/lib/llm.ts` (AI client), `src/lib/prompts.ts`, `src/app/api/*`, `src/components/PersonaFlow.tsx` (the page flow).
 
 ## Run it locally
 
@@ -97,10 +110,12 @@ Get an OpenRouter API key at https://openrouter.ai/keys. Without a key, the app 
 ## Tests and checks
 
 ```bash
-npm test          # 252 tests: FactCheck, PDF parser, profile sections, clash, receipts, consent, AI client, sample data
+npm test          # 266 tests: FactCheck, PDF parser, profile sections, clash, receipts, consent, session, fact platforms, AI client, sample data
 npm run lint
 npm run build
 ```
+
+Don't run `npm run build` while `npm run dev` is running: both write to `.next/`, and the dev server then serves an old stylesheet. If styles look wrong, stop the server, `rm -rf .next`, and restart.
 
 ## Deploy (Vercel)
 
