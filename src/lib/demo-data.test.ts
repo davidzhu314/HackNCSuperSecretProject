@@ -151,3 +151,12 @@ describe("sample section rewrites", () => {
     }
   }
 });
+
+describe("lens picker summaries", () => {
+  it("every LinkedIn lens has a short one-line summary for the picker", () => {
+    for (const a of LINKEDIN_CONFIG.audiences) {
+      expect(a.summary, a.id).toBeTruthy();
+      expect(a.summary!.length, a.id).toBeLessThanOrEqual(70);
+    }
+  });
+});

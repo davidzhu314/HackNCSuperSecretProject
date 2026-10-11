@@ -376,10 +376,10 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 /* Lens picker grouped by category (LinkedIn) */
 .audience-group + .audience-group { margin-top: 16px; }
 .audience-group-label { margin: 14px 0 0; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted-foreground); }
-.audience-group .audience-options { margin-top: 8px; }
+.audience-group .audience-options { margin-top: 8px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
 .audience-option > span { display: flex; flex-direction: column; gap: 3px; padding: 6px 0; }
-.audience-option-name { font-size: 13px; font-weight: 600; }
-.audience-option-desc { font-size: 11px; font-weight: 400; line-height: 1.5; color: var(--muted-foreground); }
+.audience-option-name { font-size: 14px; font-weight: 600; }
+.audience-option-desc { font-size: 12.5px; font-weight: 400; line-height: 1.45; color: color-mix(in oklab, var(--foreground) 72%, transparent); }
 .audience-option[data-selected=true] .audience-option-desc { color: var(--primary); }
 /* LinkedIn Audience Clash: annotated profile. Audience colors differ in lightness, not only hue. */
 :root { --aud-0: oklch(.48 .15 250); --aud-1: oklch(.62 .16 55); --aud-2: oklch(.42 .14 310); }

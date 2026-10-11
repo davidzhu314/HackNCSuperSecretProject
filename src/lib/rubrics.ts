@@ -18,6 +18,7 @@ export const LINKEDIN_CONFIG: PlatformConfig = {
     {
       id: "talent_acquisition",
       label: "Talent acquisition specialist",
+      summary: "Screens quickly: is your role and level clear?",
       category: "recruitment",
       description:
         "Screens many profiles quickly to decide who goes to a hiring team. Looks for a clear current role and level, what the person wants next, and a headline that matches an opening's title. Moves on when it's unclear which job the person would fit.",
@@ -25,6 +26,7 @@ export const LINKEDIN_CONFIG: PlatformConfig = {
     {
       id: "technical_recruiter",
       label: "Technical recruiter",
+      summary: "Matches you to technical roles by your tools and skills.",
       category: "recruitment",
       description:
         "Matches people to technical openings. Scans for concrete languages, tools, and systems, how recently and how deeply they were used, and a plain statement of what the person does.",
@@ -32,6 +34,7 @@ export const LINKEDIN_CONFIG: PlatformConfig = {
     {
       id: "hiring_manager",
       label: "Hiring manager",
+      summary: "Would you do well on their team? Reads what you actually did.",
       category: "hiring_leadership",
       description:
         "Decides whether someone would do well on their team. Reads entries for what the person personally did, its scope, and what came of it, and whether that maps to the team's work. Discounts duties listed without outcomes.",
@@ -39,6 +42,7 @@ export const LINKEDIN_CONFIG: PlatformConfig = {
     {
       id: "technical_lead",
       label: "Technical lead",
+      summary: "Would work with you. Wants precise technical detail.",
       category: "hiring_leadership",
       description:
         "Would work with the person day to day. Checks whether technical work is described precisely enough to believe: named systems, methods, and trade-offs, and what the person built versus what the team did. Distrusts buzzwords.",
@@ -46,6 +50,7 @@ export const LINKEDIN_CONFIG: PlatformConfig = {
     {
       id: "research_lead",
       label: "Research lead",
+      summary: "Looks for research questions, methods, and rigor.",
       category: "research_academia",
       description:
         "Recruits for a lab or research team. Looks for research questions, methods, and evidence of rigor (papers, posters, experiments), and for depth in one area rather than a list of buzzwords.",
@@ -53,6 +58,7 @@ export const LINKEDIN_CONFIG: PlatformConfig = {
     {
       id: "admissions_reviewer",
       label: "Admissions / fellowship reviewer",
+      summary: "Looks for direction, curiosity, and follow-through.",
       category: "research_academia",
       description:
         "Reviews applications for an academic program or fellowship. Looks for a coherent direction across experiences, intellectual curiosity, initiative, and evidence the person follows through on what they start.",
@@ -60,6 +66,7 @@ export const LINKEDIN_CONFIG: PlatformConfig = {
     {
       id: "startup_founder",
       label: "Startup founder",
+      summary: "Looks for initiative and things you built yourself.",
       category: "entrepreneurship_networking",
       description:
         "Hiring early teammates. Looks for ownership and initiative: things the person started, shipped, or figured out with little guidance, and range across different kinds of work. Skims for what was actually built.",
@@ -67,6 +74,7 @@ export const LINKEDIN_CONFIG: PlatformConfig = {
     {
       id: "industry_professional",
       label: "Industry professional",
+      summary: "A peer in your field: credibility and something to talk about.",
       category: "entrepreneurship_networking",
       description:
         "A peer in the person's own field meeting them at a networking event or conference, not evaluating them for a job. Looks for domain credibility (do they know the field's real problems, tools, and vocabulary?) and one specific detail worth starting a conversation about.",
