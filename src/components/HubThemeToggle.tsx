@@ -3,14 +3,13 @@
 import { Moon, Sun } from "lucide-react";
 import { useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
+import { HUB_THEME_KEY as KEY } from "@/lib/hub-theme";
 
 // Light/dark switch for the Identity Hub only. The choice is a non-sensitive preference kept in
-// localStorage; HUB_THEME_SCRIPT applies it before first paint so a dark Hub doesn't flash white.
+// localStorage; HUB_THEME_SCRIPT (lib/hub-theme.ts, inlined in the root layout) applies it before
+// first paint so a dark Hub doesn't flash white.
 // With no stored choice, the Hub follows the system setting.
 
-const KEY = "personify-hub-theme";
-
-export const HUB_THEME_SCRIPT = `try{var t=localStorage.getItem("${KEY}");if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.dataset.hubTheme=t}catch(e){}`;
 
 // The theme lives on <html> (set by HUB_THEME_SCRIPT before React runs), so read it from there.
 function subscribe(onChange: () => void) {
