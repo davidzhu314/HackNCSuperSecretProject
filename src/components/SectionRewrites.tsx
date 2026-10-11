@@ -285,6 +285,7 @@ export function SectionRewrites(props: {
                 <VariationResult
                   key={`${result.source}|${result.style}|${result.length}|${result.rewrite.content}`}
                   original={section.text}
+                  section={section.label}
                   segments={sourcesFor(section.key)}
                   confirmedFacts={confirmedFacts}
                   variation={{ rewrite: result.rewrite, warnings: result.warnings, styleWarnings: result.styleWarnings }}

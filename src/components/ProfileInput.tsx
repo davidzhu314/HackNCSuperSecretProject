@@ -1,8 +1,11 @@
 "use client";
 
 import { ArrowRight, FileText, Fingerprint, LockKeyhole, Sparkles } from "lucide-react";
+import { useMemo } from "react";
+import { QuickCheck } from "@/components/QuickCheck";
 import { Button } from "@/components/ui/button";
 import { HINGE_PROMPTS, MAX_HINGE_ANSWER, type HingePair } from "@/lib/persona-ui";
+import { segmentHinge } from "@/lib/segments";
 
 // Hinge input: up to three prompt answers. (LinkedIn uses the section editor, LinkedInEditor.)
 
@@ -18,6 +21,7 @@ export function ProfileInput(props: {
   onSeed?: () => void;
 }) {
   const { hinge, demo, canContinue, onHingeChange, onLoadDemo, onContinue, seedFacts, onSeed } = props;
+  const segments = useMemo(() => segmentHinge(hinge), [hinge]);
   const setPair = (index: number, patch: Partial<HingePair>) =>
     onHingeChange(hinge.map((pair, i) => (i === index ? { ...pair, ...patch } : pair)));
 
@@ -97,6 +101,7 @@ export function ProfileInput(props: {
               </Button>
             </>
           )}
+          <QuickCheck segments={segments} group="dating" />
           <p className="flow-description">Pick a prompt and paste your answer for each one you use.</p>
         </div>
       </div>
