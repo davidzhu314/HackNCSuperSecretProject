@@ -667,7 +667,8 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 /* Hub: minimal (white, or dark via the toggle), unlike the scenic home and studio. Everything is scoped to .hub-root. */
 .hub-root { --hub-bg: #fff; --hub-surface: #fff; --hub-ink: oklch(.22 .01 260); --hub-muted: oklch(.52 .01 260); --hub-line: oklch(.92 .004 260); --hub-wash: oklch(.975 .003 260); --hub-on-ink: #fff;
   padding: 0; display: flex; flex-direction: column; min-height: 100svh; background: var(--hub-bg); color: var(--hub-ink); }
-/* Dark Hub (HubThemeToggle sets data-hub-theme on <html>). Also remaps the shared theme colors the
+/* Dark Hub (HubThemeToggle sets data-hub-theme on <html>; with none set, the system setting decides, see the
+   prefers-color-scheme block at the end). Also remaps the shared theme colors the
    Hub's cards, chips, and notes use, only inside the Hub. */
 :root[data-hub-theme=dark] .hub-root { color-scheme: dark;
   --hub-bg: oklch(.17 .006 260); --hub-surface: oklch(.21 .007 260); --hub-ink: oklch(.95 .004 260); --hub-muted: oklch(.7 .008 260); --hub-line: oklch(.31 .008 260); --hub-wash: oklch(.26 .008 260); --hub-on-ink: oklch(.17 .006 260);
@@ -1022,4 +1023,14 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 @media (max-width: 760px) {
   .consistency-list ul li { grid-template-columns: auto minmax(0, 1fr); }
   .consistency-list q { grid-column: 1 / -1; }
+}
+
+/* With no saved choice, the Hub follows the system setting: the same dark values as above. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-hub-theme=light]) .hub-root { color-scheme: dark;
+  --hub-bg: oklch(.17 .006 260); --hub-surface: oklch(.21 .007 260); --hub-ink: oklch(.95 .004 260); --hub-muted: oklch(.7 .008 260); --hub-line: oklch(.31 .008 260); --hub-wash: oklch(.26 .008 260); --hub-on-ink: oklch(.17 .006 260);
+  --card: var(--hub-surface); --foreground: var(--hub-ink); --muted-foreground: var(--hub-muted); --border: var(--hub-line); --secondary: var(--hub-wash);
+  --primary: oklch(.74 .12 245); --accent: oklch(.3 .05 245); --success: oklch(.78 .14 150); --warning: oklch(.82 .13 80); --warning-surface: oklch(.3 .05 80); --destructive: oklch(.7 .18 25); --danger-surface: oklch(.28 .06 25); }
+  :root:not([data-hub-theme=light]) .hub-root [data-platform=hinge] .platform-icon { box-shadow: inset 0 0 0 1px var(--hub-line); }
+  :root:not([data-hub-theme=light]) .hub-root { --success-surface: oklch(.3 .05 150); }
 }
