@@ -5,7 +5,7 @@
 **Tagline:** One identity. Every platform. Authentically you.
 **Principle:** Improve expression, not invent identity.
 
-Users paste profile text, confirm a few true facts about themselves ("Identity DNA"), pick an audience, and get evidence-backed feedback plus rewrites grounded only in confirmed facts. A deterministic **FactCheck** layer flags anything the rewrite invented. MVP platforms: **LinkedIn and Hinge only**. No dummy buttons for other platforms.
+Users paste profile text, confirm a few true facts about themselves ("Identity DNA"), pick an audience, and get evidence-backed feedback plus rewrites grounded only in confirmed facts. A deterministic **FactCheck** layer flags anything the rewrite invented. Platforms, in three groups: **Professional** (LinkedIn, Handshake), **Social** (Instagram, Facebook, X), **Dating** (Hinge, Tinder). No dummy buttons for other platforms.
 
 Why it isn't "ChatGPT with a nicer UI": (1) several audience perspectives side by side, (2) every critique links to the exact source text, (3) a deterministic fabrication check instead of a prompt that says "don't make things up", (4) rewrites limited to user-approved facts.
 
@@ -25,7 +25,7 @@ Next.js 16 App Router (`src/app/`), TypeScript, Tailwind, shadcn/ui, lucide-reac
 Env: `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` (configurable, must support structured JSON output; verify by test, since support varies by model/provider). Provide `.env.example`. Follow current official OpenRouter docs, not remembered examples. Validate every response with zod and retry once on invalid JSON. Use low temperature; it reduces variation but doesn't guarantee reproducibility.
 
 ## User flow
-1. Choose platform: LinkedIn or Hinge.
+1. Choose a platform from the Professional, Social, or Dating group.
 2. Enter existing text. LinkedIn: a profile by **sections** (headline, About, and entries under Experience, Education, Projects, Volunteering), pasted into a section editor or imported from LinkedIn's "Save to PDF" export (parsed in the browser; name, contact details, and location are dropped). Hinge: 1–3 prompt question/answer pairs. A preloaded fictitious demo persona and sample profiles are available.
 3. **Confirm Identity DNA (Hinge only):** LinkedIn skips this step, since the profile itself is the evidence; extra facts can be added on its rewrite screen. On Hinge, AI proposes candidate facts, user ticks which are true and may edit or add. Demo default: 4–6 facts. Keep it short: paste → tick facts → choose audience.
 4. **Consent** (first live use in this browser): selected text and confirmed facts are sent to OpenRouter and the underlying model provider. Sample mode needs no consent.

@@ -6,8 +6,11 @@ import { Button } from "@/components/ui/button";
 import { PLATFORMS, platformsOf, type FactPlatforms } from "@/lib/fact-platforms";
 import { factTextSchema } from "@/lib/persona-ui";
 import { LIMITS, type IdentityFact, type Platform } from "@/lib/schemas";
+import { PLATFORM_CONFIGS } from "@/lib/rubrics";
 
-const NAME: Record<Platform, string> = { linkedin: "LinkedIn", hinge: "Hinge" };
+const NAME = Object.fromEntries(
+  Object.values(PLATFORM_CONFIGS).map((c) => [c.id, c.label]),
+) as Record<Platform, string>;
 
 export function IdentityFacts(props: {
   facts: IdentityFact[];

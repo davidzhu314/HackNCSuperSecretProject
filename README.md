@@ -60,6 +60,8 @@ When FactCheck finds nothing, the app says "No unsupported concrete claims detec
 | Scenic UI: LinkedIn / Hinge destinations, the platform's scenery behind the studio, step "pearls" | Implemented (merged from the team's Lovable design) |
 | "Use this version" for a section rewrite (undoable), "Copy updated profile" | Implemented (LinkedIn; Hinge is copy-only) |
 | Write once, show up everywhere: per-fact LinkedIn / Hinge sharing, "Start from my facts" | Implemented |
+| Seven platforms in three groups: Professional (LinkedIn, Handshake), Social (Instagram, Facebook, X), Dating (Hinge, Tinder) | Implemented. The five new platforms take one bio field and follow Hinge's steps, each with its own simulated audiences and the platform's character limit (rewrites over it are flagged "Over the character limit"). Picked from the studio header or `/studio?platform=`. Live runs only: no cached samples or eval cases for them yet, and the home page and Hub source cards still show LinkedIn and Hinge |
+| Alternative landing page at `/tour` (Avoriaz-style, see `DESIGN.md`) | Implemented, for comparison with the home page |
 | Blind A/B comparison | Not built |
 | Accounts, saving profiles, auto-posting | Out of scope by design |
 

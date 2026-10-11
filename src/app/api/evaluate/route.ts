@@ -38,7 +38,7 @@ export async function POST(req: Request) {
         traits: sel.traits,
         customQuestions: custom,
         segments: data.segments,
-        jobDescription: data.platform === "linkedin" ? data.jobDescription : undefined,
+        jobDescription: PLATFORM_CONFIGS[data.platform].jobDescription ? data.jobDescription : undefined,
       });
       const out = await callStructured({ system, user, schemaName: "evaluate", schema: ModelEvaluateSchema, maxTokens: 3000 });
       return buildCritiques(out, { audienceIds: [audience.id], traitIds }, data.segments);

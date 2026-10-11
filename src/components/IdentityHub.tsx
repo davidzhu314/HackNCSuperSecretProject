@@ -13,6 +13,7 @@ import { factCoverage, rewritableSections, segmentProfile } from "@/lib/profile"
 import { hingeFactIds } from "@/lib/profile-edits";
 import { cleanProfile, importProfileFile } from "@/lib/profile-import";
 import type { IdentityFact, LinkedInProfile } from "@/lib/schemas";
+import { PLATFORM_CONFIGS } from "@/lib/rubrics";
 
 // The Identity Hub: one pool of source material and confirmed facts for every platform.
 // Everything here lives in this tab's memory (identity-session.ts) and is read in the browser;
@@ -266,7 +267,7 @@ function FactsCard(props: {
                         aria-pressed={shared.includes(p)}
                         onClick={() => updateSession({ factPlatforms: togglePlatform(getSession().factPlatforms, fact, p) })}
                       >
-                        {p === "linkedin" ? "LinkedIn" : "Hinge"}
+                        {PLATFORM_CONFIGS[p].label}
                       </button>
                     ))}
                   </span>

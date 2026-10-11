@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { factsFor, platformsOf, recordFoundOn, seedHinge, seedLinkedIn, togglePlatform } from "./fact-platforms";
+import { factsFor, PLATFORMS, platformsOf, recordFoundOn, seedBio, seedHinge, seedLinkedIn, togglePlatform } from "./fact-platforms";
 import { emptyHingePairs, MAX_HINGE_ANSWER } from "./persona-ui";
 import { emptyLinkedInProfile } from "./profile";
 import type { IdentityFact } from "./schemas";
@@ -12,7 +12,7 @@ describe("fact platforms", () => {
   it("defaults: facts you typed are everywhere; found facts stay where they were found", () => {
     const map = recordFoundOn({}, [work, hobby], "linkedin");
     expect(platformsOf(work, map)).toEqual(["linkedin"]);
-    expect(platformsOf(hobby, map)).toEqual(["linkedin", "hinge"]);
+    expect(platformsOf(hobby, map)).toEqual(PLATFORMS);
     // Existing choices are kept; `all` records every fact (demo facts).
     expect(recordFoundOn({ f1: ["hinge"] }, [work], "linkedin")).toEqual({ f1: ["hinge"] });
     expect(recordFoundOn({}, [hobby], "hinge", true)).toEqual({ u1: ["hinge"] });
@@ -34,6 +34,14 @@ describe("fact platforms", () => {
 });
 
 describe("start from my facts", () => {
+  it("fills an empty bio with whole fact sentences that fit the limit, and leaves a written bio alone", () => {
+    const a: IdentityFact = { ...hobby, id: "u3", text: "I study CS." };
+    const b: IdentityFact = { ...hobby, id: "u4", text: "I make pancakes on Sundays." };
+    expect(seedBio("", [a, b], 100)).toBe("I study CS. I make pancakes on Sundays.");
+    expect(seedBio("", [a, b], 20)).toBe("I study CS.");
+    expect(seedBio("My bio.", [a, b], 100)).toBe("My bio.");
+  });
+
   it("fills only empty Hinge answers, one fact each, within the answer limit", () => {
     const pairs = emptyHingePairs();
     pairs[1] = { ...pairs[1], answer: "My own words." };

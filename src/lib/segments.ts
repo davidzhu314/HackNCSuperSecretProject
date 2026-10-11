@@ -48,6 +48,11 @@ export function segmentLinkedIn(input: { headline: string; about: string }): Seg
   return makeSegments(pieces);
 }
 
+/** Bio platforms (Handshake, Instagram, Facebook, X, Tinder): one field, split into lines and sentences. */
+export function segmentBio(bio: string): Segment[] {
+  return makeSegments(splitSentences(bio).map((text) => ({ text })));
+}
+
 /** Hinge: each answer is one segment and keeps its prompt question. */
 export function segmentHinge(pairs: { prompt: string; answer: string }[]): Segment[] {
   return makeSegments(
