@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowRight, CircleCheck, CircleMinus, Lightbulb } from "lucide-react";
-import { compareAnswered, coverage, isAnswered, type CellChange } from "@/lib/answered";
+import { compareAnswered, coverage, groupOpen, isAnswered, verdictLine, type CellChange, type OpenQuestion } from "@/lib/answered";
 import { RATING_LABEL } from "@/lib/persona-ui";
 import type { AudienceCritique, EvaluateResponse, PlatformConfig, Segment } from "@/lib/schemas";
 
@@ -35,16 +35,14 @@ export function TraitScorecard(props: {
   const open: AudienceCritique[] = cmp
     ? cmp.open
     : baseline.critiques.filter((c) => audiences.includes(c.audience) && traits.includes(c.trait) && !isAnswered(c.rating));
+  const openQuestions = groupOpen(open, traits, cmp);
 
   return (
     <section className="trait-scorecard" aria-labelledby="trait-scorecard-title">
       <div className="trait-scorecard-head">
         <div>
           <h2 id="trait-scorecard-title">Audience questions answered</h2>
-          <p>
-            Each lens you picked asks each question. It counts as answered when that lens rates it Moderate or Strong:
-            the reader can tell from your text.
-          </p>
+          <p>{cmp ? verdictLine(cmp) : "Answered: a lens you picked can tell (Moderate or Strong)."}</p>
         </div>
         <p className="answered-total" aria-label={after ? `${before.answered} answered before, ${after.answered} with the rewrite, of ${after.total}` : `${before.answered} of ${before.total} answered`}>
           <strong>{before.answered}</strong>
@@ -104,44 +102,30 @@ export function TraitScorecard(props: {
           </ul>
         </div>
       )}
-      {cmp && cmp.verdict === "same" && (
-        <p className="trait-scorecard-note">
-          This version answers the same questions as your text
-          {cmp.clearer.length ? `; ${cmp.clearer.length} ${cmp.clearer.length === 1 ? "is" : "are"} rated clearer` : ""}
-          {cmp.weaker.length ? `; ${cmp.weaker.length} less clear` : ""}.
-        </p>
-      )}
-
-      {open.length > 0 && (
+      {openQuestions.length > 0 && (
         <div className="answered-open">
           <h3>
-            <Lightbulb size={14} aria-hidden /> Still open{improved ? " in this version" : ""}: what would help
+            <Lightbulb size={14} aria-hidden /> Still open{improved ? " in this version" : ""}
           </h3>
           <ul>
-            {open.slice(0, OPEN_SHOWN).map((c) => (
-              <OpenItem key={`${c.audience}-${c.trait}`} critique={c} lens={lens} question={question} />
+            {openQuestions.slice(0, OPEN_SHOWN).map((q) => (
+              <OpenItem key={q.trait} item={q} lens={lens} question={question} />
             ))}
           </ul>
-          {open.length > OPEN_SHOWN && (
+          {openQuestions.length > OPEN_SHOWN && (
             <details>
-              <summary>{open.length - OPEN_SHOWN} more</summary>
+              <summary>{openQuestions.length - OPEN_SHOWN} more</summary>
               <ul>
-                {open.slice(OPEN_SHOWN).map((c) => (
-                  <OpenItem key={`${c.audience}-${c.trait}`} critique={c} lens={lens} question={question} />
+                {openQuestions.slice(OPEN_SHOWN).map((q) => (
+                  <OpenItem key={q.trait} item={q} lens={lens} question={question} />
                 ))}
               </ul>
             </details>
           )}
-          <p className="trait-scorecard-note">
-            Only add what&apos;s true: if you have it, add it as a fact above or in your own words.
-          </p>
         </div>
       )}
 
-      <p className="trait-scorecard-note">
-        Counted from the lenses&apos; ratings, never a score. Each rating is one AI read, so a single change can be noise:
-        read the reason before relying on it. Simulated lenses, not real people or predictions.
-      </p>
+      <p className="trait-scorecard-note">Counted from simulated lenses&apos; ratings, one AI read each; not a score.</p>
     </section>
   );
 }
@@ -206,14 +190,31 @@ function ChangeItem(props: {
   );
 }
 
-function OpenItem(props: { critique: AudienceCritique; lens: (id: string) => string; question: (id: string) => string }) {
-  const { critique, lens, question } = props;
+/** One open question: which lenses can't tell yet, one suggestion, and whether it needs a new true detail. */
+function OpenItem(props: { item: OpenQuestion; lens: (id: string) => string; question: (id: string) => string }) {
+  const { item, lens, question } = props;
+  const [first, ...more] = item.suggestions;
   return (
     <li>
       <p>
-        <strong>{question(critique.trait)}</strong> · {lens(critique.audience)} ({RATING_LABEL[critique.rating]})
+        <strong>{question(item.trait)}</strong> · can&apos;t tell yet for {item.audiences.map(lens).join(", ")}
       </p>
-      <p className="answered-reason">{critique.suggestion || critique.rationale}</p>
+      {first && <p className="answered-reason">{first}</p>}
+      {more.length > 0 && (
+        <details className="answered-more">
+          <summary>{more.length} more {more.length === 1 ? "suggestion" : "suggestions"}</summary>
+          <ul>
+            {more.map((m) => (
+              <li key={m} className="answered-reason">
+                {m}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+      {item.needsDetail && (
+        <p className="answered-needs">Rewording didn&apos;t change this. If it&apos;s true, add the detail as a fact above.</p>
+      )}
     </li>
   );
 }

@@ -664,8 +664,27 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
     if (started && !singleResults[`${next.tone}|${next.length}`]) void runRewrite("normal", next);
   }
 
-  async function scoreDraft(text: string, sectionKey?: string) {
+  /**
+   * The lenses' read of each rewrite, by its text and the lenses and questions asked. Switching back
+   * to a tone, length, or style you already have shows its read instantly instead of asking again.
+   * Cleared when new feedback replaces the baseline it's compared with.
+   */
+  const scoreCache = useRef(new Map<string, { evaluation: EvaluateResponse; segments: Segment[] }>());
+  const scoreBaseline = useRef<EvaluateResponse | null>(null);
+
+  /** Named fields: positional (text, key) strings were once passed in the wrong order and scored the original. */
+  async function scoreDraft({ text, sectionKey, fresh = false }: { text: string; sectionKey?: string; fresh?: boolean }) {
     if (!evaluation) throw new Error("Original audience scores are unavailable. Run feedback again first.");
+    if (scoreBaseline.current !== evaluation) {
+      scoreCache.current.clear();
+      scoreBaseline.current = evaluation;
+    }
+    const cacheKey = JSON.stringify([platform, sectionKey ?? "", text, audiences, evalTraits, customQuestions, targetJob ?? ""]);
+    const cached = fresh ? undefined : scoreCache.current.get(cacheKey);
+    if (cached) {
+      setImprovedEvaluation(cached);
+      return compareAnswered(evaluation, cached.evaluation, audiences, evalTraits);
+    }
     let candidateSegments: Segment[];
     if (platform === "linkedin") {
       if (!sectionKey) throw new Error("Choose a LinkedIn section rewrite to compare.");
@@ -687,6 +706,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
       ...(customQuestions.length ? { customQuestions } : {}),
       jobDescription: targetJob,
     });
+    scoreCache.current.set(cacheKey, { evaluation: result, segments: candidateSegments });
     setImprovedEvaluation({ evaluation: result, segments: candidateSegments });
     return compareAnswered(evaluation, result, audiences, evalTraits);
   }
@@ -1129,7 +1149,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
               onRewriteAll={() => void rewriteAll()}
               onAdversarial={(enabled) => (enabled ? void runRewrite("adversarial") : setAdversarial(null))}
               onError={(message) => setError({ message })}
-              onScore={scoreDraft}
+              onScore={(key, text, fresh) => scoreDraft({ text, sectionKey: key, fresh })}
             />
           )}
           {step === REWRITE && platform !== "linkedin" && (
@@ -1154,7 +1174,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
               textName={platform === "hinge" ? "answers" : platform === "tinder" ? "About me and answers" : config.fieldLabel.toLowerCase()}
               onAddFact={addExtraFact}
               onRemoveFact={removeExtraFact}
-              onScore={(text) => scoreDraft(text)}
+              onScore={(text, _key, fresh) => scoreDraft({ text, fresh })}
               lieCheck={lieCheck}
               use={{
                 current: singleApplied ?? textOriginal,
