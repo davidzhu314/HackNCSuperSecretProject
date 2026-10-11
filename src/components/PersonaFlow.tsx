@@ -8,15 +8,15 @@ import { AudienceSelection } from "@/components/AudienceSelection";
 import { Backdrop, BrandMark, WorldFooter, Wordmark } from "@/components/Chrome";
 import { ConsentScreen } from "@/components/ConsentScreen";
 import { IdentityFacts } from "@/components/IdentityFacts";
-import { ProfileInput, type LinkedInInput } from "@/components/ProfileInput";
+import { ProfileInput, type TextProfile } from "@/components/ProfileInput";
 import { RewriteComparison } from "@/components/RewriteComparison";
 import { Button } from "@/components/ui/button";
 import { errorMessage, evaluateProfile, extractFacts, rewriteProfile } from "@/lib/api-client";
-import { DEMO_HINGE_FACTS, DEMO_HINGE_INPUT, DEMO_LINKEDIN_FACTS, DEMO_LINKEDIN_INPUT } from "@/lib/demo-data";
+import { DEMO_BIO, DEMO_HINGE_FACTS, DEMO_HINGE_INPUT, DEMO_LINKEDIN_FACTS, DEMO_LINKEDIN_INPUT } from "@/lib/demo-data";
 import { emptyHingePairs, HINGE_PROMPTS, MAX_HINGE_ANSWER, MAX_HINGE_PROMPTS, type HingePair } from "@/lib/persona-ui";
-import { PLATFORM_CONFIGS } from "@/lib/rubrics";
+import { PLATFORM_CONFIGS, PLATFORM_SECTIONS } from "@/lib/rubrics";
 import { LIMITS, type EvaluateResponse, type IdentityFact, type Platform, type RewriteResponse } from "@/lib/schemas";
-import { segmentHinge, segmentLinkedIn } from "@/lib/segments";
+import { segmentBio, segmentHinge, segmentLinkedIn } from "@/lib/segments";
 
 // Owns the whole studio: state, API calls, and the Lovable page layout. Screens are props-only.
 // Rules enforced here: nothing is sent to the AI before consent, only confirmed facts reach the
@@ -25,7 +25,25 @@ import { segmentHinge, segmentLinkedIn } from "@/lib/segments";
 const STEPS = ["Your profile", "Consent", "Identity DNA", "Audience lenses", "Audience Clash", "Rewrite + FactCheck"];
 const [INPUT, CONSENT, FACTS, AUDIENCES, CLASH, REWRITE] = [0, 1, 2, 3, 4, 5];
 
-const EMPTY_LINKEDIN: LinkedInInput = { headline: "", about: "", jobDescription: "" };
+const EMPTY_TEXT: TextProfile = { headline: "", about: "", jobDescription: "" };
+
+/** One line under each platform name in the picker. */
+const PLATFORM_BLURB: Record<Platform, string> = {
+  linkedin: "Put your best work forward.",
+  handshake: "Land the internship or first job.",
+  instagram: "A bio that sounds like you.",
+  facebook: "Let people know what you're up to.",
+  twitter: "Say what you post about.",
+  hinge: "Make a real connection.",
+  tinder: "A first line worth replying to.",
+};
+
+/** Demo facts preloaded for each platform (all for the same fictitious persona). */
+function demoFacts(p: Platform): IdentityFact[] {
+  if (p === "linkedin") return DEMO_LINKEDIN_FACTS;
+  if (p === "hinge") return DEMO_HINGE_FACTS;
+  return DEMO_BIO[p].facts;
+}
 
 /** The Hinge demo has two answers; fill the third slot with an unused prompt. */
 function demoHingePairs(): HingePair[] {
@@ -48,7 +66,7 @@ export function PersonaFlow() {
   const [error, setError] = useState<FlowError | null>(null);
   const [help, setHelp] = useState(false);
 
-  const [linkedin, setLinkedIn] = useState<LinkedInInput>(EMPTY_LINKEDIN);
+  const [text, setText] = useState<TextProfile>(EMPTY_TEXT);
   const [hinge, setHinge] = useState<HingePair[]>(emptyHingePairs);
   const [usingDemo, setUsingDemo] = useState(false);
   const [sampleMode, setSampleMode] = useState(false);
@@ -72,13 +90,21 @@ export function PersonaFlow() {
   const requestId = useRef(0);
 
   const segments = useMemo(
-    () => (platform === "linkedin" ? segmentLinkedIn(linkedin) : segmentHinge(hinge)),
-    [platform, linkedin, hinge],
+    () =>
+      config.input === "headline_about"
+        ? segmentLinkedIn(text)
+        : config.input === "bio"
+          ? segmentBio(text.about)
+          : segmentHinge(hinge),
+    [config.input, text, hinge],
   );
   const original =
-    platform === "linkedin"
-      ? [linkedin.headline.trim(), linkedin.about.trim()].filter(Boolean).join("\n\n")
-      : hinge.map((p) => p.answer.trim()).filter(Boolean).join("\n\n");
+    config.input === "headline_about"
+      ? [text.headline.trim(), text.about.trim()].filter(Boolean).join("\n\n")
+      : config.input === "bio"
+        ? text.about.trim()
+        : hinge.map((p) => p.answer.trim()).filter(Boolean).join("\n\n");
+  const jobDescription = config.jobDescription ? text.jobDescription.trim() || undefined : undefined;
   const sourceKey = `${platform}|${original}`;
   const confirmedFacts = facts.filter((f) => f.confirmed && f.text.trim());
   const canUseSample = usingDemo && platform === "linkedin";
@@ -86,9 +112,9 @@ export function PersonaFlow() {
   const loading = extracting || evaluating || rewriting;
 
   const inputError = (() => {
-    if (platform === "linkedin") {
-      if (!linkedin.about.trim()) return "Add your About text before continuing.";
-      if (linkedin.headline.length + linkedin.about.length > LIMITS.profileText) return "Keep your profile under 4,000 characters.";
+    if (config.input !== "prompts") {
+      if (!text.about.trim()) return `Add your ${config.fieldLabel} text before continuing.`;
+      if (text.headline.length + text.about.length > LIMITS.profileText) return "Keep your profile under 4,000 characters.";
       return null;
     }
     if (!hinge.some((p) => p.answer.trim())) return "Add at least one prompt answer before continuing.";
@@ -117,7 +143,7 @@ export function PersonaFlow() {
 
   function reset() {
     resetResults();
-    setLinkedIn(EMPTY_LINKEDIN);
+    setText(EMPTY_TEXT);
     setHinge(emptyHingePairs());
     setFacts([]);
     extractedFor.current = null;
@@ -135,11 +161,15 @@ export function PersonaFlow() {
     setTraits(defaultTraits(next));
   }
 
-  function changeLinkedIn(next: LinkedInInput) {
-    setLinkedIn(next);
-    setUsingDemo(next.headline === DEMO_LINKEDIN_INPUT.headline && next.about === DEMO_LINKEDIN_INPUT.about);
+  function changeText(next: TextProfile) {
+    setText(next);
+    setUsingDemo(
+      platform === "linkedin"
+        ? next.headline === DEMO_LINKEDIN_INPUT.headline && next.about === DEMO_LINKEDIN_INPUT.about
+        : platform !== "hinge" && next.about === DEMO_BIO[platform].bio,
+    );
     // The job description isn't profile text, so editing it alone keeps consent and facts.
-    if (next.headline !== linkedin.headline || next.about !== linkedin.about) resetResults();
+    if (next.headline !== text.headline || next.about !== text.about) resetResults();
     else {
       setEvaluation(null);
       setRewrite(null);
@@ -156,15 +186,18 @@ export function PersonaFlow() {
   function loadDemo() {
     resetResults();
     if (platform === "linkedin") {
-      setLinkedIn({ ...DEMO_LINKEDIN_INPUT, jobDescription: "" });
-      setFacts(DEMO_LINKEDIN_FACTS.map((f) => ({ ...f })));
+      setText({ ...DEMO_LINKEDIN_INPUT, jobDescription: "" });
       extractedFor.current = `linkedin|${DEMO_LINKEDIN_INPUT.headline.trim()}\n\n${DEMO_LINKEDIN_INPUT.about.trim()}`;
-    } else {
+    } else if (platform === "hinge") {
       const pairs = demoHingePairs();
       setHinge(pairs);
-      setFacts(DEMO_HINGE_FACTS.map((f) => ({ ...f })));
       extractedFor.current = `hinge|${pairs.map((p) => p.answer.trim()).filter(Boolean).join("\n\n")}`;
+    } else {
+      const { bio } = DEMO_BIO[platform];
+      setText({ ...EMPTY_TEXT, about: bio });
+      extractedFor.current = `${platform}|${bio.trim()}`;
     }
+    setFacts(demoFacts(platform).map((f) => ({ ...f })));
     setUsingDemo(true);
     setStep(INPUT);
     setError(null);
@@ -220,7 +253,7 @@ export function PersonaFlow() {
           segments,
           audiences,
           traits,
-          jobDescription: platform === "linkedin" ? linkedin.jobDescription.trim() || undefined : undefined,
+          jobDescription,
         },
         { sample },
       );
@@ -253,7 +286,7 @@ export function PersonaFlow() {
           audiences,
           goal: goal.trim() || undefined,
           tone: "balanced", // the two rewrite versions (direct, narrative) replace a tone control
-          jobDescription: platform === "linkedin" ? linkedin.jobDescription.trim() || undefined : undefined,
+          jobDescription,
         },
         { sample, adversarial: mode === "adversarial" },
       );
@@ -272,7 +305,7 @@ export function PersonaFlow() {
   }
 
   return (
-    <div className="app-root" data-theme={platform}>
+    <div className="app-root" data-theme={config.category}>
       <Backdrop />
       <header className="site-header">
         <Wordmark />
@@ -317,28 +350,36 @@ export function PersonaFlow() {
             )}
           </div>
 
-          <div className="platform-grid" aria-label="Choose a platform">
-            {(["linkedin", "hinge"] as const).map((id) => (
-              <Button
-                variant="platform"
-                key={id}
-                data-platform={id}
-                data-active={platform === id}
-                aria-pressed={platform === id}
-                disabled={loading}
-                onClick={() => switchPlatform(id)}
-              >
-                <span className="platform-icon">
-                  <BrandMark platform={id} />
-                </span>
-                <span>
-                  <span className="platform-name">{id === "linkedin" ? "LinkedIn" : "Hinge"}</span>
-                  <span className="platform-description">
-                    {id === "linkedin" ? "Put your best work forward." : "Make a real connection."}
-                  </span>
-                </span>
-                <span className="platform-check" aria-hidden="true" />
-              </Button>
+          <div className="platform-sections" role="group" aria-label="Choose a platform">
+            {PLATFORM_SECTIONS.map((section) => (
+              <section key={section.category} aria-labelledby={`section-${section.category}`}>
+                <h2 className="platform-section-title" id={`section-${section.category}`}>
+                  {section.label}
+                </h2>
+                <div className="platform-grid">
+                  {section.platforms.map((id) => (
+                    <Button
+                      variant="platform"
+                      key={id}
+                      data-platform={id}
+                      data-category={section.category}
+                      data-active={platform === id}
+                      aria-pressed={platform === id}
+                      disabled={loading}
+                      onClick={() => switchPlatform(id)}
+                    >
+                      <span className="platform-icon">
+                        <BrandMark platform={id} />
+                      </span>
+                      <span>
+                        <span className="platform-name">{PLATFORM_CONFIGS[id].label}</span>
+                        <span className="platform-description">{PLATFORM_BLURB[id]}</span>
+                      </span>
+                      <span className="platform-check" aria-hidden="true" />
+                    </Button>
+                  ))}
+                </div>
+              </section>
             ))}
           </div>
 
@@ -383,11 +424,11 @@ export function PersonaFlow() {
           {step === INPUT && (
             <ProfileInput
               platform={platform}
-              linkedin={linkedin}
+              text={text}
               hinge={hinge}
               demo={usingDemo}
               canContinue={!inputError}
-              onLinkedInChange={changeLinkedIn}
+              onTextChange={changeText}
               onHingeChange={changeHinge}
               onLoadDemo={loadDemo}
               onContinue={continueFromInput}
@@ -409,7 +450,7 @@ export function PersonaFlow() {
           {step === FACTS && (
             <IdentityFacts
               facts={facts}
-              demoFactIds={usingDemo ? (platform === "linkedin" ? DEMO_LINKEDIN_FACTS : DEMO_HINGE_FACTS).map((f) => f.id) : []}
+              demoFactIds={usingDemo ? demoFacts(platform).map((f) => f.id) : []}
               loading={extracting}
               onChange={(next) => {
                 setFacts(next);

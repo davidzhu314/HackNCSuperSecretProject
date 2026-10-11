@@ -1,7 +1,9 @@
 import { checkRewrite } from "./fact-guard";
-import { checkStyle } from "./style-check";
+import { PLATFORM_CONFIGS } from "./rubrics";
+import { checkLength, checkStyle } from "./style-check";
 import {
   SAMPLE_ADVERSARIAL_REWRITE,
+  SAMPLE_BIO_ADVERSARIAL_CONTENT,
   SAMPLE_HINGE_ADVERSARIAL_CONTENT,
   SAMPLE_EVALUATE,
   SAMPLE_EXTRACT,
@@ -107,9 +109,11 @@ export async function rewriteProfile(
   if (opts.adversarial) {
     await pause();
     if (req.platform === "linkedin") return SAMPLE_ADVERSARIAL_REWRITE;
+    const config = PLATFORM_CONFIGS[req.platform];
+    const content = req.platform === "hinge" ? SAMPLE_HINGE_ADVERSARIAL_CONTENT : SAMPLE_BIO_ADVERSARIAL_CONTENT[req.platform];
     const rewrite = {
       platform: req.platform,
-      content: SAMPLE_HINGE_ADVERSARIAL_CONTENT,
+      content,
       usedFactIds: [],
       changeSummary: ["Intentionally embellished test case."],
     };
@@ -120,7 +124,10 @@ export async function rewriteProfile(
           style: "direct",
           rewrite,
           warnings: checkRewrite({ rewrite, segments: req.segments, facts: req.facts }),
-          styleWarnings: checkStyle(rewrite.content),
+          styleWarnings: [
+            ...checkStyle(rewrite.content),
+            ...checkLength(config.input === "prompts" ? content.split(/\n\n+/) : [content], config.maxChars, config.label),
+          ],
         },
       ],
     };

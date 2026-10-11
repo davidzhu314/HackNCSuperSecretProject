@@ -36,11 +36,21 @@ export function Wordmark() {
   );
 }
 
-/** Letter marks instead of brand logos: "in" for LinkedIn, a serif "H" for Hinge. */
+/** Letter marks instead of brand logos, e.g. "in" for LinkedIn and a serif "H" for Hinge. */
+const BRAND_LETTERS: Record<Platform, string> = {
+  linkedin: "in",
+  handshake: "hs",
+  instagram: "ig",
+  facebook: "f",
+  twitter: "X",
+  hinge: "H",
+  tinder: "t",
+};
+
 export function BrandMark({ platform }: { platform: Platform }) {
   return (
     <span className="brand-mark" data-platform={platform} aria-hidden="true">
-      {platform === "linkedin" ? "in" : "H"}
+      {BRAND_LETTERS[platform]}
     </span>
   );
 }

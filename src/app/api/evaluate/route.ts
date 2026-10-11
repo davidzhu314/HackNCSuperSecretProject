@@ -11,12 +11,13 @@ export async function POST(req: Request) {
     if (!sel.audiences.length || !sel.traits.length) {
       throw new LlmError("invalid_request", "Unknown audience or trait for this platform.");
     }
+    const config = PLATFORM_CONFIGS[data.platform];
     const { system, user } = evaluatePrompt({
-      config: PLATFORM_CONFIGS[data.platform],
+      config,
       audiences: sel.audiences,
       traits: sel.traits,
       segments: data.segments,
-      jobDescription: data.platform === "linkedin" ? data.jobDescription : undefined,
+      jobDescription: config.jobDescription ? data.jobDescription : undefined,
     });
     const out = await callStructured({
       system,

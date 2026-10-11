@@ -15,7 +15,8 @@ import {
   type RewriteVariation,
   type Segment,
 } from "@/lib/schemas";
-import { checkStyle } from "@/lib/style-check";
+import { PLATFORM_CONFIGS } from "@/lib/rubrics";
+import { checkLength, checkStyle } from "@/lib/style-check";
 
 const STYLE_LABEL: Record<RewriteStyle, string> = {
   direct: "Option A: Direct",
@@ -23,7 +24,8 @@ const STYLE_LABEL: Record<RewriteStyle, string> = {
 };
 
 /** Warnings whose text literally appears in the rewrite (fact and segment ids don't). */
-const literal = (w: GuardWarning) => w.kind !== "invalid_fact_id" && w.kind !== "unverified_segment" && w.text.trim();
+const literal = (w: GuardWarning) =>
+  w.kind !== "invalid_fact_id" && w.kind !== "unverified_segment" && w.kind !== "over_limit" && w.text.trim();
 
 export function RewriteComparison(props: {
   original: string;
@@ -134,7 +136,13 @@ function VariationResult(props: {
         : variation.warnings,
     [edited, text, rewrite, variation, segments, confirmedFacts],
   );
-  const styleWarnings = useMemo(() => (edited ? checkStyle(text) : variation.styleWarnings), [edited, text, variation]);
+  const styleWarnings = useMemo(() => {
+    if (!edited) return variation.styleWarnings;
+    const config = PLATFORM_CONFIGS[rewrite.platform];
+    // Prompt answers are edited as one text, one answer per blank-line block; the limit is per answer.
+    const pieces = config.input === "prompts" ? text.split(/\n\s*\n/) : [text];
+    return [...checkStyle(text), ...checkLength(pieces, config.maxChars, config.label)];
+  }, [edited, text, variation, rewrite.platform]);
 
   const diff = useMemo(() => wordDiff(original, text), [original, text]);
   const rangesFor = (list: GuardWarning[]) => {

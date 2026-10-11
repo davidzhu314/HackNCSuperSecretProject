@@ -16,14 +16,25 @@ export const LIMITS = {
   maxRewriteChars: 3000,
 } as const;
 
-export const PlatformSchema = z.enum(["linkedin", "hinge"]);
+export const PlatformSchema = z.enum(["linkedin", "handshake", "instagram", "facebook", "twitter", "hinge", "tinder"]);
 export type Platform = z.infer<typeof PlatformSchema>;
+
+/** The three sections platforms are grouped into. Category drives prompt rules and theming. */
+export const PlatformCategorySchema = z.enum(["professional", "social", "dating"]);
+export type PlatformCategory = z.infer<typeof PlatformCategorySchema>;
+
+/**
+ * How the profile text is entered and split into segments:
+ * headline_about = headline line + long About text (LinkedIn); bio = one short text field;
+ * prompts = prompt question + answer pairs (Hinge).
+ */
+export type InputShape = "headline_about" | "bio" | "prompts";
 
 /** Input split into numbered pieces server-side. The model cites ids, never quotes. */
 export const SegmentSchema = z.object({
   id: z.string().min(1).max(16), // e.g. "s1"
   text: z.string().min(1).max(LIMITS.segmentText),
-  /** Hinge only: the prompt question this answer responds to. */
+  /** Prompt-based platforms (Hinge) only: the prompt question this answer responds to. */
   prompt: z.string().max(200).optional(),
 });
 export type Segment = z.infer<typeof SegmentSchema>;
@@ -50,7 +61,7 @@ export const AudienceCritiqueSchema = z.object({
 });
 export type AudienceCritique = z.infer<typeof AudienceCritiqueSchema>;
 
-/** Hinge: one rewritten answer per original answer, keyed by the original segment id. */
+/** Prompt-based platforms (Hinge): one rewritten answer per original answer, keyed by the original segment id. */
 export const HingeAnswerSchema = z.object({
   segmentId: z.string().min(1).max(16),
   prompt: z.string().max(200).optional(),
@@ -60,7 +71,7 @@ export type HingeAnswer = z.infer<typeof HingeAnswerSchema>;
 
 export const RewriteSchema = z.object({
   platform: PlatformSchema,
-  /** LinkedIn: headline, blank line, About. Hinge: the answers joined by blank lines, in original order. */
+  /** Headline platforms: headline, blank line, About. Bio platforms: the bio. Hinge: the answers joined by blank lines, in original order. */
   content: z.string().min(1).max(LIMITS.maxRewriteChars),
   /** Hinge only: the same answers as `content`, one per original segment, in order. */
   answers: z.array(HingeAnswerSchema).max(LIMITS.maxSegments).optional(),
@@ -78,6 +89,7 @@ export const GuardWarningKindSchema = z.enum([
   "unsupported_claim",
   "unverified_segment",
   "ai_cliche",
+  "over_limit",
 ]);
 export type GuardWarningKind = z.infer<typeof GuardWarningKindSchema>;
 
@@ -155,7 +167,7 @@ export const RewriteVariationSchema = z.object({
   rewrite: RewriteSchema,
   /** Output of deterministic FactCheck. Empty means "no unsupported concrete claims detected". */
   warnings: z.array(GuardWarningSchema),
-  /** Banned AI-cliche words/phrases found (kind "ai_cliche"). Style only; separate from FactCheck. */
+  /** Banned AI-cliche words/phrases (kind "ai_cliche") and platform length overruns (kind "over_limit"). Style only; separate from FactCheck. */
   styleWarnings: z.array(GuardWarningSchema),
 });
 export type RewriteVariation = z.infer<typeof RewriteVariationSchema>;
@@ -183,11 +195,22 @@ export const ApiErrorSchema = z.object({
 });
 export type ApiError = z.infer<typeof ApiErrorSchema>;
 
-// ---------- Platform config (one engine, two configs) ----------
+// ---------- Platform config (one engine, one config per platform) ----------
 
 export type PlatformConfig = {
   id: Platform;
   label: string;
+  category: PlatformCategory;
+  input: InputShape;
+  /** Name of the profile field on the platform, e.g. "About", "Bio", "Summary". */
+  fieldLabel: string;
+  /**
+   * The platform's own character limit for the profile text (per answer for prompts).
+   * Rewrites over it get an "over_limit" style warning. Undefined = no hard limit.
+   */
+  maxChars?: number;
+  /** Professional platforms accept an optional job description to target. */
+  jobDescription: boolean;
   audiences: { id: string; label: string; description: string }[];
   traits: { id: string; label: string; description: string }[];
 };
@@ -226,7 +249,7 @@ export const ModelRewriteSchema = z.object({
   narrative: ModelRewriteVariantSchema,
 });
 
-/** Hinge: each variant returns one answer per original answer, keyed by segment id. */
+/** Prompt-based platforms (Hinge): each variant returns one answer per original answer, keyed by segment id. */
 const ModelHingeRewriteVariantSchema = z.object({
   answers: z.array(z.object({ segmentId: z.string(), text: z.string() })),
   usedFactIds: z.array(z.string()),

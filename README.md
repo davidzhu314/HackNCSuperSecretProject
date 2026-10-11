@@ -40,6 +40,7 @@ When FactCheck finds nothing, the app says "No unsupported concrete claims detec
 | "FactCheck demo" (the "95% at Google" rewrite) | Cached, labeled "Intentional test case" |
 | Job-description targeting | Implemented (optional field) |
 | Hinge mode | Backend supports it; UI not built |
+| Platform sections: Professional (LinkedIn, Handshake), Social (Instagram, Facebook, X), Dating (Hinge, Tinder) | Implemented. The five new platforms use a single bio field with their own simulated audiences and character limit (flagged as "Over the character limit"). Live runs only: no cached sample results or eval cases for them yet |
 | Blind A/B comparison | Not built |
 | Accounts, saving profiles, auto-posting | Out of scope by design |
 

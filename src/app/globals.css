@@ -39,7 +39,7 @@
   --success-surface: oklch(.96 .035 155); --danger-surface: oklch(.97 .03 25);
   --diff-added: oklch(.94 .055 155); --diff-removed: oklch(.94 .045 25);
 }
-.app-root[data-theme=hinge] {
+.app-root[data-theme=dating] {
   --background: oklch(.97 .018 8); --foreground: oklch(.34 .035 5);
   --primary: oklch(.53 .13 8); --secondary: oklch(.94 .033 8);
   --muted: oklch(.975 .012 8); --muted-foreground: oklch(.52 .035 5);
@@ -48,6 +48,17 @@
   --shadow-color: oklch(.38 .065 5 / .15); --deep-ocean: oklch(.36 .075 5);
   --button-gradient: linear-gradient(180deg, oklch(.72 .12 8), oklch(.53 .13 8));
   --glass-gradient: linear-gradient(180deg, oklch(1 0 0 / .95), oklch(.97 .02 8 / .9));
+}
+/* Social sections: the Instagram hue (35) from the platform tokens, built like the dating theme. */
+.app-root[data-theme=social] {
+  --background: oklch(.975 .018 50); --foreground: oklch(.34 .04 40);
+  --primary: oklch(.52 .15 38); --secondary: oklch(.945 .033 50);
+  --muted: oklch(.977 .012 50); --muted-foreground: oklch(.52 .04 42);
+  --accent: oklch(.945 .04 50); --border: oklch(.875 .035 50);
+  --sky: oklch(.76 .1 55); --glass: oklch(.965 .032 50 / .96);
+  --shadow-color: oklch(.4 .07 40 / .15); --deep-ocean: oklch(.37 .08 38);
+  --button-gradient: linear-gradient(180deg, oklch(.7 .14 45), oklch(.52 .15 38));
+  --glass-gradient: linear-gradient(180deg, oklch(1 0 0 / .95), oklch(.975 .02 50 / .9));
 }
 @layer base {
   * { border-color: var(--border); box-sizing: border-box; }
@@ -355,3 +366,21 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .style-item q { display: block; font-size: 11px; overflow-wrap: anywhere; }
 .style-item p { font-size: 11px; line-height: 1.8; margin: 6px 0 0; }
 @media (max-width: 680px) { .rewrite-options-goal { grid-template-columns: minmax(0, 1fr); } .variation-tabs { display: flex; } .variation-tabs .mode-btn { flex: 1; } }
+
+/* ---------- Platform sections (Professional / Social / Dating) ---------- */
+.platform-sections { display: grid; gap: 18px; margin-bottom: 28px; }
+.platform-section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.8px; color: var(--muted-foreground); margin: 0 0 9px; }
+.platform-sections .platform-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-bottom: 0; }
+.platform-sections .platform-card { height: 88px; padding: 15px; }
+.platform-sections .platform-icon { width: 46px; height: 46px; }
+.platform-card[data-category=professional] { --platform: var(--linkedin); --platform-light: var(--linkedin-light); --platform-bright: var(--linkedin-bright); }
+.platform-card[data-category=social] { --platform: var(--instagram); --platform-light: var(--instagram-light); --platform-bright: var(--instagram-bright); }
+.platform-card[data-category=dating] { --platform: var(--hinge); --platform-light: var(--hinge-light); --platform-bright: var(--hinge-bright); }
+.brand-mark { font-family: var(--font-sans); font-size: 20px; }
+.bio-count[data-over=true] { color: var(--destructive); }
+@media (max-width: 680px) {
+  .platform-sections { gap: 14px; margin-bottom: 21px; }
+  .platform-sections .platform-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .platform-sections .platform-card { height: 104px; }
+  .brand-mark { font-size: 15px; }
+}

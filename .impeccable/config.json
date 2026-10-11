@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-font",
+        "value": "georgia",
+        "createdAt": "2026-10-10T22:03:04.293Z",
+        "reason": "Claude: pre-existing studio Hinge letter mark in globals.css (unchanged this session); DESIGN.md scopes to landing only, studio is a recorded open split"
+      }
+    ]
+  }
+}

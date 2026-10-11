@@ -4,26 +4,28 @@ import { ArrowRight, FileText, FolderUp, LockKeyhole, Plus, Sparkles, Upload } f
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { HINGE_PROMPTS, MAX_HINGE_ANSWER, type HingePair } from "@/lib/persona-ui";
+import { PLATFORM_CONFIGS } from "@/lib/rubrics";
 import { LIMITS, type Platform } from "@/lib/schemas";
 
-export type LinkedInInput = { headline: string; about: string; jobDescription: string };
+/** Text platforms. Headline platforms use headline + about; bio platforms use about as the bio. */
+export type TextProfile = { headline: string; about: string; jobDescription: string };
 
 const MAX_HEADLINE = 300;
 
 export function ProfileInput(props: {
   platform: Platform;
-  linkedin: LinkedInInput;
+  text: TextProfile;
   hinge: HingePair[];
   demo: boolean;
   canContinue: boolean;
-  onLinkedInChange: (input: LinkedInInput) => void;
+  onTextChange: (input: TextProfile) => void;
   onHingeChange: (pairs: HingePair[]) => void;
   onLoadDemo: () => void;
   onContinue: () => void;
   onError: (message: string) => void;
 }) {
-  const { platform, linkedin, hinge, demo, canContinue, onLinkedInChange, onHingeChange, onLoadDemo, onContinue, onError } =
-    props;
+  const { platform, text, hinge, demo, canContinue, onTextChange, onHingeChange, onLoadDemo, onContinue, onError } = props;
+  const config = PLATFORM_CONFIGS[platform];
   const [mode, setMode] = useState<"text" | "file">("text");
   const [filename, setFilename] = useState("");
   const [dragging, setDragging] = useState(false);
@@ -37,21 +39,21 @@ export function ProfileInput(props: {
       return;
     }
     try {
-      let text = await file.text();
+      let raw = await file.text();
       let headline = "";
       let about = "";
       if (/\.json$/i.test(file.name)) {
-        const data: unknown = JSON.parse(text);
-        if (typeof data === "string") text = data;
+        const data: unknown = JSON.parse(raw);
+        if (typeof data === "string") raw = data;
         else if (data && typeof data === "object") {
           if ("headline" in data && typeof data.headline === "string") headline = data.headline;
           if ("about" in data && typeof data.about === "string") about = data.about;
-          else if ("text" in data && typeof data.text === "string") text = data.text;
+          else if ("text" in data && typeof data.text === "string") raw = data.text;
           else throw new Error("format");
         } else throw new Error("format");
       }
       if (!about) {
-        const lines = text.trim().split("\n");
+        const lines = raw.trim().split("\n");
         headline = lines.shift() ?? "";
         about = lines.join("\n").trim();
         if (!about) {
@@ -63,7 +65,7 @@ export function ProfileInput(props: {
         onError("Add nonempty About text and keep your profile under 4,000 characters (headline under 300).");
         return;
       }
-      onLinkedInChange({ ...linkedin, headline, about });
+      onTextChange({ ...text, headline, about });
       setFilename(file.name);
       setMode("text");
       onError("");
@@ -77,7 +79,9 @@ export function ProfileInput(props: {
   const setPair = (index: number, patch: Partial<HingePair>) =>
     onHingeChange(hinge.map((pair, i) => (i === index ? { ...pair, ...patch } : pair)));
 
-  const showUpload = platform === "linkedin";
+  const showUpload = config.input === "headline_about";
+  const bioLength = [...text.about].length;
+  const bioOver = config.maxChars !== undefined && bioLength > config.maxChars;
 
   return (
     <section className="flow-section fade-in">
@@ -86,7 +90,7 @@ export function ProfileInput(props: {
           <div className="panel-header">
             <h2 className="section-heading">
               <FileText />
-              Your {platform === "hinge" ? "Hinge" : "LinkedIn"} profile
+              Your {config.label} profile
             </h2>
             {showUpload && (
               <div className="input-mode">
@@ -135,7 +139,7 @@ export function ProfileInput(props: {
                   Browse files
                 </Button>
               </div>
-            ) : platform === "hinge" ? (
+            ) : config.input === "prompts" ? (
               <div className="hinge-prompts">
                 {hinge.map((pair, index) => (
                   <div className="hinge-prompt" key={index}>
@@ -166,6 +170,20 @@ export function ProfileInput(props: {
                   </div>
                 ))}
               </div>
+            ) : config.input === "bio" ? (
+              <>
+                <label className="field-label" htmlFor="bio">
+                  {config.fieldLabel}
+                </label>
+                <textarea
+                  id="bio"
+                  className="profile-textarea"
+                  maxLength={LIMITS.profileText}
+                  value={text.about}
+                  placeholder={`Paste your ${config.label} ${config.fieldLabel.toLowerCase()}…`}
+                  onChange={(event) => onTextChange({ ...text, about: event.target.value })}
+                />
+              </>
             ) : (
               <>
                 <label className="field-label" htmlFor="headline">
@@ -174,10 +192,10 @@ export function ProfileInput(props: {
                 <input
                   id="headline"
                   className="goal-input"
-                  value={linkedin.headline}
+                  value={text.headline}
                   maxLength={MAX_HEADLINE}
                   placeholder="Your field, your focus, your next chapter…"
-                  onChange={(event) => onLinkedInChange({ ...linkedin, headline: event.target.value })}
+                  onChange={(event) => onTextChange({ ...text, headline: event.target.value })}
                 />
                 <label className="field-label mt-4" htmlFor="about">
                   About
@@ -186,9 +204,9 @@ export function ProfileInput(props: {
                   id="about"
                   className="profile-textarea"
                   maxLength={LIMITS.profileText}
-                  value={linkedin.about}
+                  value={text.about}
                   placeholder="Paste your About section…"
-                  onChange={(event) => onLinkedInChange({ ...linkedin, about: event.target.value })}
+                  onChange={(event) => onTextChange({ ...text, about: event.target.value })}
                 />
               </>
             )}
@@ -197,9 +215,15 @@ export function ProfileInput(props: {
                 <LockKeyhole size={11} />
                 {filename || "Only here, only for this session."}
               </span>
-              {platform === "linkedin" && (
+              {config.input === "headline_about" && (
                 <span>
-                  {linkedin.headline.length + linkedin.about.length} / 4,000
+                  {text.headline.length + text.about.length} / 4,000
+                </span>
+              )}
+              {config.input === "bio" && config.maxChars && (
+                <span className="bio-count" data-over={bioOver}>
+                  {bioOver ? `Over ${config.label}'s limit · ` : ""}
+                  {bioLength} / {config.maxChars}
                 </span>
               )}
             </div>
@@ -223,7 +247,7 @@ export function ProfileInput(props: {
             Load demo persona
           </Button>
           {demo && <p className="demo-note">Fictitious demo persona</p>}
-          {platform === "linkedin" && (
+          {config.jobDescription && (
             <details className="job-details">
               <summary>Target a specific job</summary>
               <label className="field-label mt-4" htmlFor="job">
@@ -233,14 +257,17 @@ export function ProfileInput(props: {
                 id="job"
                 className="profile-textarea job-textarea"
                 maxLength={LIMITS.jobDescription}
-                value={linkedin.jobDescription}
-                onChange={(event) => onLinkedInChange({ ...linkedin, jobDescription: event.target.value })}
+                value={text.jobDescription}
+                onChange={(event) => onTextChange({ ...text, jobDescription: event.target.value })}
                 placeholder="Paste the role you have in mind…"
               />
             </details>
           )}
-          {platform === "hinge" && (
+          {config.category === "dating" && (
             <p className="flow-description">A good conversation starts with something genuinely yours.</p>
+          )}
+          {config.category === "social" && (
+            <p className="flow-description">A bio is a first glance. Make it one that is genuinely yours.</p>
           )}
         </div>
       </div>

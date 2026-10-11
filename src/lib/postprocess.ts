@@ -17,7 +17,8 @@ import {
 } from "./schemas";
 import type { z } from "zod";
 import type { ModelEvaluateSchema, ModelHingeRewriteSchema, ModelRewriteSchema } from "./schemas";
-import { checkStyle } from "./style-check";
+import { PLATFORM_CONFIGS } from "./rubrics";
+import { checkLength, checkStyle } from "./style-check";
 
 // Server-side cleanup of model output. The model is never trusted: ids are checked,
 // strings are clamped, and unrequested audience/trait combinations are dropped.
@@ -81,7 +82,7 @@ type VariationDraft = {
   changeSummary: string[];
 };
 
-/** Clamp one version, then run FactCheck and the AI-cliche lint on it. */
+/** Clamp one version, then run FactCheck, the AI-cliche lint, and the platform length check on it. */
 function finishVariation(
   style: RewriteStyle,
   platform: Platform,
@@ -100,11 +101,14 @@ function finishVariation(
   if (!parsed.success) {
     throw new LlmError("invalid_model_output", "The AI returned an unusable rewrite. Please try again.");
   }
+  const config = PLATFORM_CONFIGS[platform];
+  // Prompt platforms limit each answer; the others limit the whole text.
+  const pieces = parsed.data.answers ? parsed.data.answers.map((a) => a.text) : [parsed.data.content];
   return {
     style,
     rewrite: parsed.data,
     warnings: [...extraWarnings, ...checkRewrite({ rewrite: parsed.data, segments, facts: confirmedFacts })],
-    styleWarnings: checkStyle(parsed.data.content),
+    styleWarnings: [...checkStyle(parsed.data.content), ...checkLength(pieces, config.maxChars, config.label)],
   };
 }
 
@@ -146,11 +150,12 @@ export function buildHingeAnswers(
   return { answers, content: answers.map((a) => a.text).join("\n\n"), warnings, keptOriginal };
 }
 
-/** Both Hinge versions, each with per-answer cleanup, FactCheck, and the AI-cliche lint. */
+/** Both versions for a prompt platform (Hinge), each with per-answer cleanup, FactCheck, and the style checks. */
 export function buildHingeVariations(
   model: z.infer<typeof ModelHingeRewriteSchema>,
   segments: Segment[],
   confirmedFacts: IdentityFact[],
+  platform: Platform = "hinge",
 ): RewriteVariation[] {
   return RewriteStyleSchema.options.map((style) => {
     const v = model[style];
@@ -166,6 +171,6 @@ export function buildHingeVariations(
         ...v.changeSummary,
       ],
     };
-    return finishVariation(style, "hinge", draft, built.warnings, segments, confirmedFacts);
+    return finishVariation(style, platform, draft, built.warnings, segments, confirmedFacts);
   });
 }
