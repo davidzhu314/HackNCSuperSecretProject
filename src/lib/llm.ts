@@ -2,12 +2,12 @@ import OpenAI from "openai";
 import { z } from "zod";
 import type { ApiError } from "./schemas";
 
-// Server-side only: reads OPENROUTER_API_KEY from process.env. Import this file
+// Server-side only: reads GEMINI_API_KEY from process.env. Import this file
 // from route handlers only, never from client components.
 // Never log prompts, profile text, or keys.
 
-export const DEFAULT_MODEL = "anthropic/claude-haiku-5.5";
-const BASE_URL = "https://openrouter.ai/api/v1";
+export const DEFAULT_MODEL = "gemini-3.8-flash";
+const BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/";
 
 export class LlmError extends Error {
   constructor(
@@ -20,7 +20,7 @@ export class LlmError extends Error {
   }
 }
 
-/** The slice of the OpenAI client we use, so tests can pass a fake. */
+/** The slice of the Gemini-compatible OpenAI client we use, so callers can pass a fake. */
 export type ChatClient = {
   chat: {
     completions: {
@@ -32,31 +32,29 @@ export type ChatClient = {
 };
 
 function getClient(): ChatClient {
-  const apiKey = process.env.OPENROUTER_API_KEY?.trim();
+  const apiKey = process.env.GEMINI_API_KEY?.trim();
   if (!apiKey) {
-    throw new LlmError("missing_api_key", "The server has no OpenRouter API key configured.");
+    throw new LlmError("missing_api_key", "The server has no Gemini API key configured.");
   }
   return new OpenAI({ apiKey, baseURL: BASE_URL }) as unknown as ChatClient;
 }
 
 export function getModel(): string {
-  return process.env.OPENROUTER_MODEL?.trim() || DEFAULT_MODEL;
+  return process.env.GEMINI_MODEL?.trim() || DEFAULT_MODEL;
 }
 
-/** Rewrites use a stronger model: in our comparison it followed formatting and source limits best at ~4s. */
-export const DEFAULT_REWRITE_MODEL = "anthropic/claude-sonnet-5.5";
+/** Rewrites can use a separately configured Gemini model when desired. */
+export const DEFAULT_REWRITE_MODEL = "gemini-3.8-flash";
 
 export function getRewriteModel(): string {
-  return process.env.OPENROUTER_REWRITE_MODEL?.trim() || DEFAULT_REWRITE_MODEL;
+  return process.env.GEMINI_REWRITE_MODEL?.trim() || DEFAULT_REWRITE_MODEL;
 }
 
 /**
- * Some models (verified: anthropic/claude-haiku-5.5 on OpenRouter) have no endpoint that accepts
- * `temperature`, and with require_parameters the request then 404s. So it is opt-in:
- * set OPENROUTER_TEMPERATURE (e.g. 0.2) only for models that support it.
+ * Temperature is optional; leave it unset to use Gemini's model default.
  */
 function temperatureParam(): { temperature?: number } {
-  const raw = process.env.OPENROUTER_TEMPERATURE?.trim();
+  const raw = process.env.GEMINI_TEMPERATURE?.trim();
   const t = raw ? Number(raw) : NaN;
   return Number.isFinite(t) ? { temperature: t } : {};
 }
@@ -82,7 +80,7 @@ function mapUpstreamError(err: unknown): LlmError {
   return new LlmError("upstream_error", "The AI provider request failed.", status);
 }
 
-/** Wait before retrying a 429 once; providers behind OpenRouter rate-limit short bursts. */
+/** Wait before retrying a 429 once. */
 export const RATE_LIMIT_RETRY_MS = 2000;
 
 /** One request, retried once after a short pause if the provider rate-limits it (429). */
@@ -137,8 +135,6 @@ export async function callStructured<T>(opts: StructuredCall<T>): Promise<T> {
           type: "json_schema",
           json_schema: { name: opts.schemaName, strict: true, schema: jsonSchema },
         },
-        // OpenRouter routes only to endpoints that support every parameter we send (incl. json_schema).
-        provider: { require_parameters: true },
       }, opts.rateLimitRetryMs ?? RATE_LIMIT_RETRY_MS);
       content = res.choices[0]?.message?.content ?? null;
     } catch (err) {

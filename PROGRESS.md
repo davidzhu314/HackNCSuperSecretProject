@@ -73,7 +73,7 @@ All of these are in `src/lib/` unless noted.
 | `demo-data.ts` | A made-up persona ("Priya Nair"), a vague LinkedIn bio, Hinge answers, and sample results. Every sample is marked `source: "sample"` so the UI can label it. |
 | `segments.ts` | Splits pasted text into numbered pieces (`s1`, `s2`, …). The AI cites these numbers, never quotes. |
 | `fact-guard.ts` | **FactCheck.** Plain code, no AI. Flags anything in a rewrite that your text and confirmed facts don't support. |
-| `llm.ts` | Talks to OpenRouter. Checks the AI's answer against the schema and retries once if it's broken. |
+| `llm.ts` | Calls Google Gemini through its OpenAI-compatible API. Checks the AI's answer against the schema and retries once if it's broken. |
 | `rubrics.ts` | The audiences and traits for LinkedIn and Hinge. |
 | `prompts.ts` | The instructions sent to the AI for each step. |
 | `postprocess.ts` | Cleans up the AI's answer: drops unknown segment numbers, trims long text, never marks a fact confirmed. |
@@ -112,11 +112,11 @@ We compared four models on the same inputs (one try each, so a first impression,
 - `gemini-3.8-flash` stayed closest to the facts but took 12–14 seconds per rewrite, which is too slow for a live demo.
 - Haiku listed vague claims like "I am a team player" as facts. A prompt fix solved this.
 
-The rewrite model can be changed with `OPENROUTER_REWRITE_MODEL`, with no code change.
+The rewrite model can be changed with `GEMINI_REWRITE_MODEL`, with no code change.
 
 ## Problems found and fixed
 
-- **Requests to Haiku failed.** Haiku on OpenRouter doesn't accept a `temperature` setting, and the request was set to fail rather than quietly drop a setting. Temperature is now optional (`OPENROUTER_TEMPERATURE`) and off by default.
+- **Earlier OpenRouter setup note:** Haiku on OpenRouter rejected `temperature`, so the old integration made temperature optional. The current Gemini integration uses `GEMINI_TEMPERATURE`, unset by default.
 - **vitest wouldn't install.** It needed newer Node type definitions. `@types/node` was updated from 20 to 26.
 - **A teammate's push removed `.venv/` from `.gitignore`.** That line is back, so the Python environment can't be committed by accident. Their `example.py` reads the Gemini key from the environment and does not contain a key.
 - **FactCheck flagged ordinary words** like "Student", "Apps", and headings like "What I've worked on". These are now allowed. Job titles like "Developer" and names like "Google" are still flagged.
@@ -128,10 +128,10 @@ The rewrite model can be changed with `OPENROUTER_REWRITE_MODEL`, with no code c
 
 | Name | Needed? | Notes |
 |---|---|---|
-| `OPENROUTER_API_KEY` | Yes | Server only. Lives in `.env.local`, never in git. |
-| `OPENROUTER_MODEL` | Optional | Defaults to `anthropic/claude-haiku-5.5`. |
-| `OPENROUTER_REWRITE_MODEL` | Optional | Defaults to `anthropic/claude-sonnet-5.5`. |
-| `OPENROUTER_TEMPERATURE` | Optional | Leave empty for Anthropic models. |
+| `GEMINI_API_KEY` | Yes | Server only. Lives in `.env.local`, never in git. |
+| `GEMINI_MODEL` | Optional | Defaults to `gemini-3.8-flash`. |
+| `GEMINI_REWRITE_MODEL` | Optional | Defaults to `gemini-3.8-flash`. |
+| `GEMINI_TEMPERATURE` | Optional | Leave empty to use Gemini's default. |
 
 ## Commands
 

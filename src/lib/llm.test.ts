@@ -22,20 +22,19 @@ function fakeClient(replies: (string | Error)[]) {
 const base = { system: "s", user: "u", schemaName: "extract", schema: ModelExtractSchema };
 
 describe("callStructured", () => {
-  const savedKey = process.env.OPENROUTER_API_KEY;
+  const savedKey = process.env.GEMINI_API_KEY;
   afterEach(() => {
-    if (savedKey === undefined) delete process.env.OPENROUTER_API_KEY;
-    else process.env.OPENROUTER_API_KEY = savedKey;
+    if (savedKey === undefined) delete process.env.GEMINI_API_KEY;
+    else process.env.GEMINI_API_KEY = savedKey;
   });
 
-  it("returns validated data and sends a strict json_schema with require_parameters", async () => {
+  it("returns validated data and sends a strict json_schema", async () => {
     const { client, calls } = fakeClient(['{"facts":["I study CS."]}']);
     const out = await callStructured({ ...base, client });
     expect(out).toEqual({ facts: ["I study CS."] });
-    const body = calls[0] as { response_format: { json_schema: { strict: boolean; schema: object } }; provider: object };
+    const body = calls[0] as { response_format: { json_schema: { strict: boolean; schema: object } } };
     expect(body.response_format.json_schema.strict).toBe(true);
     expect(body.response_format.json_schema.schema).not.toHaveProperty("$schema");
-    expect(body.provider).toEqual({ require_parameters: true });
   });
 
   it("retries once on invalid JSON, then succeeds", async () => {
@@ -75,7 +74,7 @@ describe("callStructured", () => {
   });
 
   it("reports a missing API key", async () => {
-    delete process.env.OPENROUTER_API_KEY;
+    delete process.env.GEMINI_API_KEY;
     await expect(callStructured(base)).rejects.toBeInstanceOf(LlmError);
     await expect(callStructured(base)).rejects.toMatchObject({ code: "missing_api_key" });
   });
@@ -83,13 +82,13 @@ describe("callStructured", () => {
 
 describe("getRewriteModel", () => {
   it("defaults to sonnet and can be overridden by env", () => {
-    const saved = process.env.OPENROUTER_REWRITE_MODEL;
-    delete process.env.OPENROUTER_REWRITE_MODEL;
+    const saved = process.env.GEMINI_REWRITE_MODEL;
+    delete process.env.GEMINI_REWRITE_MODEL;
     expect(getRewriteModel()).toBe(DEFAULT_REWRITE_MODEL);
-    expect(DEFAULT_REWRITE_MODEL).toBe("anthropic/claude-sonnet-5.5");
-    process.env.OPENROUTER_REWRITE_MODEL = "google/gemini-3.8-flash";
-    expect(getRewriteModel()).toBe("google/gemini-3.8-flash");
-    if (saved === undefined) delete process.env.OPENROUTER_REWRITE_MODEL;
-    else process.env.OPENROUTER_REWRITE_MODEL = saved;
+    expect(DEFAULT_REWRITE_MODEL).toBe("gemini-3.8-flash");
+    process.env.GEMINI_REWRITE_MODEL = "gemini-3.8-flash-preview";
+    expect(getRewriteModel()).toBe("gemini-3.8-flash-preview");
+    if (saved === undefined) delete process.env.GEMINI_REWRITE_MODEL;
+    else process.env.GEMINI_REWRITE_MODEL = saved;
   });
 });
