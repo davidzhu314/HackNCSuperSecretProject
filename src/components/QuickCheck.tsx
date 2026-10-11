@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Ruler, ScanSearch } from "lucide-react";
+import { Ruler, ScanSearch } from "lucide-react";
 import { useMemo, useState } from "react";
 import { BrandMark } from "@/components/Chrome";
 import { fitAcross } from "@/lib/fit";
@@ -30,15 +30,12 @@ export function QuickCheck(props: {
     <div className="quick-check">
       <h2 className="section-heading seed-heading">
         <ScanSearch />
-        Quick check <span className="quick-check-tag">no AI</span>
+        Quick check
       </h2>
       {!hasText ? (
         <p className="section-subtitle">Checks your wording as you type: buzzwords, missing specifics, repeats.</p>
       ) : !issues.length ? (
-        <p className="quick-check-clean">
-          <Check size={14} aria-hidden="true" />
-          No wording issues found.
-        </p>
+        <p className="quick-check-clean">Nothing flagged: no buzzwords, missing specifics, or repeats.</p>
       ) : (
         <>
           <ul className="quick-check-list">
@@ -64,6 +61,7 @@ export function QuickCheck(props: {
             <Ruler />
             Where it fits
           </h3>
+          <p className="section-subtitle">Your text&apos;s length against each platform&apos;s character limit.</p>
           <ul className="fit-list">
             {fits.map((f) => (
               <li key={f.platform} data-fits={f.fits}>
@@ -75,6 +73,9 @@ export function QuickCheck(props: {
                 </span>
                 <span className="fit-count">
                   {f.length.toLocaleString()} / {f.limit.toLocaleString()}
+                  <span className="fit-status">
+                    {f.fits ? "fits" : `${(f.length - f.limit).toLocaleString()} over`}
+                  </span>
                 </span>
                 {!f.fits && f.cut && (
                   <span className="fit-cut">
