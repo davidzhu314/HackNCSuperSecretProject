@@ -394,6 +394,7 @@ function FactsCard(props: {
           {facts.map((fact) => {
             const keys = linkedinCoverage?.perFact.find((f) => f.factId === fact.id)?.sectionKeys ?? [];
             const shared = platformsOf(fact, factPlatforms);
+            const sharedWithEveryPlatform = PLATFORMS.every((platform) => shared.includes(platform));
             return (
               <li key={fact.id} className="hub-fact hub-fact-wide">
                 <Check size={15} aria-hidden="true" />
@@ -401,6 +402,23 @@ function FactsCard(props: {
                   <p>{fact.text}</p>
                   <span className="fact-share" role="group" aria-label="Platforms this fact is used on">
                     Use on
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="share-all-button"
+                      aria-label={sharedWithEveryPlatform ? "Stop sharing this fact with every platform" : "Share this fact with every platform"}
+                      onClick={() => {
+                        const current = getSession().factPlatforms;
+                        updateSession({
+                          factPlatforms: {
+                            ...current,
+                            [fact.id]: sharedWithEveryPlatform ? [] : [...PLATFORMS],
+                          },
+                        });
+                      }}
+                    >
+                      {sharedWithEveryPlatform ? "Clear all" : "Select all"}
+                    </Button>
                     {PLATFORMS.map((p) => (
                       <button
                         type="button"
