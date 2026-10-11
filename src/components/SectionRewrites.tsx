@@ -122,7 +122,8 @@ export function SectionRewrites(props: {
   onRewriteAll: () => void;
   onAdversarial: (enabled: boolean) => void;
   onError: (message: string) => void;
-  onScore: (key: string, text: string) => Promise<ScoreComparison>;
+  /** `fresh`: ask the lenses again even if this text was read before. */
+  onScore: (key: string, text: string, fresh?: boolean) => Promise<ScoreComparison>;
 }) {
   const { sections, states, sourcesFor, confirmedFacts, goal, allStyle, allLength, sampleMode, rewritingAll, focusKey } = props;
   const { adversarial, adversarialOriginal, adversarialSegments } = props;
@@ -292,7 +293,7 @@ export function SectionRewrites(props: {
                   source={result.source}
                   onError={onError}
                   autoScore={st.autoScoreKey === resultKey(result.style, result.length)}
-                  onScore={(text) => props.onScore(section.key, text)}
+                  onScore={(text, _key, fresh) => props.onScore(section.key, text, fresh)}
                   qualityFields={sections.map((item) => ({ key: item.key, label: item.label, text: item.key === section.key ? currentText(section.key) : currentText(item.key), limit: item.kind === "headline" ? 220 : item.kind === "about" ? 2600 : 2000 }))}
                   qualityTargetKey={section.key}
                   use={{

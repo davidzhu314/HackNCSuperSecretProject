@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compareAnswered, comparisonSummary, coverage, applyLabel } from "./answered";
+import { compareAnswered, comparisonSummary, coverage, applyLabel, groupOpen, verdictLine } from "./answered";
 import type { AudienceCritique, EvaluateResponse, Rating } from "./schemas";
 
 const c = (audience: string, trait: string, rating: Rating, extra: Partial<AudienceCritique> = {}): AudienceCritique => ({
@@ -107,5 +107,37 @@ describe("applyLabel", () => {
     expect(applyLabel(better, true)).toBe("Use this version (+1 answered)");
     expect(applyLabel(null, true)).toBe("Use anyway");
     expect(applyLabel(null, false)).toBe("Use this version");
+  });
+});
+
+describe("groupOpen", () => {
+  it("groups one question's lenses into one item and drops duplicate suggestions", () => {
+    const original = resp(c("recruiter", "clarity", "weak", { suggestion: "Add who you share it with." }), c("manager", "clarity", "weak", { suggestion: "add who you share it with" }));
+    const rewrite = resp(c("recruiter", "clarity", "weak", { suggestion: "Add who you share it with." }), c("manager", "clarity", "not_evident", { suggestion: "Add who you share it with!" }));
+    const cmp = compareAnswered(original, rewrite, audiences, ["clarity"]);
+    const [q, ...rest] = groupOpen(cmp.open, ["clarity"], cmp);
+    expect(rest).toEqual([]);
+    expect(q.audiences).toEqual(["recruiter", "manager"]);
+    expect(q.suggestions).toEqual(["Add who you share it with."]);
+    expect(q.needsDetail).toBe(true);
+  });
+
+  it("doesn't call a question lost by the rewrite one that needs a new detail", () => {
+    const cmp = compareAnswered(resp(c("recruiter", "clarity", "strong")), resp(c("recruiter", "clarity", "weak")), ["recruiter"], ["clarity"]);
+    expect(groupOpen(cmp.open, ["clarity"], cmp)[0].needsDetail).toBe(false);
+  });
+
+  it("without a rewrite read, nothing is marked as needing a detail", () => {
+    const open = [c("recruiter", "evidence", "weak")];
+    expect(groupOpen(open, traits, null)).toEqual([{ trait: "evidence", audiences: ["recruiter"], suggestions: ["fix evidence"], needsDetail: false }]);
+  });
+});
+
+describe("verdictLine", () => {
+  it("says what changed in one line", () => {
+    const same = compareAnswered(resp(c("recruiter", "clarity", "moderate")), resp(c("recruiter", "clarity", "strong")), ["recruiter"], ["clarity"]);
+    expect(verdictLine(same)).toBe("Same questions answered as your text · 1 clearer");
+    const better = compareAnswered(resp(c("recruiter", "clarity", "weak")), resp(c("recruiter", "clarity", "moderate")), ["recruiter"], ["clarity"]);
+    expect(verdictLine(better)).toBe("1 more answered");
   });
 });

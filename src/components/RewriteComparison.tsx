@@ -68,7 +68,8 @@ export function RewriteComparison(props: {
   qualityFields?: QualityField[];
   qualityTargetKey?: string;
   use?: { current: string; applied: boolean; onUse: (text: string) => void; onUndo: () => void };
-  onScore?: (text: string, key?: string) => Promise<ScoreComparison>;
+  /** `fresh`: ask the lenses again even if this text was read before (otherwise a remembered read is reused). */
+  onScore?: (text: string, key?: string, fresh?: boolean) => Promise<ScoreComparison>;
   /** Tone and length controls: one version per setting, like LinkedIn's style and length. */
   tones: { id: RewriteTone; label: string; summary: string }[];
   tone: RewriteTone;
@@ -203,7 +204,8 @@ export function VariationResult(props: {
    * profile text now; `applied` says whether it is an accepted rewrite.
    */
   use?: { current: string; applied: boolean; onUse: (text: string) => void; onUndo: () => void };
-  onScore?: (text: string, key?: string) => Promise<ScoreComparison>;
+  /** `fresh`: ask the lenses again even if this text was read before (otherwise a remembered read is reused). */
+  onScore?: (text: string, key?: string, fresh?: boolean) => Promise<ScoreComparison>;
   /** What this text is (a LinkedIn section's label); defaults to the platform's field. For the export. */
   section?: string;
   qualityFields?: QualityField[];
@@ -535,7 +537,7 @@ export function VariationResult(props: {
           </span>
         )}
         <div className="action-buttons">
-          {props.onScore && <Button variant="glass" disabled={scoring || source === "sample"} title={source === "sample" ? "Sample mode doesn't send text to the AI" : "Have the lenses you picked read this version, and count which of their questions it answers"} onClick={async () => { setScoring(true); setScoreComparison(null); try { setScoreComparison(await props.onScore?.(text, props.qualityTargetKey) ?? null); } catch (error) { onError(error instanceof Error ? error.message : "Couldn't get the lenses' read on this version. Try again."); } finally { setScoring(false); } }}>
+          {props.onScore && <Button variant="glass" disabled={scoring || source === "sample"} title={source === "sample" ? "Sample mode doesn't send text to the AI" : "Have the lenses you picked read this version, and count which of their questions it answers"} onClick={async () => { setScoring(true); setScoreComparison(null); try { setScoreComparison(await props.onScore?.(text, props.qualityTargetKey, scoreComparison !== null) ?? null); } catch (error) { onError(error instanceof Error ? error.message : "Couldn't get the lenses' read on this version. Try again."); } finally { setScoring(false); } }}>
             {scoring ? <LoaderCircle className="animate-spin" /> : <Sparkles />}
             {scoring ? "Asking the lenses…" : scoreComparison ? "Ask the lenses again" : "Ask the same lenses"}
           </Button>}
