@@ -1,10 +1,11 @@
 "use client";
 
-import { Check, Clipboard, LoaderCircle, PenLine, ShieldCheck, Sparkles, TriangleAlert } from "lucide-react";
+import { Check, CircleAlert, Clipboard, LoaderCircle, PenLine, ShieldCheck, Sparkles, TriangleAlert, Undo2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { checkRewrite } from "@/lib/fact-guard";
 import { WARNING_LABEL, wordDiff } from "@/lib/persona-ui";
+import { traceSentences, type ReceiptStatus } from "@/lib/provenance";
 import {
   LIMITS,
   type GuardWarning,
@@ -17,6 +18,12 @@ import {
 } from "@/lib/schemas";
 import { PLATFORM_CONFIGS } from "@/lib/rubrics";
 import { checkLength, checkStyle } from "@/lib/style-check";
+
+const RECEIPT_LABEL: Record<ReceiptStatus, string> = {
+  traced: "Traced",
+  weak: "Partly traced",
+  untraced: "No source",
+};
 
 const STYLE_LABEL: Record<RewriteStyle, string> = {
   direct: "Option A: Direct",
@@ -113,15 +120,37 @@ export function RewriteComparison(props: {
   );
 }
 
-function VariationResult(props: {
+/**
+ * Group the diff's tokens into the sentences they belong to (by character offset), so each
+ * sentence can be clicked for its receipt. Tokens outside any sentence get sentence -1.
+ */
+function groupBySentence(count: number, offsets: number[], ranges: { start: number; end: number }[]) {
+  const groups: { sentence: number; indices: number[] }[] = [];
+  for (let i = 0; i < count; i++) {
+    const at = offsets[i];
+    const sentence = ranges.findIndex((r) => r.start >= 0 && at >= r.start && at < r.end);
+    const last = groups[groups.length - 1];
+    if (last && last.sentence === sentence) last.indices.push(i);
+    else groups.push({ sentence, indices: [i] });
+  }
+  return groups;
+}
+
+export function VariationResult(props: {
   original: string;
   segments: Segment[];
   confirmedFacts: IdentityFact[];
-  variation: RewriteVariation;
+  /** The style isn't shown here, so any style works (Hinge's two, or a LinkedIn section's three). */
+  variation: Omit<RewriteVariation, "style">;
   source: ResultSource;
   onError: (message: string) => void;
+  /**
+   * LinkedIn sections: put this version (as edited) into the profile. `current` is the section's
+   * profile text now; `applied` says whether it is an accepted rewrite.
+   */
+  use?: { current: string; applied: boolean; onUse: (text: string) => void; onUndo: () => void };
 }) {
-  const { original, segments, confirmedFacts, variation, source, onError } = props;
+  const { original, segments, confirmedFacts, variation, source, onError, use } = props;
   const { rewrite } = variation;
   const [text, setText] = useState(rewrite.content);
   const [editing, setEditing] = useState(false);
@@ -145,6 +174,22 @@ function VariationResult(props: {
   }, [edited, text, variation, rewrite.platform]);
 
   const diff = useMemo(() => wordDiff(original, text), [original, text]);
+  const receipts = useMemo(() => traceSentences(text, segments, confirmedFacts), [text, segments, confirmedFacts]);
+  // Where each receipt's sentence sits in the text, so the rewritten text can be clicked by sentence.
+  const sentenceRanges = useMemo(() => {
+    let from = 0;
+    return receipts.map((r) => {
+      const start = text.indexOf(r.text, from);
+      if (start < 0) return { start: -1, end: -1 };
+      from = start + r.text.length;
+      return { start, end: from };
+    });
+  }, [receipts, text]);
+  const [openSentence, setOpenSentence] = useState<number | null>(null);
+  const [showChecks, setShowChecks] = useState(false);
+  // Concrete problems (a number, name, stronger verb, or bad fact id) vs. "review this sentence".
+  const concrete = warnings.filter((w) => w.kind !== "unsupported_claim");
+  const checkState = !warnings.length ? "clean" : concrete.length ? "problem" : "review";
   const rangesFor = (list: GuardWarning[]) => {
     const content = text.toLowerCase();
     return list.filter(literal).flatMap((warning) => {
@@ -175,6 +220,8 @@ function VariationResult(props: {
   const factText = new Map(confirmedFacts.map((fact) => [fact.id, fact.text]));
   const usedFactIds = [...new Set(rewrite.usedFactIds)];
 
+  const inUse = !!use?.applied && use.current.trim() === text.trim();
+
   async function copy() {
     try {
       await navigator.clipboard.writeText(text);
@@ -203,9 +250,42 @@ function VariationResult(props: {
         <section className="profile-panel">
           <div className="panel-header">
             <h3 className="section-heading">Rewritten{edited ? " (edited)" : ""}</h3>
-            <Button variant="link" size="sm" onClick={() => setEditing(!editing)}>
-              {editing ? "Done editing" : "Edit text"}
-            </Button>
+            <span className="panel-tools">
+              <button
+                type="button"
+                className="check-badge"
+                data-state={checkState}
+                aria-expanded={showChecks}
+                aria-label={
+                  checkState === "clean"
+                    ? "FactCheck: no unsupported concrete claims detected"
+                    : `FactCheck: ${warnings.length} to review`
+                }
+                title={checkState === "clean" ? "No unsupported concrete claims detected" : `${warnings.length} to review`}
+                onClick={() => setShowChecks(!showChecks)}
+              >
+                {checkState === "clean" ? <Check /> : checkState === "review" ? <TriangleAlert /> : <CircleAlert />}
+                {warnings.length > 0 && <span>{warnings.length}</span>}
+                {source === "sample" && <span className="sr-only"> (sample result)</span>}
+              </button>
+              {styleWarnings.length > 0 && (
+                <button
+                  type="button"
+                  className="check-badge"
+                  data-state="style"
+                  aria-expanded={showChecks}
+                  aria-label={`${styleWarnings.length} style suggestion${styleWarnings.length === 1 ? "" : "s"}`}
+                  title="Style suggestions"
+                  onClick={() => setShowChecks(!showChecks)}
+                >
+                  <PenLine />
+                  <span>{styleWarnings.length}</span>
+                </button>
+              )}
+              <Button variant="link" size="sm" onClick={() => setEditing(!editing)}>
+                {editing ? "Done editing" : "Edit text"}
+              </Button>
+            </span>
           </div>
           {editing ? (
             <div className="profile-content">
@@ -222,93 +302,119 @@ function VariationResult(props: {
             </div>
           ) : (
             <div className="diff-body">
-              {diff.revised.map((token, index) => (
-                <span key={index} className={classFor(index, token.changed)}>
-                  {token.text}
-                </span>
-              ))}
+              {groupBySentence(diff.revised.length, offsets, sentenceRanges).map((group) => {
+                const tokens = group.indices.map((index) => (
+                  <span key={index} className={classFor(index, diff.revised[index].changed)}>
+                    {diff.revised[index].text}
+                  </span>
+                ));
+                if (group.sentence < 0) return <span key={`t${group.indices[0]}`}>{tokens}</span>;
+                const r = receipts[group.sentence];
+                return (
+                  <span
+                    key={`s${group.indices[0]}`}
+                    role="button"
+                    tabIndex={0}
+                    className="sentence"
+                    data-status={r.status}
+                    data-open={openSentence === group.sentence}
+                    title="Where this sentence comes from"
+                    onClick={() => setOpenSentence(openSentence === group.sentence ? null : group.sentence)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        setOpenSentence(openSentence === group.sentence ? null : group.sentence);
+                      }
+                    }}
+                  >
+                    {tokens}
+                  </span>
+                );
+              })}
+            </div>
+          )}
+          {!editing && openSentence !== null && receipts[openSentence] && (
+            <div className="receipt-pop" data-status={receipts[openSentence].status} role="status">
+              <strong>{RECEIPT_LABEL[receipts[openSentence].status]}</strong>
+              {receipts[openSentence].sources.length ? (
+                receipts[openSentence].sources.map((source) => (
+                  <p key={`${source.kind}|${source.id}`}>
+                    <span className="receipt-src">{source.kind === "segment" ? "Your profile" : "Your fact"}</span>
+                    {source.kind === "segment" && source.prompt && <strong className="source-prompt">{source.prompt}</strong>}
+                    {source.text}
+                  </p>
+                ))
+              ) : (
+                <p>Nothing in your profile or facts supports this. Review it before using it.</p>
+              )}
             </div>
           )}
         </section>
       </div>
-      <section className="factcheck-panel" data-warnings={warnings.length > 0} aria-live="polite">
-        <h3 className="section-heading">
-          <ShieldCheck />
-          FactCheck
-          {source === "sample" && <span className="sample-badge">Sample result</span>}
-        </h3>
-        {edited && <p className="empty-note">Re-checked against your edited text.</p>}
-        {warnings.length === 0 ? (
-          <p className="status-note">
-            <Check />
-            No unsupported concrete claims detected
-          </p>
-        ) : (
-          <div className="guard-list">
-            {warnings.map((warning, index) => (
-              <div className="guard-item" key={index}>
-                <TriangleAlert size={16} />
-                <div>
-                  <strong>{WARNING_LABEL[warning.kind]}</strong>
-                  <q>{warning.text}</q>
-                  <p>{warning.explanation}</p>
-                </div>
+      {showChecks && (warnings.length > 0 || styleWarnings.length > 0 || edited) && (
+        <section className="checks-pop" aria-live="polite">
+          {edited && <p className="empty-note">Re-checked against your edited text.</p>}
+          {warnings.map((warning, index) => (
+            <div className="guard-item" key={`f${index}`}>
+              {warning.kind === "unsupported_claim" ? <TriangleAlert size={16} /> : <CircleAlert size={16} />}
+              <div>
+                <strong>{WARNING_LABEL[warning.kind]}</strong> <q>{warning.text}</q>
+                <p>{warning.explanation}</p>
               </div>
-            ))}
-          </div>
-        )}
-        <p className="empty-note">
-          FactCheck catches concrete claims like numbers, names, and inflated verbs. It can miss subtle exaggeration.
-        </p>
-      </section>
-      {styleWarnings.length > 0 && (
-        <section className="style-panel">
-          <h3 className="section-heading">
-            <PenLine />
-            Style suggestions <span className="empty-note">(wording, not truth)</span>
-          </h3>
-          <div className="guard-list">
-            {styleWarnings.map((warning, index) => (
-              <div className="style-item" key={index}>
-                <div>
-                  <strong>{WARNING_LABEL[warning.kind]}</strong>
-                  <q>{warning.text}</q>
-                  <p>{warning.explanation}</p>
-                </div>
+            </div>
+          ))}
+          {styleWarnings.map((warning, index) => (
+            <div className="style-item" key={`s${index}`}>
+              <PenLine size={16} />
+              <div>
+                <strong>{WARNING_LABEL[warning.kind]}</strong> <q>{warning.text}</q>
+                <p>{warning.explanation}</p>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </section>
       )}
-      <div className="summary-grid">
-        <section>
-          <h3 className="section-heading">What changed</h3>
-          <ul className="change-list">
-            {rewrite.changeSummary.map((change, index) => (
-              <li key={index}>{change}</li>
-            ))}
-          </ul>
-        </section>
-        <section>
-          <h3 className="section-heading">
-            Facts the AI says it used <span className="empty-note">(advisory)</span>
-          </h3>
-          <div className="fact-chips">
-            {usedFactIds.map((id) => (
-              <span className="fact-chip" key={id}>
-                {factText.get(id) ?? `${id} (not one of your confirmed facts)`}
-              </span>
-            ))}
-            {!usedFactIds.length && <span className="empty-note">None reported.</span>}
-          </div>
-        </section>
-      </div>
+      {showChecks && !warnings.length && !styleWarnings.length && !edited && (
+        <p className="checks-pop status-note">
+          <ShieldCheck size={15} />
+          No unsupported concrete claims detected.
+        </p>
+      )}
+      <details className="change-details">
+        <summary>What changed</summary>
+        <ul className="change-list">
+          {rewrite.changeSummary.map((change, index) => (
+            <li key={index}>{change}</li>
+          ))}
+        </ul>
+        {usedFactIds.length > 0 && (
+          <p className="empty-note">
+            Facts the AI says it used (advisory): {usedFactIds.map((id) => factText.get(id) ?? `${id} (not a confirmed fact)`).join("; ")}
+          </p>
+        )}
+      </details>
       <div className="action-band">
-        <span className="empty-note">Review your words before sharing them.</span>
-        <Button variant="aero" onClick={() => void copy()}>
-          {copied ? <Check /> : <Clipboard />}
-          {copied ? "Copied" : warnings.length ? "Copy anyway" : "Copy"}
-        </Button>
+        <span className="empty-note">
+          {use?.applied && inUse ? "This version is in your profile." : "Review your words before sharing them."}
+        </span>
+        <div className="action-buttons">
+          {use?.applied && (
+            <Button variant="ghost" onClick={use.onUndo}>
+              <Undo2 />
+              Undo
+            </Button>
+          )}
+          <Button variant={use ? "glass" : "aero"} onClick={() => void copy()}>
+            {copied ? <Check /> : <Clipboard />}
+            {copied ? "Copied" : warnings.length ? "Copy anyway" : "Copy"}
+          </Button>
+          {use && (
+            <Button variant="aero" disabled={inUse} onClick={() => use.onUse(text)}>
+              <Check />
+              {inUse ? "In your profile" : warnings.length ? "Use anyway" : "Use this version"}
+            </Button>
+          )}
+        </div>
       </div>
     </>
   );

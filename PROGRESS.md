@@ -1,6 +1,41 @@
-# PERSONA: progress so far
+# Personify: progress so far
 
-Updated 2026-10-10. This covers the work since setup finished. For the product idea and rules, see [SPEC.md](SPEC.md) and [CLAUDE.md](CLAUDE.md).
+For the product idea and rules, see [SPEC.md](SPEC.md) and [CLAUDE.md](CLAUDE.md); for the current handoff, [HANDOFF.md](HANDOFF.md).
+
+## Latest (2026-10-10, late night): scenic UI, closed-loop flow, write once
+
+Since the sections phase (below), all merged to `main` (not yet deployed; 266 tests pass):
+
+- **Scenic UI** (merged from the team's Lovable "aero-persona-hub"): home is the LinkedIn city / Hinge town destinations; the studio shows the platform's photo, hotspot "pearls" as the step rail, the work in a wide panel, and a bottom bar with consent status and progress. The 3D look-around and the slide-out drawer were left out on purpose (weight, phones, room for the section editor).
+- **Identity Hub, made real**: photo and LinkedIn PDF import (both browser-only), your facts across platforms, LinkedIn coverage for your own profile (the demo is shown as a labeled example when you have nothing yet).
+- **Shared session** (`identity-session.ts`): profiles, facts, and photo follow you between home, studio, and hub. Memory only. Next 16 keeps pages you've left mounted but hidden, so the studio writes only real changes and restarts when the hub changes something.
+- **Closed loop**: "Use this version" (undoable) puts a section rewrite into your profile; the studio ends with "Copy updated profile", "See it in your Identity Hub", or the other platform; the hub shows coverage before → after. Audience Clash keeps the text it was given and says when it predates rewrites you used.
+- **Write once, show up everywhere** (`fact-platforms.ts`): each confirmed fact is shared with chosen platforms (found facts start on the platform they were found on, typed facts on both); rewrites and FactCheck use only facts shared with the current platform. "Start from my facts" fills empty Hinge answers or an empty About with your own confirmed sentences.
+- **Fixes**: lens cards were clipped by a fixed height; entrance animations no longer start invisible; step changes scroll to the top; 118 unused CSS rules removed.
+
+## Earlier (2026-10-10, night): sections phase done, tested live
+
+The product is named **Personify** (it was PERSONA in earlier notes below). Since the notes below were written: the Lovable UI was ported in, Hinge was built end to end, the site was deployed, and the sections phase was built, merged, tested live, and deployed. 252 tests passed at the time; lint and build were clean.
+
+**Data and AI side** (Person 1):
+
+- **Profile by sections** (`profile.ts`, #7): headline, About, and Experience / Education / Projects / Volunteering entries. Segment ids are per section (`exp2-s1`); only free text is ever rewritten.
+- **PDF import** (`linkedin-pdf.ts`, #9): LinkedIn's "Save to PDF" export parsed in the browser with `pdfjs-dist`; drops name, contact details, and location. Tested on a synthetic export; checked locally on one real export.
+- **Per-section rewrites** (`/api/rewrite-section`, #10): one section and one style per call, about 2-3.5s per section (About ~10-13s), "rewrite all" for 8 sections in 8-14s at 3 at a time. FactCheck checks an entry only against its own text.
+- **8 lenses in 4 categories** (#11), traits shown as plain questions; sample feedback covers all 8.
+- **Fact coverage** (#12): real counts of which confirmed facts appear in which section, for the demo hub.
+
+**UI side** (Person 2: #5, #6, #8, #14):
+
+- **Section editor** (`LinkedInEditor`): headline, About, entries with add/remove, skills one per line, optional job description, 10,000-character counter. **Import PDF** fills the same boxes and shows a review banner with the parser's warnings.
+- **Consent once per browser** (`consent.ts`): a localStorage flag with a way to withdraw. Every request still sends `consent: true`.
+- **Lens picker**: the 8 lenses grouped by category, up to 3, traits as plain questions.
+- **Audience Clash** (`ProfileClash`, `clash.ts`): the profile annotated section by section, reaction cards with "What to change" and "Rewrite this section", audience filters, "Where they disagree" (sentences rated 2+ levels apart), "Nobody could find".
+- **Per-section rewrites** (`SectionRewrites`): one card per section with a Direct / Narrative dropdown, cached per style, "Rewrite all" at 3 at a time (`run-limited.ts`). Each result keeps the diff, FactCheck, style suggestions, receipts, edit-and-recheck, and Copy.
+- **Receipts** (`provenance.ts`): each rewritten sentence traced to the source sentences or confirmed facts it came from.
+- **Identity Hub** (`/hub`): at the time demo-only, with real fact-coverage counts per section (made real later; see above).
+
+The notes below describe the earlier plain UI and are kept as a record; their counts and to-do items are out of date.
 
 ## Where things stand
 
@@ -106,10 +141,9 @@ The rewrite model can be changed with `OPENROUTER_REWRITE_MODEL`, with no code c
 
 ## Still to do
 
-1. **Vercel:** add `OPENROUTER_API_KEY` to Vercel (`vercel env add OPENROUTER_API_KEY production`), then deploy with `vercel --prod`. The public URL still shows the starter page.
-2. **Check the deployed site:** the live flow plus error cases (empty input, declined consent, missing key).
-3. **Lovable:** consent goes before the facts screen (the brief was corrected). Port the finished screens into `src/components/`.
-4. **Demo:** rehearse the 90-second script and record a backup video.
-5. **Security:** revoke the old Gemini key that was briefly committed in `933a9c6`, at https://aistudio.google.com/apikey.
-6. **`example.py`:** a teammate's Gemini test script, not used by the app. Decide whether to keep it.
-7. **If time allows:** Hinge screens, then blind A/B.
+1. **Deploy** `main` (`vercel --prod --yes`); the live site predates the scenic UI.
+2. **Live run** on the deployed URL: feedback, section rewrites, "Use this version", and per-platform facts were only checked in sample mode.
+3. **Security:** revoke the old Gemini key that was briefly committed in `933a9c6`, at https://aistudio.google.com/apikey.
+4. **Demo:** rehearse the 90-second script (lead with "try to make me lie") and record a backup video. The demo's facts start LinkedIn-only, so share one with Hinge on stage before "Hinge next".
+5. **Evals:** review the 20 draft cases; a model-comparison runner isn't built.
+6. **If time allows:** "Use this version" for Hinge (needs per-answer rewrite output), blind A/B.

@@ -82,6 +82,20 @@ function mapUpstreamError(err: unknown): LlmError {
   return new LlmError("upstream_error", "The AI provider request failed.", status);
 }
 
+/** Wait before retrying a 429 once; providers behind OpenRouter rate-limit short bursts. */
+export const RATE_LIMIT_RETRY_MS = 2000;
+
+/** One request, retried once after a short pause if the provider rate-limits it (429). */
+async function createWithRateRetry(client: ChatClient, params: Record<string, unknown>, retryMs: number) {
+  try {
+    return await client.chat.completions.create(params);
+  } catch (err) {
+    if ((err as { status?: number })?.status !== 429) throw err;
+    await new Promise((resolve) => setTimeout(resolve, retryMs));
+    return client.chat.completions.create(params);
+  }
+}
+
 export type StructuredCall<T> = {
   system: string;
   user: string;
@@ -90,6 +104,8 @@ export type StructuredCall<T> = {
   model?: string;
   client?: ChatClient;
   maxTokens?: number;
+  /** Pause before the single 429 retry (tests pass 0). */
+  rateLimitRetryMs?: number;
 };
 
 /**
@@ -109,7 +125,7 @@ export async function callStructured<T>(opts: StructuredCall<T>): Promise<T> {
 
     let content: string | null;
     try {
-      const res = await client.chat.completions.create({
+      const res = await createWithRateRetry(client, {
         model: opts.model ?? getModel(),
         ...temperatureParam(),
         max_tokens: opts.maxTokens ?? 2000,
@@ -123,10 +139,10 @@ export async function callStructured<T>(opts: StructuredCall<T>): Promise<T> {
         },
         // OpenRouter routes only to endpoints that support every parameter we send (incl. json_schema).
         provider: { require_parameters: true },
-      });
+      }, opts.rateLimitRetryMs ?? RATE_LIMIT_RETRY_MS);
       content = res.choices[0]?.message?.content ?? null;
     } catch (err) {
-      throw mapUpstreamError(err); // network/auth/rate-limit errors are not retried
+      throw mapUpstreamError(err); // network/auth errors aren't retried; a 429 was retried once above
     }
 
     if (!content) {

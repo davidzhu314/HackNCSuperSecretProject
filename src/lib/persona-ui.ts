@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { LIMITS, type GuardWarning, type Rating } from "./schemas";
+import { ENTRY_KINDS, LIMITS, type EntrySectionKind, type GuardWarning, type IdentityFact, type LinkedInProfile, type Rating } from "./schemas";
 
 // Client-side helpers for the UI (ported from the Lovable design). No AI, no network.
 
@@ -72,4 +72,57 @@ export function wordDiff(original: string, revised: string): { original: DiffTok
     }
   }
   return { original: left, revised: right };
+}
+
+/**
+ * Merge new facts into a kept set. Facts the user confirmed or typed are true about them on every
+ * platform, so they are kept; earlier unconfirmed AI suggestions are replaced. Incoming facts that
+ * repeat a kept one are dropped, and ids that collide are renumbered so every id stays unique.
+ */
+export function mergeFacts(prev: IdentityFact[], incoming: IdentityFact[], max: number = LIMITS.maxFacts): IdentityFact[] {
+  const kept = prev.filter((f) => f.confirmed || f.source === "user");
+  const seenText = new Set(kept.map((f) => f.text.trim().toLowerCase()));
+  const used = new Set(kept.map((f) => f.id));
+  let next = 1;
+  const freshId = () => {
+    while (used.has(`f${next}`)) next++;
+    return `f${next}`;
+  };
+  const out = [...kept];
+  for (const fact of incoming) {
+    const key = fact.text.trim().toLowerCase();
+    if (!key || seenText.has(key)) continue;
+    const id = used.has(fact.id) ? freshId() : fact.id;
+    used.add(id);
+    seenText.add(key);
+    out.push({ ...fact, id });
+  }
+  return out.slice(0, max);
+}
+
+const ENTRY_LABEL: Record<EntrySectionKind, string> = {
+  experience: "Experience",
+  education: "Education",
+  projects: "Projects",
+  volunteering: "Volunteering",
+};
+
+/**
+ * Every section of a LinkedIn profile that feedback can cite, in LinkedIn order, with the same
+ * labels the studio uses ("Experience · Acme · Intern"). Empty sections are skipped.
+ */
+export function profileSectionList(p: LinkedInProfile): { key: string; label: string; rewritable: boolean }[] {
+  return [
+    ...(p.headline.trim() ? [{ key: "headline", label: "Headline", rewritable: true }] : []),
+    ...(p.about.trim() ? [{ key: "about", label: "About", rewritable: true }] : []),
+    ...ENTRY_KINDS.flatMap((kind) =>
+      p[kind].map((e) => ({
+        key: e.id,
+        label: [ENTRY_LABEL[kind], e.organization.trim(), e.title.trim()].filter(Boolean).join(" · "),
+        rewritable: Boolean(e.description.trim()),
+      })),
+    ),
+    ...(p.skills.some((s) => s.trim()) ? [{ key: "skills", label: "Skills", rewritable: false }] : []),
+    ...(p.honors.some((s) => s.trim()) ? [{ key: "honors", label: "Honors", rewritable: false }] : []),
+  ];
 }

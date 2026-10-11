@@ -23,7 +23,7 @@ const IRREGULAR: Record<string, string> = {
   made: "make", drove: "drive", oversaw: "oversee", began: "begin", grew: "grow", won: "win",
 };
 
-function stem(word: string): string {
+export function stem(word: string): string {
   let w = word.toLowerCase().replace(/['’]s$/, "");
   if (IRREGULAR[w]) return IRREGULAR[w];
   for (const suffix of ["ing", "ed", "er", "or", "es", "s"]) {
@@ -175,8 +175,31 @@ function tokenize(content: string): Token[] {
 const isCapitalized = (w: string) => /^[A-Z]/.test(w);
 const hasInnerCapsOrDigit = (w: string) => w.length > 1 && /[A-Z].*[A-Z]|\d/.test(w);
 
+/**
+ * Acronyms of capitalized phrases in the sources: "Large Language Models" supports "LLM"/"LLMs".
+ * Only windows of 2-6 words inside Title Case runs count, so ordinary lowercase text can't support an acronym.
+ */
+function corpusAcronyms(corpus: string): Set<string> {
+  const out = new Set<string>();
+  for (const m of corpus.matchAll(/\b[A-Z][A-Za-z]*(?:[ -]+(?:of |and |for |the |in )?[A-Z][A-Za-z]*)+/g)) {
+    const caps = m[0].split(/[ -]+/).filter((w) => /^[A-Z]/.test(w));
+    for (let start = 0; start < caps.length; start++) {
+      for (let end = start + 2; end <= Math.min(caps.length, start + 6); end++) {
+        out.add(caps.slice(start, end).map((w) => w[0]).join(""));
+      }
+    }
+  }
+  return out;
+}
+
+const isAcronymOf = (word: string, acronyms: Set<string>) => {
+  const bare = word.replace(/s$/, "");
+  return /^[A-Z]{2,6}$/.test(bare) && acronyms.has(bare);
+};
+
 function checkEntities(content: string, corpus: string): GuardWarning[] {
   const known = new Set(words(corpus).map(stem));
+  const acronyms = corpusAcronyms(corpus);
   const tokens = tokenize(content);
   const warnings: GuardWarning[] = [];
 
@@ -184,9 +207,13 @@ function checkEntities(content: string, corpus: string): GuardWarning[] {
     if (!isCapitalized(tok.text)) return;
     const bare = tok.text.replace(/['’]s$/, "");
     if (ENTITY_ALLOWLIST.has(bare.toLowerCase()) || /^I['’]/.test(bare)) return;
+    if (isAcronymOf(bare, acronyms)) return;
 
     if (tok.atStart) {
       // A capital at sentence start proves nothing, so only check names that look like names.
+      // A past-tense verb opening a bullet ("Named Tutor of the Month") isn't a name; the
+      // capitalized words after it are still checked on their own.
+      if (/^[A-Z][a-z]{2,}ed$/.test(bare)) return;
       const next = tokens[i + 1];
       const startsPhrase =
         next !== undefined &&
@@ -230,6 +257,7 @@ const VERBS: VerbEntry[] = [
   { lemma: "deliver", rank: 2, forms: ["delivered", "delivering"] },
   { lemma: "maintain", rank: 2, forms: ["maintained", "maintaining"] },
   { lemma: "teach", rank: 2, forms: ["taught", "teaching"] },
+  { lemma: "author", rank: 2, forms: ["authored", "authoring", "coauthored", "co-authored"] },
   { lemma: "lead", rank: 3, forms: ["led", "leading"] },
   { lemma: "manage", rank: 3, forms: ["manage", "managed", "managing"] },
   { lemma: "direct", rank: 3, forms: ["directed", "directing"] },
@@ -250,17 +278,23 @@ const FORM_TO_VERB = new Map<string, VerbEntry>(
   VERBS.flatMap((v) => v.forms.map((f) => [f, v] as const)),
 );
 
-function verbsIn(text: string): Map<string, VerbEntry> {
+// Base forms ("lead", "manages") are ambiguous with nouns ("Research Lead"), so they only count
+// as SUPPORT in the sources, never as a claim in the rewrite. "found" is excluded (past of "find").
+const BASE_TO_VERB = new Map<string, VerbEntry>(
+  VERBS.filter((v) => v.lemma !== "found").flatMap((v) => [[v.lemma, v] as const, [`${v.lemma}s`, v] as const]),
+);
+
+function verbsIn(text: string, includeBase = false): Map<string, VerbEntry> {
   const found = new Map<string, VerbEntry>();
-  for (const w of text.toLowerCase().match(/[a-z]+/g) ?? []) {
-    const v = FORM_TO_VERB.get(w);
+  for (const w of text.toLowerCase().match(/[a-z]+(?:-[a-z]+)?/g) ?? []) {
+    const v = FORM_TO_VERB.get(w) ?? (includeBase ? BASE_TO_VERB.get(w) : undefined);
     if (v) found.set(v.lemma, v);
   }
   return found;
 }
 
 function checkVerbs(content: string, corpus: string): GuardWarning[] {
-  const inCorpus = verbsIn(corpus);
+  const inCorpus = verbsIn(corpus, true);
   const corpusMax = Math.max(0, ...[...inCorpus.values()].map((v) => v.rank));
   const strongest = [...inCorpus.values()].find((v) => v.rank === corpusMax);
   const warnings: GuardWarning[] = [];
@@ -311,6 +345,14 @@ const STOPWORDS = new Set(
     "can will just have has had do does did").split(" "),
 );
 
+/** Words that carry meaning (no stopwords, 3+ letters). Shared with sentence provenance. */
+export function contentWords(text: string): string[] {
+  return words(text).filter((w) => !STOPWORDS.has(w.toLowerCase()) && w.length > 2);
+}
+
+/** How rewrites are split into sentences for loose-claim checks and provenance. */
+export const SENTENCE_SPLIT = /[.!?\n|•]+/;
+
 /**
  * A valid fact ID proves nothing about entailment. Flag sentences that share almost no
  * content words with the original or confirmed facts so a human reviews them.
@@ -318,8 +360,8 @@ const STOPWORDS = new Set(
 function checkLooseClaims(content: string, corpus: string): GuardWarning[] {
   const known = new Set(words(corpus).map(stem));
   const warnings: GuardWarning[] = [];
-  for (const sentence of content.split(/[.!?\n|•]+/)) {
-    const content_ = words(sentence).filter((w) => !STOPWORDS.has(w.toLowerCase()) && w.length > 2);
+  for (const sentence of content.split(SENTENCE_SPLIT)) {
+    const content_ = contentWords(sentence);
     if (content_.length < 4) continue;
     const hits = content_.filter((w) => known.has(stem(w))).length;
     if (hits / content_.length < 0.5) {
@@ -355,4 +397,11 @@ export function checkSegmentCitations(ids: string[], segments: Segment[]): Guard
     text: id,
     explanation: "The model cited a source segment that does not exist, so it was not highlighted.",
   }));
+}
+
+/** Stemmed content words (stopwords and short words dropped). Shared with factCoverage. */
+export function contentStems(text: string): string[] {
+  return words(text)
+    .filter((w) => !STOPWORDS.has(w.toLowerCase()) && w.length > 2)
+    .map(stem);
 }

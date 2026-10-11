@@ -1,11 +1,11 @@
 ---
 version: 1
-slug: "src-app-page-tsx"
-primary_target: "src/app/page.tsx"
+slug: "src-app-tour-page-tsx"
+primary_target: "src/app/tour/page.tsx"
 related_targets: []
 ---
 
-# Landing page (`/`)
+# Landing page (`/tour`)
 
 Mode: Persuade. Audience: real profile-polishers and HackNC judges, equally. Action: open the studio (`/studio`), with sample mode one click in. Proof: the fictitious demo persona's real sample critiques and the intentional "95% at Google" FactCheck test case, labeled sample. Constraint: studio keeps its incumbent Aero look for now; landing alone adopts the Avoriaz-derived world (user-pinned, see AVORIAZ_STYLE_GUIDE.md).
 

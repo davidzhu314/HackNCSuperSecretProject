@@ -3,7 +3,7 @@ import { DEMO_BIO, SAMPLE_BIO_ADVERSARIAL_CONTENT, type BioPlatform } from "./de
 import { checkRewrite } from "./fact-guard";
 import { buildVariations } from "./postprocess";
 import { evaluatePrompt, extractPrompt, rewritePrompt } from "./prompts";
-import { PLATFORM_CONFIGS, PLATFORM_SECTIONS } from "./rubrics";
+import { PLATFORM_CONFIGS, PLATFORM_GROUPS } from "./rubrics";
 import { PlatformSchema } from "./schemas";
 import { segmentBio } from "./segments";
 import { checkLength } from "./style-check";
@@ -11,11 +11,11 @@ import { checkLength } from "./style-check";
 const BIO_PLATFORMS = Object.keys(DEMO_BIO) as BioPlatform[];
 
 describe("platform configs", () => {
-  it("puts every platform in exactly one section, matching its category", () => {
-    const listed = PLATFORM_SECTIONS.flatMap((s) => s.platforms);
+  it("puts every platform in exactly one group, matching its config", () => {
+    const listed = PLATFORM_GROUPS.flatMap((g) => g.platforms);
     expect([...listed].sort()).toEqual([...PlatformSchema.options].sort());
-    for (const section of PLATFORM_SECTIONS) {
-      for (const id of section.platforms) expect(PLATFORM_CONFIGS[id].category).toBe(section.category);
+    for (const g of PLATFORM_GROUPS) {
+      for (const id of g.platforms) expect(PLATFORM_CONFIGS[id].group).toBe(g.group);
     }
   });
 
@@ -31,7 +31,7 @@ describe("platform configs", () => {
   it("gives every bio platform a character limit, and job targeting only to professional ones", () => {
     for (const config of Object.values(PLATFORM_CONFIGS)) {
       if (config.input === "bio") expect(config.maxChars).toBeGreaterThan(0);
-      expect(config.jobDescription).toBe(config.category === "professional");
+      expect(config.jobDescription).toBe(config.group === "professional");
     }
   });
 });
@@ -84,9 +84,9 @@ describe("prompts", () => {
 
   it("keeps dating rules for Tinder and the prompt note only for Hinge", () => {
     const seg = segmentBio("Pancakes on weekends.");
-    expect(extractPrompt(PLATFORM_CONFIGS.tinder, seg).system).toContain("dating-profile");
-    expect(extractPrompt(PLATFORM_CONFIGS.tinder, seg).system).not.toContain("prompt question");
-    expect(extractPrompt(PLATFORM_CONFIGS.hinge, seg).system).toContain("prompt question");
+    expect(extractPrompt("tinder", seg).system).toContain("dating-profile");
+    expect(extractPrompt("tinder", seg).system).not.toContain("prompt question");
+    expect(extractPrompt("hinge", seg).system).toContain("prompt question");
   });
 });
 

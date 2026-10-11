@@ -160,7 +160,7 @@ The landing world is borrowed, by the user's choice, from a resort virtual tour 
 
 The material is flat, full-bleed planes of colour stacked as the page scrolls: a deep navy field, a drenched apricot band, a white sheet, then a black close. Type does almost all the expressive work: extra-condensed uppercase Archivo at poster sizes, sometimes outlined, with an apricot fill that wipes in from the left to mark what is being looked at. Motion is slow and deliberate (0.5s to 0.7s) rather than snappy.
 
-**Scope.** This world currently covers the landing page (`/`) only, scoped under the `.pf` root class in `src/app/landing.css`. The `/studio` route deliberately keeps its older "Aero" look (`src/app/globals.css` and the shadcn tokens). That split is known, and whether to migrate the studio is still an open decision. Nothing in this file describes the studio, and the Aero tokens are not the target.
+**Scope.** This world covers the alternative landing page at `/tour` only, scoped under the `.pf` root class in `src/app/landing.css`. The home page (`/`), `/studio`, and `/hub` use the team's scenic design in `src/app/globals.css`. Whether `/tour` replaces the home page is an open team decision. Nothing in this file describes the other pages.
 
 **Key Characteristics:**
 - One committed accent (apricot) on navy, black, and white grounds.
@@ -293,4 +293,4 @@ The bar holds the wordmark (32px condensed caps, 650; 26px at 640px and below), 
 - **Don't** put white text on apricot.
 - **Don't** use intermediate corner radii or rounded cards.
 - **Don't** show ratings as percentages, stars, or bare bars without the rating word.
-- **Don't** apply these tokens to `/studio` until the migration decision is made; it still runs the Aero system.
+- **Don't** apply these tokens to `/`, `/studio`, or `/hub`; they use the team's scenic design.

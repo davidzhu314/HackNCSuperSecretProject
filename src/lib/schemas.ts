@@ -4,37 +4,50 @@ import { z } from "zod";
 // Every request and response crossing a boundary is validated against these.
 
 export const LIMITS = {
-  profileText: 4000,
+  /** A whole profile, counted with profileCharCount (LinkedIn) or headline + About (legacy flow). */
+  profileText: 10_000,
   jobDescription: 6000,
   factText: 300,
   maxFacts: 12,
-  maxSegments: 40,
+  maxSegments: 250,
   segmentText: 600,
-  maxAudiences: 3,
+  maxAudiences: 8,
+  /** Questions the user types on the lens screen, besides the built-in ones. */
+  maxCustomQuestions: 3,
+  customQuestion: 120,
   maxTraits: 6,
-  maxCritiques: 24,
+  /** 8 lenses x (5 built-in + 3 custom questions). */
+  maxCritiques: 64,
   maxRewriteChars: 3000,
+  /** LinkedIn's own field caps. */
+  headlineChars: 220,
+  sectionText: 2600,
+  entryField: 200,
+  maxEntries: 15,
+  maxListItems: 50,
+  listItem: 120,
+  /** Per-section rewrite output caps, by section type. */
+  sectionRewriteChars: { headline: 220, about: 2600, entry: 2000 },
 } as const;
 
 export const PlatformSchema = z.enum(["linkedin", "handshake", "instagram", "facebook", "twitter", "hinge", "tinder"]);
 export type Platform = z.infer<typeof PlatformSchema>;
 
-/** The three sections platforms are grouped into. Category drives prompt rules and theming. */
-export const PlatformCategorySchema = z.enum(["professional", "social", "dating"]);
-export type PlatformCategory = z.infer<typeof PlatformCategorySchema>;
+/** The three groups platforms are shown in. The group drives prompt rules and theming. */
+export const PlatformGroupSchema = z.enum(["professional", "social", "dating"]);
+export type PlatformGroup = z.infer<typeof PlatformGroupSchema>;
 
 /**
- * How the profile text is entered and split into segments:
- * headline_about = headline line + long About text (LinkedIn); bio = one short text field;
- * prompts = prompt question + answer pairs (Hinge).
+ * How the profile is entered: sections = LinkedIn's sectioned profile; prompts = prompt question +
+ * answer pairs (Hinge); bio = one short text field (Handshake, Instagram, Facebook, X, Tinder).
  */
-export type InputShape = "headline_about" | "bio" | "prompts";
+export type InputShape = "sections" | "prompts" | "bio";
 
 /** Input split into numbered pieces server-side. The model cites ids, never quotes. */
 export const SegmentSchema = z.object({
   id: z.string().min(1).max(16), // e.g. "s1"
   text: z.string().min(1).max(LIMITS.segmentText),
-  /** Prompt-based platforms (Hinge) only: the prompt question this answer responds to. */
+  /** Prompt platforms (Hinge) only: the prompt question this answer responds to. */
   prompt: z.string().max(200).optional(),
 });
 export type Segment = z.infer<typeof SegmentSchema>;
@@ -61,7 +74,7 @@ export const AudienceCritiqueSchema = z.object({
 });
 export type AudienceCritique = z.infer<typeof AudienceCritiqueSchema>;
 
-/** Prompt-based platforms (Hinge): one rewritten answer per original answer, keyed by the original segment id. */
+/** Hinge: one rewritten answer per original answer, keyed by the original segment id. */
 export const HingeAnswerSchema = z.object({
   segmentId: z.string().min(1).max(16),
   prompt: z.string().max(200).optional(),
@@ -71,7 +84,7 @@ export type HingeAnswer = z.infer<typeof HingeAnswerSchema>;
 
 export const RewriteSchema = z.object({
   platform: PlatformSchema,
-  /** Headline platforms: headline, blank line, About. Bio platforms: the bio. Hinge: the answers joined by blank lines, in original order. */
+  /** LinkedIn: headline, blank line, About. Bio platforms: the bio. Hinge: the answers joined by blank lines, in original order. */
   content: z.string().min(1).max(LIMITS.maxRewriteChars),
   /** Hinge only: the same answers as `content`, one per original segment, in order. */
   answers: z.array(HingeAnswerSchema).max(LIMITS.maxSegments).optional(),
@@ -104,6 +117,89 @@ export type GuardWarning = z.infer<typeof GuardWarningSchema>;
 export const ResultSourceSchema = z.enum(["live", "sample"]);
 export type ResultSource = z.infer<typeof ResultSourceSchema>;
 
+// ---------- LinkedIn profile by sections ----------
+
+export const LinkedInSectionKindSchema = z.enum(["headline", "about", "experience", "education", "projects", "volunteering"]);
+export type LinkedInSectionKind = z.infer<typeof LinkedInSectionKindSchema>;
+export type EntrySectionKind = Exclude<LinkedInSectionKind, "headline" | "about">;
+
+/** Entry id prefix per section; ids look like "exp1", "edu2", "proj1", "vol1". */
+export const ENTRY_ID_PREFIX: Record<EntrySectionKind, string> = {
+  experience: "exp",
+  education: "edu",
+  projects: "proj",
+  volunteering: "vol",
+};
+export const ENTRY_KINDS = Object.keys(ENTRY_ID_PREFIX) as EntrySectionKind[];
+
+export const ProfileEntrySchema = z.object({
+  id: z.string().regex(/^(exp|edu|proj|vol)\d{1,3}$/),
+  /** Role / degree / project name. Kept verbatim, never rewritten. */
+  title: z.string().max(LIMITS.entryField),
+  /** Company / school. Kept verbatim, never rewritten. */
+  organization: z.string().max(LIMITS.entryField),
+  /** Verbatim, e.g. "July 2026 - Present (4 months)". */
+  dates: z.string().max(100).optional(),
+  /** Verbatim. Never sent to the AI. */
+  location: z.string().max(LIMITS.entryField).optional(),
+  /** The only rewritable part. Bullets keep their "-" lines. */
+  description: z.string().max(LIMITS.sectionText),
+});
+export type ProfileEntry = z.infer<typeof ProfileEntrySchema>;
+
+const entries = z.array(ProfileEntrySchema).max(LIMITS.maxEntries);
+const listItems = z.array(z.string().max(LIMITS.listItem)).max(LIMITS.maxListItems);
+
+const LinkedInProfileFieldsSchema = z.object({
+  headline: z.string().max(LIMITS.headlineChars),
+  about: z.string().max(LIMITS.sectionText),
+  experience: entries,
+  education: entries,
+  projects: entries,
+  volunteering: entries,
+  skills: listItems,
+  honors: listItems,
+});
+export type LinkedInProfile = z.infer<typeof LinkedInProfileFieldsSchema>;
+
+/** Characters that count toward LIMITS.profileText. Locations don't count: they are never sent. */
+export function profileCharCount(p: LinkedInProfile): number {
+  const entryChars = ENTRY_KINDS.flatMap((k) => p[k]).reduce(
+    (n, e) => n + e.title.length + e.organization.length + (e.dates?.length ?? 0) + e.description.length,
+    0,
+  );
+  return (
+    p.headline.length +
+    p.about.length +
+    entryChars +
+    [...p.skills, ...p.honors].reduce((n, x) => n + x.length, 0)
+  );
+}
+
+/** Name, email, URLs, and the person's location are stripped at parse time and never stored. */
+export const LinkedInProfileSchema = LinkedInProfileFieldsSchema
+  .refine((p) => profileCharCount(p) <= LIMITS.profileText, {
+    message: `Profile must be at most ${LIMITS.profileText} characters.`,
+  })
+  .refine(
+    (p) => {
+      const ids = ENTRY_KINDS.flatMap((k) => p[k].map((e) => e.id));
+      return new Set(ids).size === ids.length;
+    },
+    { message: "Entry ids must be unique." },
+  );
+
+/** One rewritable piece of a profile: the headline, About, or one entry's description. */
+export const RewritableSectionSchema = z.object({
+  /** "headline" | "about" | an entry id ("exp2"). */
+  key: z.string().min(1).max(8),
+  kind: LinkedInSectionKindSchema,
+  /** e.g. "Experience · Acme Labs · Machine Learning Intern". */
+  label: z.string().max(500),
+  text: z.string().min(1).max(LIMITS.sectionText),
+});
+export type RewritableSection = z.infer<typeof RewritableSectionSchema>;
+
 // ---------- API: POST /api/facts/extract ----------
 
 export const ExtractFactsRequestSchema = z.object({
@@ -122,14 +218,27 @@ export type ExtractFactsResponse = z.infer<typeof ExtractFactsResponseSchema>;
 
 // ---------- API: POST /api/evaluate ----------
 
-export const EvaluateRequestSchema = z.object({
-  consent: z.literal(true),
-  platform: PlatformSchema,
-  segments: z.array(SegmentSchema).min(1).max(LIMITS.maxSegments),
-  audiences: z.array(z.string().min(1).max(60)).min(1).max(LIMITS.maxAudiences),
-  traits: z.array(z.string().min(1).max(60)).min(1).max(LIMITS.maxTraits),
-  jobDescription: z.string().max(LIMITS.jobDescription).optional(),
+/** A question the user typed ("Can they tell I lead teams?"). Untrusted text; critiques cite its id. */
+export const CustomQuestionSchema = z.object({
+  id: z.string().regex(/^q[1-9]$/),
+  text: z.string().trim().min(1).max(LIMITS.customQuestion),
 });
+export type CustomQuestion = z.infer<typeof CustomQuestionSchema>;
+
+export const EvaluateRequestSchema = z
+  .object({
+    consent: z.literal(true),
+    platform: PlatformSchema,
+    segments: z.array(SegmentSchema).min(1).max(LIMITS.maxSegments),
+    audiences: z.array(z.string().min(1).max(60)).min(1).max(LIMITS.maxAudiences),
+    traits: z.array(z.string().min(1).max(60)).max(LIMITS.maxTraits),
+    customQuestions: z.array(CustomQuestionSchema).max(LIMITS.maxCustomQuestions).optional(),
+    jobDescription: z.string().max(LIMITS.jobDescription).optional(),
+  })
+  .refine((r) => r.traits.length + (r.customQuestions?.length ?? 0) > 0, {
+    message: "Choose at least one question.",
+    path: ["traits"],
+  });
 export type EvaluateRequest = z.infer<typeof EvaluateRequestSchema>;
 
 export const EvaluateResponseSchema = z.object({
@@ -178,6 +287,48 @@ export const RewriteResponseSchema = z.object({
 });
 export type RewriteResponse = z.infer<typeof RewriteResponseSchema>;
 
+// ---------- API: POST /api/rewrite-section (LinkedIn) ----------
+
+/** Section rewrite styles (LinkedIn and future professional platforms). Hinge keeps RewriteStyle. */
+export const SectionStyleSchema = z.enum(["direct", "narrative", "professional"]);
+export type SectionStyle = z.infer<typeof SectionStyleSchema>;
+
+/** Length slider stops, relative to the original section (see LENGTH_STEPS in styles.ts). */
+export const LengthStepSchema = z.enum(["much_shorter", "shorter", "same", "longer", "much_longer"]);
+export type LengthStep = z.infer<typeof LengthStepSchema>;
+
+export const RewriteSectionRequestSchema = z.object({
+  consent: z.literal(true),
+  platform: z.literal("linkedin"),
+  /** The server looks up section.key in `profile` and rewrites the profile's copy of that text. */
+  section: RewritableSectionSchema,
+  profile: LinkedInProfileSchema,
+  /** Only confirmed facts are accepted. */
+  facts: z.array(IdentityFactSchema.extend({ confirmed: z.literal(true) })).max(LIMITS.maxFacts),
+  style: SectionStyleSchema,
+  /** Optional; "same" keeps about the original's length. */
+  length: LengthStepSchema.default("same"),
+  audiences: z.array(z.string().min(1).max(60)).max(LIMITS.maxAudiences),
+  goal: z.string().max(300).optional(),
+  jobDescription: z.string().max(LIMITS.jobDescription).optional(),
+});
+export type RewriteSectionRequest = z.input<typeof RewriteSectionRequestSchema>;
+
+export const RewriteSectionResponseSchema = z.object({
+  source: ResultSourceSchema,
+  sectionKey: z.string().min(1).max(8),
+  style: SectionStyleSchema,
+  length: LengthStepSchema,
+  /** Character counts: the original section, the length the slider asked for, and what came back. */
+  chars: z.object({ original: z.number().int().min(0), target: z.number().int().min(0), actual: z.number().int().min(0) }),
+  rewrite: RewriteSchema,
+  /** Deterministic FactCheck against this section's corpus. Empty means "no unsupported concrete claims detected". */
+  warnings: z.array(GuardWarningSchema),
+  /** AI-cliche lint. Style only; separate from FactCheck. */
+  styleWarnings: z.array(GuardWarningSchema),
+});
+export type RewriteSectionResponse = z.infer<typeof RewriteSectionResponseSchema>;
+
 // ---------- Errors ----------
 
 export const ApiErrorSchema = z.object({
@@ -200,19 +351,26 @@ export type ApiError = z.infer<typeof ApiErrorSchema>;
 export type PlatformConfig = {
   id: Platform;
   label: string;
-  category: PlatformCategory;
+  group: PlatformGroup;
   input: InputShape;
-  /** Name of the profile field on the platform, e.g. "About", "Bio", "Summary". */
+  /** The platform's name for the profile field, e.g. "About", "Bio", "Summary". */
   fieldLabel: string;
   /**
-   * The platform's own character limit for the profile text (per answer for prompts).
-   * Rewrites over it get an "over_limit" style warning. Undefined = no hard limit.
+   * The platform's own character limit for the profile text (per answer for prompts). Rewrites
+   * over it get an "over_limit" style warning. Undefined = no single limit (LinkedIn's are per section).
    */
   maxChars?: number;
   /** Professional platforms accept an optional job description to target. */
   jobDescription: boolean;
-  audiences: { id: string; label: string; description: string }[];
-  traits: { id: string; label: string; description: string }[];
+  /** LinkedIn only: lens categories, in display order. */
+  categories?: { id: string; label: string }[];
+  /**
+   * `category` is a categories[].id (LinkedIn only). `description` is the full lens definition the
+   * model reads; `summary` is a one-line version for the picker (falls back to `description`).
+   */
+  audiences: { id: string; label: string; description: string; summary?: string; category?: string }[];
+  /** `question` is the plain-language label, e.g. "Can they tell what you do?" (LinkedIn only). */
+  traits: { id: string; label: string; description: string; question?: string }[];
 };
 
 // ---------- What the model returns (before server-side checks) ----------
@@ -249,7 +407,10 @@ export const ModelRewriteSchema = z.object({
   narrative: ModelRewriteVariantSchema,
 });
 
-/** Prompt-based platforms (Hinge): each variant returns one answer per original answer, keyed by segment id. */
+/** LinkedIn by sections: one section, one style per call. */
+export const ModelSectionRewriteSchema = ModelRewriteVariantSchema;
+
+/** Hinge: each variant returns one answer per original answer, keyed by segment id. */
 const ModelHingeRewriteVariantSchema = z.object({
   answers: z.array(z.object({ segmentId: z.string(), text: z.string() })),
   usedFactIds: z.array(z.string()),

@@ -3,7 +3,7 @@ import { LIMITS, type Segment } from "./schemas";
 // Input is split into numbered segments server-side. The model cites ids;
 // quotes are resolved here, so highlighted text is guaranteed to exist.
 
-function splitSentences(text: string): string[] {
+export function splitSentences(text: string): string[] {
   return text
     .split(/\n+/)
     .flatMap((line) => line.split(/(?<=[.!?])\s+(?=[A-Z0-9"'(])/))
@@ -11,24 +11,26 @@ function splitSentences(text: string): string[] {
     .filter(Boolean);
 }
 
-function makeSegments(pieces: { text: string; prompt?: string }[]): Segment[] {
-  const expanded = pieces.flatMap((piece) => {
-    const remaining = piece.text.trim();
-    if (!remaining) return [];
-    const chunks: string[] = [];
-    let start = 0;
-    while (start < remaining.length) {
-      let end = Math.min(start + LIMITS.segmentText, remaining.length);
-      if (end < remaining.length) {
-        const boundary = remaining.lastIndexOf(" ", end);
-        if (boundary > start + LIMITS.segmentText * 0.6) end = boundary;
-      }
-      chunks.push(remaining.slice(start, end).trim());
-      start = end;
-      while (remaining[start] === " ") start++;
+/** Split text into pieces of at most LIMITS.segmentText, at word boundaries, never dropping text. */
+export function chunkText(text: string): string[] {
+  const remaining = text.trim();
+  const chunks: string[] = [];
+  let start = 0;
+  while (start < remaining.length) {
+    let end = Math.min(start + LIMITS.segmentText, remaining.length);
+    if (end < remaining.length) {
+      const boundary = remaining.lastIndexOf(" ", end);
+      if (boundary > start + LIMITS.segmentText * 0.6) end = boundary;
     }
-    return chunks.map((text) => ({ ...piece, text }));
-  });
+    chunks.push(remaining.slice(start, end).trim());
+    start = end;
+    while (remaining[start] === " ") start++;
+  }
+  return chunks;
+}
+
+function makeSegments(pieces: { text: string; prompt?: string }[]): Segment[] {
+  const expanded = pieces.flatMap((piece) => chunkText(piece.text).map((text) => ({ ...piece, text })));
 
   return expanded.slice(0, LIMITS.maxSegments).map((p, i) => ({
     id: `s${i + 1}`,
