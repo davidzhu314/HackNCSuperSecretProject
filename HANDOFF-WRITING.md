@@ -18,7 +18,15 @@ Take that literally: users would not paste these rewrites into LinkedIn. The use
 
 ## How rewriting works today
 
-LinkedIn only (Hinge uses `/api/rewrite` with `rewritePrompt`; leave it unless the user asks).
+LinkedIn sections, below, are the main target. **Since #20 there are seven platforms** in three groups:
+
+| Group | Platforms |
+|---|---|
+| Professional | LinkedIn, Handshake |
+| Social | Instagram, Facebook, X |
+| Dating | Hinge, Tinder |
+
+Everything except LinkedIn rewrites through `/api/rewrite` with `rewritePrompt` in `src/lib/prompts.ts`. Its rules come from the platform's group, and an `over_limit` style warning applies the platform's character limit (Handshake 300, Instagram 150, X 160, Facebook 101, Tinder 500). Those rewrites likely share the same weaknesses. Ask the user whether to fix LinkedIn first (recommended: it's the demo's main path) or all platforms at once. The template's ban list and tone rules apply to every group; its post framework applies to none of the short bios as written.
 
 - **UI:** one card per rewritable section (headline, About, each entry's description). Each card has a style dropdown (Direct, Narrative, Professional; Professional is the default) and a 5-stop length slider. Results are cached per style + length. `src/components/SectionRewrites.tsx`, wired in `PersonaFlow.tsx`.
 - **Route:** `src/app/api/rewrite-section/route.ts`. One model call per section, style, and length (`getRewriteModel()`, default `anthropic/claude-sonnet-5.5`, strict `json_schema` output `{ content, usedFactIds, changeSummary }`).
@@ -116,6 +124,12 @@ Do these in order, and show the user results at steps 1 and 3 before going furth
 - **CSS:** `.clash-grid` is Hinge's two-column layout; the LinkedIn rating table is `.rating-grid`.
 
 ## What changed since HANDOFF.md was written
+
+- **#20 (Izad), merged but not deployed or live-tested yet:**
+  - Seven platforms in three groups, with a `BioInput` screen for the five new ones.
+  - A grouped platform picker.
+  - An alternative landing page at `/tour`.
+  - Its PR says no browser check and no live AI run on a new platform have been done. Do one before deploying.
 
 All merged to `main` and deployed, PRs #15–#18:
 - **Lens picker:** one-line summaries.
