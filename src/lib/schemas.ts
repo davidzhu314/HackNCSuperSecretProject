@@ -261,6 +261,14 @@ export type RewriteResponse = z.infer<typeof RewriteResponseSchema>;
 
 // ---------- API: POST /api/rewrite-section (LinkedIn) ----------
 
+/** Section rewrite styles (LinkedIn and future professional platforms). Hinge keeps RewriteStyle. */
+export const SectionStyleSchema = z.enum(["direct", "narrative", "professional"]);
+export type SectionStyle = z.infer<typeof SectionStyleSchema>;
+
+/** Length slider stops, relative to the original section (see LENGTH_STEPS in styles.ts). */
+export const LengthStepSchema = z.enum(["much_shorter", "shorter", "same", "longer", "much_longer"]);
+export type LengthStep = z.infer<typeof LengthStepSchema>;
+
 export const RewriteSectionRequestSchema = z.object({
   consent: z.literal(true),
   platform: z.literal("linkedin"),
@@ -269,17 +277,22 @@ export const RewriteSectionRequestSchema = z.object({
   profile: LinkedInProfileSchema,
   /** Only confirmed facts are accepted. */
   facts: z.array(IdentityFactSchema.extend({ confirmed: z.literal(true) })).max(LIMITS.maxFacts),
-  style: RewriteStyleSchema,
+  style: SectionStyleSchema,
+  /** Optional; "same" keeps about the original's length. */
+  length: LengthStepSchema.default("same"),
   audiences: z.array(z.string().min(1).max(60)).max(LIMITS.maxAudiences),
   goal: z.string().max(300).optional(),
   jobDescription: z.string().max(LIMITS.jobDescription).optional(),
 });
-export type RewriteSectionRequest = z.infer<typeof RewriteSectionRequestSchema>;
+export type RewriteSectionRequest = z.input<typeof RewriteSectionRequestSchema>;
 
 export const RewriteSectionResponseSchema = z.object({
   source: ResultSourceSchema,
   sectionKey: z.string().min(1).max(8),
-  style: RewriteStyleSchema,
+  style: SectionStyleSchema,
+  length: LengthStepSchema,
+  /** Character counts: the original section, the length the slider asked for, and what came back. */
+  chars: z.object({ original: z.number().int().min(0), target: z.number().int().min(0), actual: z.number().int().min(0) }),
   rewrite: RewriteSchema,
   /** Deterministic FactCheck against this section's corpus. Empty means "no unsupported concrete claims detected". */
   warnings: z.array(GuardWarningSchema),

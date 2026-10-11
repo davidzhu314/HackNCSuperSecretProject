@@ -15,6 +15,7 @@ import {
 import { checkRewrite } from "./fact-guard";
 import { factCheckSegments, rewritableSections, segmentProfile } from "./profile";
 import { checkStyle } from "./style-check";
+import { formatOf, STYLE_ORDER, styleIssues } from "./styles";
 import { DEFAULT_LINKEDIN_AUDIENCES, LINKEDIN_CONFIG } from "./rubrics";
 import { EvaluateResponseSchema, LIMITS, RatingSchema, RewriteResponseSchema, RewriteSectionResponseSchema } from "./schemas";
 
@@ -124,7 +125,7 @@ describe("sample section rewrites", () => {
   });
 
   for (const section of sections) {
-    for (const style of ["direct", "narrative"] as const) {
+    for (const style of STYLE_ORDER) {
       it(`${section.key} / ${style}: valid, labeled, within limits, and clean`, () => {
         const r = SAMPLE_SECTION_REWRITES[section.key][style];
         expect(RewriteSectionResponseSchema.safeParse(r).success).toBe(true);
@@ -146,6 +147,8 @@ describe("sample section rewrites", () => {
         expect(warnings).toEqual([]);
         expect(r.warnings).toEqual([]);
         expect(checkStyle(r.rewrite.content)).toEqual([]);
+        expect(styleIssues(style, r.rewrite.content, formatOf(section.kind, section.text))).toEqual([]);
+        expect(r.chars.actual).toBe(r.rewrite.content.length);
         expect(r.styleWarnings).toEqual([]);
       });
     }

@@ -44,7 +44,7 @@ When FactCheck finds nothing, the app says "No unsupported concrete claims detec
 | Clickable evidence (segment IDs checked on the server) | Implemented |
 | FactCheck (numbers, names, verbs, fact IDs, loose claims) | Implemented, with unit tests |
 | FactCheck re-runs when you edit the rewrite | Implemented |
-| Two rewrite styles (Option A: Direct, Option B: Narrative) | Implemented |
+| Rewrite styles: Direct, Narrative, and Professional for LinkedIn sections (Hinge: Direct and Narrative) | Implemented; each style has checkable rules (e.g. no first person in Professional) and a retry if they break |
 | AI-cliché lint (banned words, phrases, emoji bullets) | Implemented, shown as style suggestions |
 | Consent before anything is sent to the AI | Asked once per browser, can be withdrawn; every API request is still rejected without it |
 | Sample mode for the demo persona | Cached demo data, always labeled "Sample result" |
@@ -52,7 +52,7 @@ When FactCheck finds nothing, the app says "No unsupported concrete claims detec
 | Job-description targeting | Implemented (optional field) |
 | Hinge mode (prompt answers, rewritten answer by answer) | Implemented |
 | 8 LinkedIn audience lenses in 4 categories | Implemented |
-| LinkedIn by sections (headline, About, each entry), per-section rewrites with a Direct / Narrative choice, "Rewrite all" (3 at a time) | Implemented, tested live |
+| LinkedIn by sections (headline, About, each entry), per-section rewrites with a style choice and a length slider (much shorter to much longer), "Rewrite all" (3 at a time) | Implemented, tested live. "Longer" only adds detail your sources contain; with nothing more to say, it stops short and says so |
 | Import LinkedIn's "Save to PDF" export (parsed in the browser) | Implemented, with a review banner for parser warnings |
 | Audience Clash on the annotated profile (reaction cards, filters, "Where they disagree", "Nobody could find") | Implemented (LinkedIn; Hinge uses the simpler grid) |
 | Receipts: where each rewritten sentence came from | Implemented |

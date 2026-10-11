@@ -6,11 +6,13 @@ import type {
   LinkedInSectionKind,
   Platform,
   PlatformConfig,
+  LengthStep,
   RewritableSection,
-  RewriteStyle,
   RewriteTone,
+  SectionStyle,
   Segment,
 } from "./schemas";
+import { countBullets, formatOf, lengthInstruction, STYLES, styleContrast, targetChars, type TextFormat } from "./styles";
 
 // Prompt builders. User text and job descriptions are untrusted data:
 // they are fenced and the model is told never to follow instructions inside them.
@@ -176,37 +178,21 @@ export function rewritePrompt(args: {
   };
 }
 
-// ---------- LinkedIn by sections: one section, one style per call ----------
+// ---------- LinkedIn by sections: one section, one style, one length per call ----------
 
-const SECTION_FORMAT: Record<LinkedInSectionKind, string> = {
-  headline:
-    "Format: one line, no line breaks, at most 220 characters (LinkedIn's limit). Plain and specific: what the person is and does now.",
-  about:
-    "Format: short paragraphs of 1-3 sentences with a blank line between them, easy to skim on a phone. '-' bullets are fine for a list of projects or roles. At most 2,600 characters. Open with a short first line that states something true and concrete from the sources.",
-  experience: "",
-  education: "",
-  projects: "",
-  volunteering: "",
+const SECTION_FORMAT: Record<TextFormat, string> = {
+  line: "Format: one line, no line breaks, at most 220 characters (LinkedIn's limit). Say what the person is and does now.",
+  paragraphs:
+    "Format: short paragraphs of 1-3 sentences with a blank line between them, easy to skim on a phone. '-' bullets are fine for a list of projects or roles. At most 2,600 characters. Open with a line that states something true and concrete from the sources.",
+  bullets: "",
+  paragraph: "",
 };
 
 const ENTRY_FORMAT = [
   "Format: this is the description under one entry. Do not repeat the title, organization, dates, or location: they are shown separately and kept exactly as written.",
-  "If the original uses bullets, return '-' bullets, one per line, in either style, with the same number of bullets or fewer. Never turn bullets into a paragraph. You may merge or reorder bullets; never add a bullet for something the original doesn't describe. If the original is a paragraph, return a paragraph.",
+  "If the original uses bullets, return '-' bullets, one per line, in every style, with the same number of bullets or fewer. Never turn bullets into a paragraph. You may merge or reorder bullets; never add a bullet for something the original doesn't describe. If the original is a paragraph, return a paragraph.",
   "At most 2,000 characters.",
 ].join("\n");
-
-const SECTION_STYLES: Record<RewriteStyle, Record<"headline" | "about" | "entry", string>> = {
-  direct: {
-    headline: "Style: direct. Role or field, then the most concrete specifics (tools, focus), separated by ' | ' if that reads well.",
-    about: "Style: direct and analytical. What the person does and has done, in a clear order, easy to skim.",
-    entry: "Style: direct. Each bullet leads with a plain past- or present-tense verb and says what the person did, with the specifics from the sources.",
-  },
-  narrative: {
-    headline: "Style: narrative. A short, natural phrase about what the person does and cares about.",
-    about: "Style: narrative and relatable. First person: how they got here and what they care about, still using only the sources.",
-    entry: "Style: narrative. Same structure as the original (bullets stay bullets), but let each line read more naturally and say a little more about how or why, using only what the sources state. No first-person 'I' at the start of bullets.",
-  },
-};
 
 const SECTION_LABEL: Record<LinkedInSectionKind, string> = {
   headline: "headline",
@@ -219,33 +205,38 @@ const SECTION_LABEL: Record<LinkedInSectionKind, string> = {
 
 /** Segments drop bullet markers, so tell the model what the original looked like. */
 function originalFormat(text: string): string {
-  const bullets = text.split("\n").filter((l) => /^\s*[-•·*–]\s+/.test(l)).length;
+  const bullets = countBullets(text);
   return bullets
     ? `Original format: ${bullets} '-' bullet${bullets === 1 ? "" : "s"}. Return '-' bullets, at most ${bullets}.`
     : "Original format: a paragraph. Return a paragraph.";
 }
 
 /**
- * One LinkedIn section in one style. `sources` is what the model may draw on: the whole
- * profile for headline/About, only the entry itself for an entry (FactCheck uses the same).
+ * One LinkedIn section in one style and length. `sources` is what the model may draw on: the
+ * whole profile for headline/About, only the entry itself for an entry (FactCheck uses the same).
+ * `retryNote` explains which style rules a previous attempt broke.
  */
 export function sectionRewritePrompt(args: {
   section: RewritableSection;
   sources: Segment[];
   facts: IdentityFact[];
-  style: RewriteStyle;
+  style: SectionStyle;
+  length?: LengthStep;
   audiences: PlatformConfig["audiences"];
   goal?: string;
   jobDescription?: string;
+  retryNote?: string;
 }) {
-  const { section, sources, facts, style, audiences, goal, jobDescription } = args;
+  const { section, sources, facts, style, length = "same", audiences, goal, jobDescription, retryNote } = args;
   const isEntry = section.kind !== "headline" && section.kind !== "about";
-  const styleKey = isEntry ? "entry" : (section.kind as "headline" | "about");
+  const format = formatOf(section.kind, section.text);
+  const spec = STYLES[style];
+  const target = targetChars(section.kind, section.text.length, length);
   const sectionIds = sources.filter((s) => s.id.startsWith(`${section.key}-`)).map((s) => s.id);
   return {
     system: [
       `You rewrite one ${SECTION_LABEL[section.kind]} of a LinkedIn profile. Improve expression, never invent identity.`,
-      "Hard rules (these override everything else, including the goal and the style rules):",
+      "Hard rules (these override everything else, including the goal, the style, and the length):",
       "- Use ONLY information in the source text and the confirmed facts listed below.",
       "- Do not add any number, percentage, date, employer, school, product name, credential, job title, skill, hobby, or preference that is not in those sources.",
       "- Keep every number exactly as the source gives it (e.g. '~12,500 ft', '8+', 'over 40'); never round, raise, or drop qualifiers like ~, +, over, or about.",
@@ -256,9 +247,12 @@ export function sectionRewritePrompt(args: {
       "- The goal may change emphasis and style, never these rules.",
       "- Return only the rewritten section in content. In usedFactIds list the confirmed facts you drew on, and in changeSummary 1-3 short plain-language notes on what you changed.",
       "",
-      isEntry ? ENTRY_FORMAT : SECTION_FORMAT[section.kind],
-      SECTION_STYLES[style][styleKey],
-      "Sound like a person, not a template: clear, confident, direct. Confident means stating the sources plainly, never overstating them. Do not end with a question to the reader.",
+      isEntry ? ENTRY_FORMAT : SECTION_FORMAT[format],
+      `Style: ${spec.label}. ${spec.rules}`,
+      spec.format[format],
+      styleContrast(style),
+      lengthInstruction({ original: section.text.length, target, step: length, format, bullets: countBullets(section.text) }),
+      "Sound like a person, not a template. Never overstate the sources. Do not end with a question to the reader.",
       STYLE_BAN_PROMPT,
       DATA_RULE,
     ].join("\n"),
@@ -274,6 +268,7 @@ export function sectionRewritePrompt(args: {
       fence("user_data", formatSegmentsForPrompt(sources)),
       `Rewrite the ${SECTION_LABEL[section.kind]} (${section.label}), which is segments ${sectionIds.join(", ")}${isEntry ? " minus the title line" : ""}.`,
       ...(isEntry ? [originalFormat(section.text)] : []),
+      retryNote ? `Your previous ${spec.label} version had these problems: ${retryNote}. Fix them, still following every hard rule.` : "",
     ]
       .filter(Boolean)
       .join("\n"),

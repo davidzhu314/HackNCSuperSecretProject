@@ -137,13 +137,16 @@ export async function rewriteProfile(
   return post("/api/rewrite", req, RewriteResponseSchema);
 }
 
-/** LinkedIn: rewrite one section in one style. Sample mode serves the cached demo rewrite for that section. */
+/** LinkedIn: rewrite one section in one style and length. Sample mode serves the cached demo rewrite (same length only). */
 export async function rewriteSection(
   req: RewriteSectionRequest,
   opts: { sample?: boolean } = {},
 ): Promise<RewriteSectionResponse> {
   if (opts.sample) {
     await pause();
+    if (req.length && req.length !== "same") {
+      throw new ClientApiError("invalid_request", "Sample results only exist at the same length. Turn off sample mode to change the length.");
+    }
     const cached = SAMPLE_SECTION_REWRITES[req.section.key]?.[req.style];
     if (!cached) throw new ClientApiError("invalid_request", "There's no sample result for this section. Turn off sample mode to rewrite it live.");
     return cached;

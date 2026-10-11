@@ -55,9 +55,22 @@ describe("callStructured", () => {
     expect(await callStructured({ ...base, client })).toEqual({ facts: ["a"] });
   });
 
-  it("maps 429 to rate_limited without retrying", async () => {
-    const { client, calls } = fakeClient([Object.assign(new Error("x"), { status: 429 })]);
-    await expect(callStructured({ ...base, client })).rejects.toMatchObject({ code: "rate_limited" });
+  it("retries a 429 once after a pause, then succeeds", async () => {
+    const { client, calls } = fakeClient([Object.assign(new Error("x"), { status: 429 }), '{"facts":["I study CS."]}']);
+    await expect(callStructured({ ...base, client, rateLimitRetryMs: 0 })).resolves.toEqual({ facts: ["I study CS."] });
+    expect(calls).toHaveLength(2);
+  });
+
+  it("maps a second 429 to rate_limited and stops", async () => {
+    const limited = () => Object.assign(new Error("x"), { status: 429 });
+    const { client, calls } = fakeClient([limited(), limited(), '{"facts":[]}']);
+    await expect(callStructured({ ...base, client, rateLimitRetryMs: 0 })).rejects.toMatchObject({ code: "rate_limited" });
+    expect(calls).toHaveLength(2);
+  });
+
+  it("doesn't retry other upstream errors", async () => {
+    const { client, calls } = fakeClient([Object.assign(new Error("x"), { status: 500 }), '{"facts":[]}']);
+    await expect(callStructured({ ...base, client, rateLimitRetryMs: 0 })).rejects.toMatchObject({ code: "upstream_error" });
     expect(calls).toHaveLength(1);
   });
 
