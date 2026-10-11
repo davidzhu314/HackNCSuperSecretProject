@@ -43,13 +43,6 @@ export const SCENES: Record<Platform, Scene> = {
     caption: "What you're up to now.",
     description: "Your news. Your groups. Your people.",
   },
-  twitter: {
-    image: aeroSky,
-    name: "X (Twitter)",
-    lens: "POTENTIAL FOLLOWERS · PEERS",
-    caption: "Say what you post about.",
-    description: "Your topics. Your voice. In 160 characters.",
-  },
   hinge: {
     image: hingeNightlife,
     name: "Hinge",
@@ -122,7 +115,6 @@ const BRAND_LETTERS: Record<Platform, string> = {
   handshake: "hs",
   instagram: "ig",
   facebook: "f",
-  twitter: "X",
   hinge: "H",
   tinder: "t",
 };

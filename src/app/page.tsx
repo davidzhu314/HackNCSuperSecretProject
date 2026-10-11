@@ -17,7 +17,7 @@ const GROUP_COPY: Record<PlatformGroup, { lens: string; caption: string; bottom:
     bottom: "LinkedIn by section, or import LinkedIn’s PDF. Handshake’s 300-character bio.",
   },
   social: {
-    lens: "NEW VISITORS · OLD FRIENDS · FOLLOWERS",
+    lens: "NEW VISITORS · OLD FRIENDS",
     caption: "A first glance that’s yours.",
     bottom: "One short bio, kept within each platform’s character limit.",
   },
@@ -45,7 +45,7 @@ export default function HomePage() {
       </header>
 
       <main>
-        <h1 className="sr-only">Personify: feedback and fact-checked rewrites for seven platforms</h1>
+        <h1 className="sr-only">Personify: feedback and fact-checked rewrites for six platforms</h1>
         <div className="destination-split" aria-label="Choose a platform">
           {PLATFORM_GROUPS.map(({ group, label, platforms }, index) => {
             const scene = SCENES[platforms[0]];

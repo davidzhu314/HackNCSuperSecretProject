@@ -799,7 +799,7 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .extra-facts li { display: flex; align-items: center; gap: 8px; }
 .extra-facts li span { flex: 1; }
 
-/* ---------- Seven platforms in three groups (Professional / Social / Dating) ---------- */
+/* ---------- Six platforms in three groups (Professional / Social / Dating) ---------- */
 /* Social: the Instagram hue (35) from the platform tokens, built like the dating theme. */
 .app-root[data-group=social] {
   --background: oklch(.975 .018 50); --foreground: oklch(.34 .04 40);
