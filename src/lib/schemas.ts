@@ -30,7 +30,7 @@ export const LIMITS = {
   sectionRewriteChars: { headline: 220, about: 2600, entry: 2000 },
 } as const;
 
-export const PlatformSchema = z.enum(["linkedin", "handshake", "instagram", "facebook", "hinge", "tinder"]);
+export const PlatformSchema = z.enum(["linkedin", "handshake", "instagram", "facebook", "twitter", "hinge", "tinder"]);
 export type Platform = z.infer<typeof PlatformSchema>;
 
 /** The three groups platforms are shown in. The group drives prompt rules and theming. */
