@@ -39,7 +39,7 @@
 - Consent before any text goes to the AI provider (OpenRouter plus the underlying model provider). Asked once per browser (a `localStorage` flag only, with a way to withdraw); every API request still sends `consent: true` and is rejected without it. Never log or persist profile text by default.
 - Never commit a real person's profile (the repo is public). Test with real exports locally only; commit synthetic fixtures.
 - Demo/cached outputs must be visibly labeled. Never disguise them as live runs. No silent fake results.
-- Never expose `OPENROUTER_API_KEY` to the browser. Read it from `process.env` in server code only.
+- Never expose `OPENROUTER_API_KEY` or `GEMINI_API_KEY` to the browser. Read keys from `process.env` in server code only.
 - Secrets live in `.env.local` (gitignored). `.env.example` lists names only. Never commit `.env*` values or paste keys into chat.
 - Use current official OpenRouter docs, not memory. Verify the chosen model actually returns valid structured JSON before relying on it.
 - Define zod schemas first; build UI against mock JSON so work can run in parallel.

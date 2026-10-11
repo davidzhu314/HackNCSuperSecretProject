@@ -125,3 +125,52 @@ export function applyLabel(c: AnsweredComparison | null, hasWarnings: boolean): 
   if (c?.verdict === "worse" || c?.verdict === "mixed") return `Use anyway (${c.lost.length} lost)`;
   return hasWarnings ? "Use anyway" : "Use this version";
 }
+
+export type OpenQuestion = {
+  trait: string;
+  /** The lenses that can't tell yet, in the order picked. */
+  audiences: string[];
+  /** Their suggestions, duplicates removed; the first is shown. */
+  suggestions: string[];
+  /**
+   * The rewrite was read and this question stayed open for every one of these lenses: rewording
+   * didn't help, so it likely needs a true detail the text doesn't have yet.
+   */
+  needsDetail: boolean;
+};
+
+const normalizeSuggestion = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+/** Still-open cells grouped by question, so one question's three lenses read as one item, not three. */
+export function groupOpen(open: AudienceCritique[], traits: string[], comparison: AnsweredComparison | null): OpenQuestion[] {
+  const lostHere = (c: AudienceCritique) => !!comparison?.lost.some((l) => l.audience === c.audience && l.trait === c.trait);
+  return traits
+    .map((trait) => {
+      const cells = open.filter((c) => c.trait === trait);
+      const seen = new Set<string>();
+      const suggestions: string[] = [];
+      for (const c of cells) {
+        const text = (c.suggestion || c.rationale).trim();
+        const key = normalizeSuggestion(text);
+        if (text && !seen.has(key)) {
+          seen.add(key);
+          suggestions.push(text);
+        }
+      }
+      // Open in the rewrite and never answered in your text either (not lost by the rewrite).
+      const needsDetail = comparison !== null && cells.length > 0 && !cells.some(lostHere);
+      return { trait, audiences: cells.map((c) => c.audience), suggestions, needsDetail };
+    })
+    .filter((q) => q.audiences.length > 0);
+}
+
+/** The headline under the counts: what this version changed, in one line. */
+export function verdictLine(c: AnsweredComparison): string {
+  const parts: string[] = [];
+  if (c.gained.length) parts.push(`${c.gained.length} more answered`);
+  if (c.lost.length) parts.push(`${c.lost.length} no longer answered`);
+  if (!parts.length) parts.push("Same questions answered as your text");
+  if (c.clearer.length) parts.push(`${c.clearer.length} clearer`);
+  if (c.weaker.length) parts.push(`${c.weaker.length} less clear`);
+  return parts.join(" · ");
+}
