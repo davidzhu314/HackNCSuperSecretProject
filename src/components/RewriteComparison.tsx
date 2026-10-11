@@ -21,6 +21,7 @@ import {
 } from "@/lib/schemas";
 import { PLATFORM_CONFIGS } from "@/lib/rubrics";
 import { checkLength, checkStyle } from "@/lib/style-check";
+import { findRepeatedPhrases, type QualityField } from "@/lib/profile-quality";
 
 const RECEIPT_LABEL: Record<ReceiptStatus, string> = {
   traced: "Traced",
@@ -53,6 +54,9 @@ export function RewriteComparison(props: {
   textName: string;
   onAddFact: (text: string) => void;
   onRemoveFact: (id: string) => void;
+  qualityFields?: QualityField[];
+  qualityTargetKey?: string;
+  use?: { current: string; applied: boolean; onUse: (text: string) => void; onUndo: () => void };
 }) {
   const { result, goal, loading, adversarial, confirmedFacts, onGoal, onGenerate, onAdversarial } = props;
   const [style, setStyle] = useState<RewriteStyle>("direct");
@@ -158,12 +162,15 @@ export function VariationResult(props: {
   use?: { current: string; applied: boolean; onUse: (text: string) => void; onUndo: () => void };
   /** What this text is (a LinkedIn section's label); defaults to the platform's field. For the export. */
   section?: string;
+  qualityFields?: QualityField[];
+  qualityTargetKey?: string;
 }) {
   const { original, segments, confirmedFacts, variation, source, onError, use } = props;
   const { rewrite } = variation;
   const [text, setText] = useState(rewrite.content);
   const [editing, setEditing] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [history, setHistory] = useState<string[]>([]);
 
   // Unedited: the server's checks. Edited: the same deterministic checks, re-run locally.
   const edited = text !== rewrite.content;
@@ -181,6 +188,10 @@ export function VariationResult(props: {
     const pieces = config.input === "prompts" ? text.split(/\n\s*\n/) : [text];
     return [...checkStyle(text), ...checkLength(pieces, config.maxChars, config.label)];
   }, [edited, text, variation, rewrite.platform]);
+  const qualityFields = useMemo(() => props.qualityFields?.map((field) => field.key === props.qualityTargetKey ? { ...field, text } : field) ?? (PLATFORM_CONFIGS[rewrite.platform].input === "prompts"
+    ? text.split(/\n\s*\n/).map((value, i) => ({ key: `answer-${i}`, label: `Answer ${i + 1}`, text: value, limit: PLATFORM_CONFIGS[rewrite.platform].maxChars }))
+    : [{ key: "profile", label: PLATFORM_CONFIGS[rewrite.platform].fieldLabel, text, limit: PLATFORM_CONFIGS[rewrite.platform].maxChars }]), [props.qualityFields, props.qualityTargetKey, rewrite.platform, text]);
+  const repeated = useMemo(() => findRepeatedPhrases(qualityFields), [qualityFields]);
 
   const diff = useMemo(() => wordDiff(original, text), [original, text]);
   const receipts = useMemo(() => traceSentences(text, segments, confirmedFacts), [text, segments, confirmedFacts]);
@@ -326,7 +337,7 @@ export function VariationResult(props: {
                   <span>{styleWarnings.length}</span>
                 </button>
               )}
-              <Button variant="link" size="sm" onClick={() => setEditing(!editing)}>
+              <Button variant="link" size="sm" onClick={() => { if (editing && text !== rewrite.content) setHistory((items) => [...items, rewrite.content].slice(-8)); setEditing(!editing); }}>
                 {editing ? "Done editing" : "Edit text"}
               </Button>
             </span>
@@ -395,6 +406,13 @@ export function VariationResult(props: {
           )}
         </section>
       </div>
+      <section className="readiness-panel" aria-label="Profile readiness checks">
+        <div className="readiness-head"><strong>Profile readiness</strong><span>{qualityFields.filter((f) => !f.limit || f.text.length <= f.limit).length}/{qualityFields.length} fields within limits</span></div>
+        <div className="readiness-fields">
+          {qualityFields.map((field) => <div key={field.key} data-over={Boolean(field.limit && field.text.length > field.limit)}><span>{field.label}</span><span>{field.text.length}{field.limit ? ` / ${field.limit}` : " characters"}</span></div>)}
+        </div>
+        {repeated.length > 0 ? <p className="readiness-warning">Possible repeated wording: {repeated.slice(0, 3).map((item) => `“${item.phrase}” (${item.fields.join(", ")})`).join("; ")}</p> : <p className="readiness-note">No repeated phrases of five or more words across these fields.</p>}
+      </section>
       {showChecks && (warnings.length > 0 || styleWarnings.length > 0 || edited) && (
         <section className="checks-pop" aria-live="polite">
           {edited && <p className="empty-note">Re-checked against your edited text.</p>}
@@ -440,9 +458,10 @@ export function VariationResult(props: {
       </details>
       <div className="action-band">
         <span className="empty-note">
-          {use?.applied && inUse ? "This version is in your profile." : "Review your words before sharing them."}
+          {use?.applied && inUse ? "Selected as your current draft." : "Review your words before sharing them."}
         </span>
         <div className="action-buttons">
+          {history.length > 0 && <details className="version-history"><summary>Version history ({history.length})</summary>{history.map((version, index) => <button type="button" key={`${index}-${version}`} onClick={() => { setHistory((items) => [...items, text].slice(-8)); setText(version); setEditing(false); }}>{`Restore version ${index + 1}`}</button>)}</details>}
           {use?.applied && (
             <Button variant="ghost" onClick={use.onUndo}>
               <Undo2 />

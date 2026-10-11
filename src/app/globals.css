@@ -940,6 +940,17 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .platform-menu-logo[data-platform=tinder] { background: linear-gradient(45deg, #fd267a, #ff6036); }
 .platform-menu-check { margin-left: auto; display: inline-flex; }
 .bio-count[data-over=true] { color: var(--destructive); font-weight: 600; }
+.readiness-panel { margin: 12px 0; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); }
+.readiness-head, .readiness-fields > div { display: flex; justify-content: space-between; gap: 12px; }
+.readiness-head { font-size: 13px; }
+.readiness-fields { display: grid; gap: 5px; margin-top: 10px; font-size: 12px; color: var(--muted-foreground); }
+.readiness-fields [data-over=true] { color: var(--destructive); font-weight: 600; }
+.readiness-warning, .readiness-note { margin: 9px 0 0; font-size: 12px; }
+.readiness-warning { color: var(--destructive); }
+.readiness-note { color: var(--muted-foreground); }
+.version-history { align-self: center; font-size: 12px; }
+.version-history summary { cursor: pointer; }
+.version-history button { display: block; padding: 5px 0; color: var(--muted-foreground); text-align: left; }
 @media (max-width: 680px) {
   .tour-platform-picker > span { display: none; }
   .tour-platform-select { min-height: 36px; padding: 6px 10px; }
