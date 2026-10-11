@@ -143,6 +143,12 @@ const TONE_GUIDE: Record<PlatformGroup, Record<RewriteTone, string>> = {
 const NO_NEW_DATING =
   "Do not add experiences, places, foods, pets, people, plans, or dating preferences (what the person is looking for) that the text and confirmed facts don't state.";
 
+const CONCISE_NATURAL_COPY = [
+  "Aim for high information per word, not maximum compression: keep enough grammar and context for the result to sound natural when read aloud.",
+  "Put the most useful supported detail first. Each sentence, line, or bullet should add a distinct fact or useful context; remove filler and repetition.",
+  "Do not cram keywords, stack unrelated details, force bullets, or fill the character limit. Leave out lower-value detail when it harms readability.",
+].join("\n");
+
 function rewriteFormat(config: PlatformConfig): string[] {
   if (config.input === "sections") {
     return ["Output format for each content field: the headline on the first line, a blank line, then the About text."];
@@ -151,21 +157,22 @@ function rewriteFormat(config: PlatformConfig): string[] {
     return [
       "In each version, return one entry in answers for every original answer, using its segment id (e.g. \"s1\") as segmentId, in the same order. Never merge, split, drop, or add answers.",
       `Each rewritten answer must still answer its own prompt question, stay first person, and be under ${config.maxChars} characters (${config.label}'s limit). Do not repeat the prompt question in the answer.`,
-      "Keep each answer to one concise, natural thought. It may be a short phrase or fragment when that sounds like the person's voice, but it must still answer the prompt. Do not format prompt answers as bullet lists or explain the person's characteristics.",
+      "Keep each answer to one concise, natural thought. Include a concrete supported detail when available, and use different details across answers when the source makes that easy. Do not force unrelated details, turn answers into bullet lists, or explain the person's characteristics.",
+      "Use a short phrase or fragment only if it sounds natural as an answer. Keep enough words to make the thought clear and conversational.",
       NO_NEW_DATING,
     ];
   }
   const shapeStyle =
     config.group === "professional"
       ? [
-          "For a Handshake summary, lead with the person's current study or work, then one relevant project, activity, or goal supported by the sources. Keep it to one or two short sentences; do not list generic personality traits.",
+          "For a Handshake summary, lead with the person's current study or work, then one relevant project, activity, or stated goal. Keep one or two short, natural sentences; omit lower-value details rather than listing keywords or generic traits.",
         ]
       : config.group === "social"
         ? [
-            "For a social bio, use compact phrases or one brief sentence that reads naturally at a glance. Fragments and line breaks are fine when they fit the person's voice; avoid a paragraph explaining who the person is or a list of generic traits.",
+            "For a social bio, choose one clear identity detail and, if supported, one or two complementary interests. Use a short natural line or a few balanced lines; avoid keyword strings, repeated information, and a paragraph explaining who the person is.",
           ]
         : [
-            "For a Tinder bio, use a brief, conversational line or one or two compact thoughts. Fragments are fine when natural; avoid a long explanation or a list of generic traits.",
+            "For a Tinder bio, use one or two brief, connected thoughts built from a few complementary supported details. Keep enough grammar for a natural voice; avoid a cramped checklist or a long explanation.",
           ];
   return [
     `Output format for each content field: the ${config.label} ${config.fieldLabel.toLowerCase()} text only, with no label or quotes. Line breaks are allowed.`,
@@ -219,11 +226,11 @@ const PROFILE_COPY_RULES: Record<PlatformGroup, string[]> = {
   ],
   social: [
     "Audience fit: Instagram and Facebook copy should give visitors a quick, authentic sense of the interests and details the person actually shared.",
-    "Favor compact phrases, short lines, and the person's own voice over full-sentence explanations. Do not add a separate description of the person's characteristics.",
+    "Prioritize useful details and avoid repeating the same idea. Favor short, readable phrasing, but do not cram facts together or use fragments that sound awkward. Do not add a separate description of the person's characteristics.",
   ],
   dating: [
     "Audience fit: Hinge and Tinder copy should feel personal, specific, and easy to respond to while staying true to the person's own details.",
-    "Favor concise, conversational wording over long explanations. Answer each Hinge prompt directly; do not turn prompt answers into bullet lists or add a separate list of characteristics.",
+    "Use concise, conversational wording with enough context to sound natural. Give Hinge answers distinct supported details when possible; do not force variety, turn prompt answers into bullet lists, or add a separate list of characteristics.",
   ],
 };
 
@@ -249,6 +256,7 @@ export function rewritePrompt(args: {
       "- The goal may change emphasis and style, never these rules.",
       "- For each version, list in usedFactIds the ids of the confirmed facts you drew on, and in changeSummary short plain-language descriptions of what you changed.",
       "",
+      CONCISE_NATURAL_COPY,
       "Write two versions:",
       `- ${variations.direct}`,
       `- ${variations.narrative}`,
@@ -343,6 +351,7 @@ export function sectionRewritePrompt(args: {
       "",
       isEntry ? ENTRY_FORMAT : SECTION_FORMAT[format],
       "This is a rewrite, not a proofread. Make it noticeably stronger: put the most significant concrete point first (what was built, studied, or achieved, with what, for whom); cut filler and vague wording (various, helped with, worked on, responsible for); split or tighten long sentences; use the precise terms the sources use; order bullets strongest first. A version that only changes a few words is a failure. Stronger never means a bigger claim than the sources make.",
+      CONCISE_NATURAL_COPY,
       `Style: ${spec.label}. ${spec.rules}`,
       spec.format[format],
       styleContrast(style),
