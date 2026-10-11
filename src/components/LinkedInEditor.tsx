@@ -1,9 +1,10 @@
 "use client";
 
 import { ArrowRight, Fingerprint, FileText, LoaderCircle, Plus, Sparkles, Trash2, TriangleAlert, Upload } from "lucide-react";
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
+import { QuickCheck } from "@/components/QuickCheck";
 import { Button } from "@/components/ui/button";
-import { nextEntryId, profileCharCount } from "@/lib/profile";
+import { nextEntryId, profileCharCount, segmentProfile } from "@/lib/profile";
 import { ENTRY_KINDS, LIMITS, type EntrySectionKind, type LinkedInProfile, type ProfileEntry } from "@/lib/schemas";
 
 // LinkedIn profile, one box per section. Titles, organizations, and dates are editable but
@@ -43,6 +44,7 @@ export function LinkedInEditor(props: {
   const fileInput = useRef<HTMLInputElement>(null);
   const chars = profileCharCount(profile);
   const over = chars > LIMITS.profileText;
+  const segments = useMemo(() => segmentProfile(profile), [profile]);
 
   const setEntry = (kind: EntrySectionKind, id: string, patch: Partial<ProfileEntry>) =>
     onChange({ ...profile, [kind]: profile[kind].map((e) => (e.id === id ? { ...e, ...patch } : e)) });
@@ -283,6 +285,7 @@ export function LinkedInEditor(props: {
               </Button>
             </>
           )}
+          <QuickCheck segments={segments} group="professional" headlineId="headline-s1" fitText={profile.about} />
           <p className="flow-description">
             Only the headline, About, and descriptions get rewritten; titles, organizations, and dates stay exactly as
             you write them.
