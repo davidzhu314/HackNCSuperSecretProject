@@ -285,8 +285,8 @@ function FactsCard(props: {
       </div>
       {!facts.length ? (
         <p className="empty-note">
-          No confirmed facts yet. Confirm them in the studio (step 3, Identity DNA). You confirm each fact once, choose
-          which platforms may use it, and rewrites everywhere use only these.
+          No facts yet. On any platform’s rewrite step, add true facts that aren’t in your text. You add each fact
+          once, choose which platforms may use it, and rewrites there may draw on it.
         </p>
       ) : (
         <ul className="hub-facts">

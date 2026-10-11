@@ -45,13 +45,8 @@ Principle shown in the UI: **improve expression, not invent identity.**
 - Consent comes **before** the facts screen, because suggesting facts already sends the text to the AI.
 - Two buttons: **"I agree, continue"** and **"Go back"**. Declining must not move forward.
 
-### 3. Identity DNA (component name: `IdentityFacts`)
-- Explains: "Tick the facts that are true about you. Only ticked facts can be used in a rewrite."
-- List of facts with checkboxes (`facts`). Each fact text is editable inline. A small tag shows where it came from ("Suggested by AI" for `source: "extracted"`, "Added by you" for `source: "user"`).
-- "Add a fact" input + button.
-- Suggested facts start **unticked**. Never pre-tick an AI-suggested fact.
-- Empty state: "No concrete facts found in your text. Add a few true facts about yourself."
-- Continue button.
+### 3. (Removed) Facts step
+- No longer in the app: the user's text is the evidence, and extra true facts are added on the rewrite screen.
 
 ### 4. Choose audiences and traits
 - Pick 1-3 audiences and 1-5 traits from `platforms.linkedin` (show `label`, keep `id` internally). Default: all 3 audiences, first 3 traits.

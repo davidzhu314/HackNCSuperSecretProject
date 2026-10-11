@@ -2,6 +2,7 @@
 
 import { Check, CircleAlert, Clipboard, LoaderCircle, PenLine, ShieldCheck, Sparkles, TriangleAlert, Undo2 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { ExtraFacts } from "@/components/ExtraFacts";
 import { Button } from "@/components/ui/button";
 import { checkRewrite } from "@/lib/fact-guard";
 import { WARNING_LABEL, wordDiff } from "@/lib/persona-ui";
@@ -46,6 +47,10 @@ export function RewriteComparison(props: {
   onGenerate: () => void;
   onAdversarial: (enabled: boolean) => void;
   onError: (message: string) => void;
+  /** What the user's own text is called here ("answers", "bio", ...), for the add-a-fact box. */
+  textName: string;
+  onAddFact: (text: string) => void;
+  onRemoveFact: (id: string) => void;
 }) {
   const { result, goal, loading, adversarial, confirmedFacts, onGoal, onGenerate, onAdversarial } = props;
   const [style, setStyle] = useState<RewriteStyle>("direct");
@@ -75,15 +80,15 @@ export function RewriteComparison(props: {
             placeholder="What would you like to express more clearly?"
           />
         </div>
-        <Button variant="aero" disabled={loading || !confirmedFacts.length} onClick={onGenerate}>
+        <Button variant="aero" disabled={loading} onClick={onGenerate}>
           {loading ? <LoaderCircle className="animate-spin" /> : <Sparkles />}
           {loading ? "Writing two versions..." : result ? "Rewrite again" : "Generate rewrites"}
         </Button>
       </div>
+      <ExtraFacts facts={confirmedFacts} what={props.textName} onAdd={props.onAddFact} onRemove={props.onRemoveFact} />
       <p className="empty-note">
-        {confirmedFacts.length
-          ? "You’ll get two versions from the same confirmed facts: a direct one and a narrative one. Neither may add anything you haven’t confirmed."
-          : "Confirm at least one fact in Identity DNA before rewriting."}
+        You’ll get two versions, a direct one and a narrative one, built only from your own words and any facts you add.
+        Neither may add anything else.
       </p>
       {result && shown && (
         <>

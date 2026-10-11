@@ -292,7 +292,7 @@ export function LinkedInEditor(props: {
 
       <div className="action-band">
         <span className="empty-note" data-over={over}>
-          {chars.toLocaleString()} / {LIMITS.profileText.toLocaleString()} characters
+          Next: choose who reads it · {chars.toLocaleString()} / {LIMITS.profileText.toLocaleString()} characters
           {over ? " · shorten the profile to continue" : ""}
         </span>
         <Button variant="aero" disabled={!canContinue} onClick={onContinue}>

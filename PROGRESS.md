@@ -60,7 +60,7 @@ The rewrite now follows the team's LinkedIn copywriting rules, adapted for a pro
 - **Only ticked facts** are sent to the rewrite. AI-suggested facts start unticked.
 - **Sample mode** is offered only for the demo persona, so sample results never appear next to someone's real text. Sample results are always labeled "Sample result".
 - **Editing the rewrite re-runs FactCheck** instantly in the browser.
-- Each screen is its own component that only takes data and callbacks (`InputStep`, `ConsentStep`, `IdentityFacts`, `AudiencePicker`, `AudienceClash`, `RewriteComparison`). A Lovable version can replace one at a time without touching the flow.
+- Each screen is its own component that only takes data and callbacks (`InputStep`, `ConsentStep`, `AudiencePicker`, `AudienceClash`, `RewriteComparison`; the old facts step has since been removed). A Lovable version can replace one at a time without touching the flow.
 - `src/lib/api-client.ts` is how the screens call the API. It never touches the API key.
 
 ## What each file does

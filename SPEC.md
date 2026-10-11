@@ -5,7 +5,7 @@
 **Tagline:** One identity. Every platform. Authentically you.
 **Principle:** Improve expression, not invent identity.
 
-Users paste profile text, confirm a few true facts about themselves ("Identity DNA"), pick an audience, and get evidence-backed feedback plus rewrites grounded only in confirmed facts. A deterministic **FactCheck** layer flags anything the rewrite invented. Platforms, in three groups: **Professional** (LinkedIn, Handshake), **Social** (Instagram, Facebook, X), **Dating** (Hinge, Tinder). No dummy buttons for other platforms.
+Users paste profile text, pick an audience, and get evidence-backed feedback plus rewrites grounded only in their own words and facts they add. A deterministic **FactCheck** layer flags anything the rewrite invented. Platforms, in three groups: **Professional** (LinkedIn, Handshake), **Social** (Instagram, Facebook, X), **Dating** (Hinge, Tinder). No dummy buttons for other platforms.
 
 Why it isn't "ChatGPT with a nicer UI": (1) several audience perspectives side by side, (2) every critique links to the exact source text, (3) a deterministic fabrication check instead of a prompt that says "don't make things up", (4) rewrites limited to user-approved facts.
 
@@ -27,7 +27,7 @@ Env: `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` (configurable, must support struct
 ## User flow
 1. Choose a platform from the Professional, Social, or Dating group.
 2. Enter existing text. LinkedIn: a profile by **sections** (headline, About, and entries under Experience, Education, Projects, Volunteering), pasted into a section editor or imported from LinkedIn's "Save to PDF" export (parsed in the browser; name, contact details, and location are dropped). Hinge: 1–3 prompt question/answer pairs. A preloaded fictitious demo persona and sample profiles are available.
-3. **Confirm Identity DNA (Hinge only):** LinkedIn skips this step, since the profile itself is the evidence; extra facts can be added on its rewrite screen. On Hinge, AI proposes candidate facts, user ticks which are true and may edit or add. Demo default: 4–6 facts. Keep it short: paste → tick facts → choose audience.
+3. **No separate facts step (removed on every platform):** the user's own text is the evidence. True facts that aren't in the text are added on the rewrite screen ("Add something that isn't in your …") or come from the Identity Hub; only those, plus the text, may support a rewrite.
 4. **Consent** (first live use in this browser): selected text and confirmed facts are sent to OpenRouter and the underlying model provider. Sample mode needs no consent.
 5. Choose audiences (any number; one AI call per lens, run in parallel) and questions, including up to 3 the user types (fenced as untrusted text in the prompt). LinkedIn: 8 lenses in 4 categories; the default is one lens from each of 3 categories. Optionally paste a real job description to target.
 6. **Audience Clash:** categorical critique cards plus audience × trait matrix. Click a critique to highlight its source text or show "missing evidence".
@@ -86,7 +86,7 @@ Deterministic and testable. Don't trust model `usedFactIds`.
 7. **Per-section corpus (LinkedIn):** a headline or About rewrite is checked against the whole profile plus confirmed facts (it may summarize); an entry rewrite only against that entry's own text plus confirmed facts, so numbers and names can't hop between jobs. The model sees the same sources FactCheck accepts.
 
 ## UI
-Polished, responsive, accessible. Every visible button works. Real loading, empty, and error states. Components: `IdentityFacts`, `AudienceClash` (matrix + critique cards + source highlighting), `RewriteComparison` (diff, change summary, copy). Build with mock typed JSON first so UI and AI work can proceed in parallel. Use `diff` for word-level highlighting.
+Polished, responsive, accessible. Every visible button works. Real loading, empty, and error states. Components: `AudienceClash` (matrix + critique cards + source highlighting), `RewriteComparison` (diff, change summary, copy). Build with mock typed JSON first so UI and AI work can proceed in parallel. Use `diff` for word-level highlighting.
 
 ## Demo data
 Fictitious persona with 4–6 confirmed facts and a deliberately vague LinkedIn profile (now by sections, with invented organizations). Cached sample outputs are clearly labeled "sample result", never shown as a live run. Keep a backup path in case the API is slow. Never use a real person's profile in demo data or tests; PDF parser tests use a synthetic export.

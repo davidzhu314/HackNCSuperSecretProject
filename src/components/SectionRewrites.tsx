@@ -1,7 +1,8 @@
 "use client";
 
-import { Check, LoaderCircle, PenLine, Plus, Sparkles, TriangleAlert, Undo2, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Check, LoaderCircle, PenLine, Sparkles, TriangleAlert, Undo2 } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { ExtraFacts } from "@/components/ExtraFacts";
 import { VariationResult } from "@/components/RewriteComparison";
 import { Button } from "@/components/ui/button";
 import type {
@@ -117,7 +118,6 @@ export function SectionRewrites(props: {
   const { sections, states, sourcesFor, confirmedFacts, goal, allStyle, allLength, sampleMode, rewritingAll, focusKey } = props;
   const { adversarial, adversarialOriginal, adversarialSegments } = props;
   const { applied, currentText, onUse, onUndo, onAddFact, onRemoveFact } = props;
-  const [factDraft, setFactDraft] = useState("");
   const { onGoal, onStyle, onLength, onGenerate, onAllStyle, onAllLength, onRewriteAll, onAdversarial, onError } = props;
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -187,54 +187,7 @@ export function SectionRewrites(props: {
           {rewritingAll ? "Rewriting sections…" : "Rewrite all sections"}
         </Button>
       </div>
-      <details className="extra-facts">
-        <summary>
-          Add something that isn&apos;t in your profile{confirmedFacts.length ? ` (${confirmedFacts.length})` : ""}
-        </summary>
-        {confirmedFacts.length > 0 && (
-          <ul>
-            {confirmedFacts.map((f) => (
-              <li key={f.id}>
-                <span>{f.text}</span>
-                <Button variant="ghost" size="icon" aria-label={`Remove: ${f.text}`} onClick={() => onRemoveFact(f.id)}>
-                  <X />
-                </Button>
-              </li>
-            ))}
-          </ul>
-        )}
-        <div className="custom-question-row">
-          <label className="sr-only" htmlFor="extra-fact">
-            A true fact about you that isn&apos;t in your profile
-          </label>
-          <input
-            id="extra-fact"
-            className="goal-input"
-            maxLength={300}
-            value={factDraft}
-            placeholder="e.g. I presented my research at a regional conference"
-            onChange={(event) => setFactDraft(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && factDraft.trim()) {
-                onAddFact(factDraft);
-                setFactDraft("");
-              }
-            }}
-          />
-          <Button
-            variant="glass"
-            size="sm"
-            disabled={!factDraft.trim()}
-            onClick={() => {
-              onAddFact(factDraft);
-              setFactDraft("");
-            }}
-          >
-            <Plus />
-            Add
-          </Button>
-        </div>
-      </details>
+      <ExtraFacts facts={confirmedFacts} what="profile" onAdd={onAddFact} onRemove={onRemoveFact} />
       {sampleMode && <p className="empty-note">Sample results exist at the same length only; turn off sample mode to change the length.</p>}
 
       <div className="section-cards" ref={listRef}>

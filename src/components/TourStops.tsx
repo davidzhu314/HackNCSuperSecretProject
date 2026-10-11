@@ -1,17 +1,17 @@
 "use client";
 
-import { Check, Eye, FileText, Fingerprint, LockKeyhole, Sparkles, Users } from "lucide-react";
+import { Check, Eye, FileText, LockKeyhole, Sparkles, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // The studio's step rail: the Lovable "hotspots" as a row of pearls over the scenery.
 // Steps ahead of the furthest one reached are locked.
 
-const ICONS = [FileText, LockKeyhole, Fingerprint, Users, Eye, Sparkles];
+const ICONS = [FileText, LockKeyhole, Users, Eye, Sparkles];
 
 export function TourStops(props: {
   /** Labels of every step, indexed by step number. */
   steps: string[];
-  /** The step numbers this platform shows, in order (e.g. LinkedIn has no Identity DNA step). */
+  /** The step numbers to show, in order. */
   order?: number[];
   step: number;
   furthest: number;

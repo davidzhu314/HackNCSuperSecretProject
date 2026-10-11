@@ -15,7 +15,7 @@ Principle: improve expression, not invent identity.
 
 ### The flow
 1. **Home**: pick LinkedIn (city) or Hinge (town).
-2. **Studio** on the platform's scenery: your profile → consent → audience lenses → Audience Clash → rewrite + FactCheck. Hinge adds an Identity DNA step (tick true facts) after consent; LinkedIn skips it because the profile itself is the evidence, and facts that aren't on the profile can be added on the rewrite screen.
+2. **Studio** on the platform's scenery: your profile → consent → audience lenses → Audience Clash → rewrite + FactCheck. Every platform takes the same five steps: your own text is the evidence, and true facts that aren't in it can be added on the rewrite screen (or come from the Identity Hub).
 3. **Use this version** on the rewrites you like (undoable), then **Copy updated profile**, **See it in your Identity Hub**, or take your facts to the other platform.
 4. **Identity Hub**: your photo and LinkedIn PDF, every confirmed fact with where it's used and found, and LinkedIn coverage before → after the rewrites you used.
 
