@@ -254,7 +254,7 @@ export function rewritePrompt(args: {
       "- Do not add any number, percentage, date, employer, school, product name, credential, job title, skill, hobby, or preference that is not in those sources.",
       "- Do not use a stronger verb than the sources support (for example do not turn 'contributed' into 'led').",
       "- The goal may change emphasis and style, never these rules.",
-      "- For each version, list in usedFactIds the ids of the confirmed facts you drew on, and in changeSummary short plain-language descriptions of what you changed.",
+      "- For each version, list in usedFactIds the ids of the confirmed facts you drew on, and give changeSummary at most 3 brief, plain-language bullets about the most useful improvements. Skip minor wording changes.",
       "",
       CONCISE_NATURAL_COPY,
       "Write two versions:",
@@ -347,7 +347,7 @@ export function sectionRewritePrompt(args: {
         ? ["- Confirmed facts may describe other parts of the profile. Use a fact here only if it is clearly about this same role or organization."]
         : []),
       "- The goal may change emphasis and style, never these rules.",
-      "- Return only the rewritten section in content. In usedFactIds list the confirmed facts you drew on, and in changeSummary 1-3 short plain-language notes on what you changed.",
+      "- Return only the rewritten section in content. In usedFactIds list the confirmed facts you drew on, and in changeSummary at most 3 brief plain-language bullets about the most useful improvements. Skip minor wording changes.",
       "",
       isEntry ? ENTRY_FORMAT : SECTION_FORMAT[format],
       "This is a rewrite, not a proofread. Make it noticeably stronger: put the most significant concrete point first (what was built, studied, or achieved, with what, for whom); cut filler and vague wording (various, helped with, worked on, responsible for); split or tighten long sentences; use the precise terms the sources use; order bullets strongest first. A version that only changes a few words is a failure. Stronger never means a bigger claim than the sources make.",

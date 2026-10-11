@@ -6,7 +6,7 @@ These are the writing rules for PERSONA's AI rewrite API. The runtime prompt bui
 
 Rewrite the user's submitted profile for the selected application. Return ready-to-copy profile content that fits the selected app's audience, field, voice, and character limit. Improve how the user's real information is expressed; do not invent or infer who the user is.
 
-The output is the profile copy itself. Do not replace it with advice, an explanation of the user's characteristics, or a summary of what was changed. The API's structured `changeSummary` field may briefly describe edits, but it must not be added to the copy.
+The output is the profile copy itself. Do not replace it with advice, an explanation of the user's characteristics, or a summary of what was changed. The API's structured `changeSummary` field may briefly describe edits, but it must not be added to the copy. Keep that summary to at most three short, useful points; omit minor wording changes and implementation commentary.
 
 ## Rules for every application
 

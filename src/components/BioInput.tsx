@@ -31,6 +31,12 @@ export function BioInput(props: {
   const config = PLATFORM_CONFIGS[platform];
   const field = config.fieldLabel.toLowerCase();
   const length = [...bio].length;
+  const starterHint: Partial<Record<Platform, string>> = {
+    handshake: "Start with your field of study, one relevant project, and the kind of role you want.",
+    instagram: "Choose one identity anchor and one or two interests people should notice first.",
+    facebook: "Say what you’re up to and add one interest or community connection.",
+    tinder: "Share one real interest and one specific detail that feels like you.",
+  };
   // A draft may run over while you write; the rewrite is held to the limit.
   const over = config.maxChars !== undefined && length > config.maxChars;
   const segments = useMemo(() => segmentBio(bio), [bio]);
@@ -57,6 +63,7 @@ export function BioInput(props: {
               placeholder={`Paste your ${config.label} ${field}…`}
               onChange={(event) => onBioChange(event.target.value)}
             />
+            <p className="profile-input-hint">{starterHint[platform] ?? `Paste your current ${field} or write the few details you want people to remember.`}</p>
             <div className="input-meta">
               <span>
                 <LockKeyhole size={11} />
@@ -85,9 +92,13 @@ export function BioInput(props: {
                 />
               </details>
             )}
+            <QuickCheck segments={segments} group={config.group} fitText={bio} compact />
           </div>
         </div>
         <div className="perspective-panel">
+          <details className="profile-tools">
+            <summary>Optional tools and examples</summary>
+            <div className="profile-tools-content">
           <h2 className="section-heading">
             <Sparkles />
             Try it with a demo
@@ -114,12 +125,13 @@ export function BioInput(props: {
               </Button>
             </>
           )}
-          <QuickCheck segments={segments} group={config.group} fitText={bio} />
           <p className="flow-description">
             {config.maxChars
               ? `${config.label} allows ${config.maxChars} characters here. Paste what you have; the rewrite will fit it.`
               : `Paste your ${field}.`}
           </p>
+            </div>
+          </details>
         </div>
       </div>
       <div className="action-band">

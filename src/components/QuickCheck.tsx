@@ -19,15 +19,24 @@ export function QuickCheck(props: {
   headlineId?: string;
   /** Text to measure against every platform's limit (a bio, or LinkedIn's About). Omit to hide. */
   fitText?: string;
+  /** Show a short live status with the detailed findings expandable. */
+  compact?: boolean;
 }) {
-  const { segments, group, headlineId, fitText } = props;
+  const { segments, group, headlineId, fitText, compact = false } = props;
   const [all, setAll] = useState(false);
   const issues = useMemo(() => lintSegments(segments, group, headlineId), [segments, group, headlineId]);
   const fits = useMemo(() => (fitText?.trim() ? fitAcross(fitText) : []), [fitText]);
   const hasText = segments.some((s) => s.text.trim());
+  const fittingCount = fits.filter((fit) => fit.fits).length;
+  const status = !hasText
+    ? "Local checks run as you type"
+    : `${issues.length ? `${issues.length} wording ${issues.length === 1 ? "suggestion" : "suggestions"}` : "No wording issues"}${fits.length ? ` · fits ${fittingCount}/${fits.length} platform fields` : ""}`;
+  const Container = compact ? "details" : "div";
 
   return (
-    <div className="quick-check">
+    <Container className={`quick-check${compact ? " quick-check-compact" : ""}`}>
+      {compact && <summary className="quick-check-summary"><ScanSearch size={15} /><span>{status}</span><span className="quick-check-tag">local · no AI</span></summary>}
+      <div className={compact ? "quick-check-expanded" : undefined}>
       <h2 className="section-heading seed-heading">
         <ScanSearch />
         Quick check <span className="quick-check-tag">no AI</span>
@@ -86,6 +95,7 @@ export function QuickCheck(props: {
           </ul>
         </>
       )}
-    </div>
+      </div>
+    </Container>
   );
 }

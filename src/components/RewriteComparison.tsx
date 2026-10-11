@@ -22,6 +22,9 @@ import {
 import { PLATFORM_CONFIGS } from "@/lib/rubrics";
 import { checkLength, checkStyle } from "@/lib/style-check";
 import { findRepeatedPhrases, type QualityField } from "@/lib/profile-quality";
+import type { compareOverallTraitScores } from "@/lib/trait-scores";
+
+type ScoreComparison = ReturnType<typeof compareOverallTraitScores>;
 
 const RECEIPT_LABEL: Record<ReceiptStatus, string> = {
   traced: "Traced",
@@ -57,6 +60,7 @@ export function RewriteComparison(props: {
   qualityFields?: QualityField[];
   qualityTargetKey?: string;
   use?: { current: string; applied: boolean; onUse: (text: string) => void; onUndo: () => void };
+  onScore?: (text: string, key?: string) => Promise<ScoreComparison>;
 }) {
   const { result, goal, loading, adversarial, confirmedFacts, onGoal, onGenerate, onAdversarial } = props;
   const [style, setStyle] = useState<RewriteStyle>("direct");
@@ -73,19 +77,11 @@ export function RewriteComparison(props: {
         {result?.source === "sample" && <span className="sample-badge">Sample result</span>}
       </div>
       <div className="rewrite-options rewrite-options-goal">
-        <div>
-          <label className="field-label" htmlFor="rewrite-goal">
-            Goal <span className="optional">(optional)</span>
-          </label>
-          <input
-            id="rewrite-goal"
-            className="goal-input"
-            maxLength={300}
-            value={goal}
-            onChange={(event) => onGoal(event.target.value)}
-            placeholder="What would you like to express more clearly?"
-          />
-        </div>
+        <details className="rewrite-goal">
+          <summary>{goal.trim() ? "Rewrite focus added" : "Add an optional focus"}</summary>
+          <label className="field-label" htmlFor="rewrite-goal">What should this version emphasize?</label>
+          <input id="rewrite-goal" className="goal-input" maxLength={300} value={goal} onChange={(event) => onGoal(event.target.value)} placeholder="e.g. make my interests clearer" />
+        </details>
         <Button variant="aero" disabled={loading} onClick={onGenerate}>
           {loading ? <LoaderCircle className="animate-spin" /> : <Sparkles />}
           {loading ? "Writing two versions..." : result ? "Rewrite again" : "Generate rewrites"}
@@ -160,6 +156,7 @@ export function VariationResult(props: {
    * profile text now; `applied` says whether it is an accepted rewrite.
    */
   use?: { current: string; applied: boolean; onUse: (text: string) => void; onUndo: () => void };
+  onScore?: (text: string, key?: string) => Promise<ScoreComparison>;
   /** What this text is (a LinkedIn section's label); defaults to the platform's field. For the export. */
   section?: string;
   qualityFields?: QualityField[];
@@ -171,6 +168,8 @@ export function VariationResult(props: {
   const [editing, setEditing] = useState(false);
   const [copied, setCopied] = useState(false);
   const [history, setHistory] = useState<string[]>([]);
+  const [scoring, setScoring] = useState(false);
+  const [scoreComparison, setScoreComparison] = useState<ScoreComparison | null>(null);
 
   // Unedited: the server's checks. Edited: the same deterministic checks, re-run locally.
   const edited = text !== rewrite.content;
@@ -352,6 +351,7 @@ export function VariationResult(props: {
                 onChange={(event) => {
                   setText(event.target.value);
                   setCopied(false);
+                  setScoreComparison(null);
                 }}
               />
             </div>
@@ -443,24 +443,27 @@ export function VariationResult(props: {
         </p>
       )}
       <Scorecard card={scorecard} />
-      <details className="change-details">
-        <summary>What changed</summary>
+      <div className="rewrite-key-points">
+        <strong>Key changes</strong>
         <ul className="change-list">
-          {rewrite.changeSummary.map((change, index) => (
+          {rewrite.changeSummary.slice(0, 3).map((change, index) => (
             <li key={index}>{change}</li>
           ))}
         </ul>
-        {usedFactIds.length > 0 && (
-          <p className="empty-note">
-            Facts the AI says it used (advisory): {usedFactIds.map((id) => factText.get(id) ?? `${id} (not a confirmed fact)`).join("; ")}
-          </p>
-        )}
-      </details>
+      </div>
+      {usedFactIds.length > 0 && <details className="change-details"><summary>Confirmed facts used</summary><p className="empty-note">{usedFactIds.map((id) => factText.get(id) ?? `${id} (not a confirmed fact)`).join("; ")}</p></details>}
       <div className="action-band">
         <span className="empty-note">
           {use?.applied && inUse ? "Selected as your current draft." : "Review your words before sharing them."}
         </span>
+        {scoreComparison && <span className="score-comparison-note" data-better={scoreComparison.improved} role="status">
+          {scoreComparison.delta === null ? "Rewrite scores could not be compared." : scoreComparison.improved ? `Selected audiences rated this rewrite ${scoreComparison.delta} points higher on average.` : scoreComparison.delta === 0 ? "The average audience rating was unchanged." : `Selected audiences rated this rewrite ${Math.abs(scoreComparison.delta)} points lower on average.`}
+        </span>}
         <div className="action-buttons">
+          {props.onScore && <Button variant="glass" disabled={scoring || source === "sample"} title={source === "sample" ? "Sample mode does not send text for scoring" : undefined} onClick={async () => { setScoring(true); setScoreComparison(null); try { setScoreComparison(await props.onScore?.(text, props.qualityTargetKey) ?? null); } catch (error) { onError(error instanceof Error ? error.message : "Could not compare scores. Try again."); } finally { setScoring(false); } }}>
+            {scoring ? <LoaderCircle className="animate-spin" /> : <Sparkles />}
+            {scoring ? "Scoring…" : "Compare scores"}
+          </Button>}
           {history.length > 0 && <details className="version-history"><summary>Version history ({history.length})</summary>{history.map((version, index) => <button type="button" key={`${index}-${version}`} onClick={() => { setHistory((items) => [...items, text].slice(-8)); setText(version); setEditing(false); }}>{`Restore version ${index + 1}`}</button>)}</details>}
           {use?.applied && (
             <Button variant="ghost" onClick={use.onUndo}>
@@ -482,7 +485,7 @@ export function VariationResult(props: {
           {use && (
             <Button variant="aero" disabled={inUse} onClick={() => use.onUse(text)}>
               <Check />
-              {inUse ? "In your profile" : warnings.length ? "Use anyway" : "Use this version"}
+              {inUse ? "In your profile" : scoreComparison?.improved ? "Use higher-scoring version" : warnings.length ? "Use anyway" : "Use this version"}
             </Button>
           )}
         </div>

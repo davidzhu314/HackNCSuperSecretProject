@@ -30,6 +30,7 @@ import { changedSections, profileAsText, sectionText, withSectionText } from "@/
 import { cleanProfile, importProfileFile } from "@/lib/profile-import";
 import { DEFAULT_LINKEDIN_AUDIENCES, PLATFORM_CONFIGS } from "@/lib/rubrics";
 import { runLimited } from "@/lib/run-limited";
+import { compareOverallTraitScores } from "@/lib/trait-scores";
 import {
   LIMITS,
   LinkedInProfileSchema,
@@ -494,13 +495,16 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
     }
   }
 
-  async function scoreImprovedDraft(): Promise<EvaluateResponse> {
+  async function scoreDraft(text: string, sectionKey?: string) {
+    if (!evaluation) throw new Error("Original audience scores are unavailable. Run feedback again first.");
     let candidateSegments: Segment[];
-    if (platform === "linkedin") candidateSegments = segmentProfile(clean);
-    else if (config.input === "bio") candidateSegments = segmentBio(singleApplied ?? bio);
+    if (platform === "linkedin") {
+      if (!sectionKey) throw new Error("Choose a LinkedIn section rewrite to compare.");
+      candidateSegments = segmentProfile(cleanProfile(withSectionText(clean, sectionKey, text)));
+    } else if (config.input === "bio") candidateSegments = segmentBio(text);
     else {
       const prompts = hinge.filter((pair) => pair.answer.trim());
-      const answers = singleApplied ? singleApplied.split(/\n\s*\n/).map((answer) => answer.trim()).filter(Boolean) : prompts.map((pair) => pair.answer.trim());
+      const answers = text.split(/\n\s*\n/).map((answer) => answer.trim()).filter(Boolean);
       candidateSegments = segmentHinge(prompts.map((pair, index) => ({ prompt: pair.prompt, answer: answers[index] ?? "" })));
     }
     if (!candidateSegments.length) throw new Error("The selected draft has no text to score.");
@@ -514,7 +518,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
       jobDescription: targetJob,
     });
     setImprovedEvaluation(result);
-    return result;
+    return compareOverallTraitScores(evaluation, result, audiences, evalTraits);
   }
 
   function patchSection(key: string, patch: Partial<SectionRewriteState>) {
@@ -530,6 +534,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
     const section = findSection(baseClean, key);
     if (!section) return;
     const gen = sectionGen.current;
+    setImprovedEvaluation(null);
     sectionInFlight.current.add(key);
     patchSection(key, { style, length, loading: { style, length }, error: null });
     try {
@@ -873,6 +878,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
               onRewriteAll={() => void rewriteAll()}
               onAdversarial={(enabled) => (enabled ? void runRewrite("adversarial") : setAdversarial(null))}
               onError={(message) => setError({ message })}
+              onScore={scoreDraft}
             />
           )}
           {step === REWRITE && platform !== "linkedin" && (
@@ -891,6 +897,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
               textName={platform === "hinge" ? "answers" : config.fieldLabel.toLowerCase()}
               onAddFact={addExtraFact}
               onRemoveFact={removeExtraFact}
+              onScore={(text) => scoreDraft(text)}
               use={{
                 current: singleApplied ?? textOriginal,
                 applied: singleApplied !== null,
@@ -906,9 +913,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
               config={evalConfig}
               audiences={audiences}
               traits={evalTraits}
-              canScore={platform === "linkedin" ? applied.length > 0 : singleApplied !== null}
               sampleMode={sample}
-              onScore={scoreImprovedDraft}
             />
           )}
           {step === REWRITE && (

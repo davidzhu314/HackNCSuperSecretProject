@@ -15,6 +15,9 @@ import type {
   Segment,
 } from "@/lib/schemas";
 import { LENGTH_STEPS, STYLE_ORDER, STYLES, targetChars } from "@/lib/styles";
+import type { compareOverallTraitScores } from "@/lib/trait-scores";
+
+type ScoreComparison = ReturnType<typeof compareOverallTraitScores>;
 
 // LinkedIn rewrites, one card per section in LinkedIn order. Each card picks a style (Direct,
 // Narrative, Professional) and a length (slider), generates on demand, caches per style + length,
@@ -114,9 +117,10 @@ export function SectionRewrites(props: {
   onRewriteAll: () => void;
   onAdversarial: (enabled: boolean) => void;
   onError: (message: string) => void;
+  onScore: (key: string, text: string) => Promise<ScoreComparison>;
 }) {
   const { sections, states, sourcesFor, confirmedFacts, goal, allStyle, allLength, sampleMode, rewritingAll, focusKey } = props;
-  const { adversarial, adversarialOriginal, adversarialSegments } = props;
+              const { adversarial, adversarialOriginal, adversarialSegments } = props;
   const { applied, currentText, onUse, onUndo, onAddFact, onRemoveFact } = props;
   const { onGoal, onStyle, onLength, onGenerate, onAllStyle, onAllLength, onRewriteAll, onAdversarial, onError } = props;
   const listRef = useRef<HTMLDivElement>(null);
@@ -139,19 +143,11 @@ export function SectionRewrites(props: {
       </div>
 
       <div className="rewrite-options rewrite-all-row">
-        <div>
-          <label className="field-label" htmlFor="rewrite-goal">
-            Goal <span className="optional">(optional)</span>
-          </label>
-          <input
-            id="rewrite-goal"
-            className="goal-input"
-            maxLength={300}
-            value={goal}
-            onChange={(event) => onGoal(event.target.value)}
-            placeholder="e.g. Make it clearer for technical recruiters"
-          />
-        </div>
+        <details className="rewrite-goal">
+          <summary>{goal.trim() ? "Rewrite focus added" : "Add an optional focus"}</summary>
+          <label className="field-label" htmlFor="rewrite-goal">What should the rewrites emphasize?</label>
+          <input id="rewrite-goal" className="goal-input" maxLength={300} value={goal} onChange={(event) => onGoal(event.target.value)} placeholder="e.g. make it clearer for recruiters" />
+        </details>
         <div>
           <label className="field-label" htmlFor="all-style">
             Style for all
@@ -291,6 +287,7 @@ export function SectionRewrites(props: {
                   variation={{ rewrite: result.rewrite, warnings: result.warnings, styleWarnings: result.styleWarnings }}
                   source={result.source}
                   onError={onError}
+                  onScore={(text) => props.onScore(section.key, text)}
                   qualityFields={sections.map((item) => ({ key: item.key, label: item.label, text: item.key === section.key ? currentText(section.key) : currentText(item.key), limit: item.kind === "headline" ? 220 : item.kind === "about" ? 2600 : 2000 }))}
                   qualityTargetKey={section.key}
                   use={{

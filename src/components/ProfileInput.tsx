@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowRight, FileText, Fingerprint, LockKeyhole, Sparkles } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { QuickCheck } from "@/components/QuickCheck";
 import { Button } from "@/components/ui/button";
 import { HINGE_PROMPTS, MAX_HINGE_ANSWER, type HingePair } from "@/lib/persona-ui";
@@ -21,7 +21,10 @@ export function ProfileInput(props: {
   onSeed?: () => void;
 }) {
   const { hinge, demo, canContinue, onHingeChange, onLoadDemo, onContinue, seedFacts, onSeed } = props;
+  const [visibleCount, setVisibleCount] = useState(1);
   const segments = useMemo(() => segmentHinge(hinge), [hinge]);
+  const lastAnswered = hinge.reduce((last, pair, index) => pair.answer.trim() ? index + 1 : last, 0);
+  const activeCount = Math.min(hinge.length, Math.max(visibleCount, lastAnswered));
   const setPair = (index: number, patch: Partial<HingePair>) =>
     onHingeChange(hinge.map((pair, i) => (i === index ? { ...pair, ...patch } : pair)));
 
@@ -36,8 +39,9 @@ export function ProfileInput(props: {
             </h2>
           </div>
           <div className="profile-content">
+            <p className="profile-input-hint">One answer is enough to start. Add other prompts only if you want to show more of your personality.</p>
             <div className="hinge-prompts">
-              {hinge.map((pair, index) => (
+              {hinge.slice(0, activeCount).map((pair, index) => (
                 <div className="hinge-prompt" key={index}>
                   <label className="field-label" htmlFor={`prompt-${index}`}>
                     Prompt {index + 1}
@@ -66,15 +70,20 @@ export function ProfileInput(props: {
                 </div>
               ))}
             </div>
+            {activeCount < hinge.length && <Button variant="glass" onClick={() => setVisibleCount(activeCount + 1)}>Add another prompt <span className="optional">(optional)</span></Button>}
             <div className="input-meta">
               <span>
                 <LockKeyhole size={11} />
                 Only here, only for this session.
               </span>
             </div>
+            <QuickCheck segments={segments} group="dating" compact />
           </div>
         </div>
         <div className="perspective-panel">
+          <details className="profile-tools">
+            <summary>Optional tools and examples</summary>
+            <div className="profile-tools-content">
           <h2 className="section-heading">
             <Sparkles />
             Try it with a demo
@@ -101,8 +110,9 @@ export function ProfileInput(props: {
               </Button>
             </>
           )}
-          <QuickCheck segments={segments} group="dating" />
           <p className="flow-description">Pick a prompt and paste your answer for each one you use.</p>
+            </div>
+          </details>
         </div>
       </div>
       <div className="action-band">

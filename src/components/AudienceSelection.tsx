@@ -120,7 +120,9 @@ export function AudienceSelection(props: {
             </ul>
           )}
           {customQuestions.length < LIMITS.maxCustomQuestions && (
-            <div className="custom-question-row">
+            <details className="custom-question-details">
+              <summary>Add a custom question <span className="optional">(optional)</span></summary>
+              <div className="custom-question-row">
               <label className="sr-only" htmlFor="custom-question">
                 Your own question
               </label>
@@ -140,7 +142,8 @@ export function AudienceSelection(props: {
                 <Plus />
                 Add
               </Button>
-            </div>
+              </div>
+            </details>
           )}
         </div>
       </div>
