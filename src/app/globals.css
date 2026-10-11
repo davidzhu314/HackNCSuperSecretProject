@@ -1023,3 +1023,32 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
   .consistency-list ul li { grid-template-columns: auto minmax(0, 1fr); }
   .consistency-list q { grid-column: 1 / -1; }
 }
+
+/* AI progress bar (ProgressBar.tsx). Colors follow the platform theme on .app-root (--brand-*);
+   an `accent` prop overrides them inline. Fill eases 300ms; on finish it fills, then fades. */
+.ai-progress {
+  --progress-accent: var(--brand-solid, var(--primary));
+  --progress-fill: var(--brand-fill, var(--progress-accent));
+  --progress-track: var(--brand-tint, var(--secondary));
+  display: grid; gap: 7px; margin: 14px 0 18px; transition: opacity 250ms ease;
+}
+/* Handshake's fill is a light lime that disappears on its own tint; use its solid green. */
+.app-root[data-theme=handshake] .ai-progress { --progress-fill: var(--brand-solid); }
+.ai-progress[data-phase=finishing] { opacity: 0; transition-delay: 300ms; }
+.ai-progress-label { margin: 0; font-size: 12px; color: var(--muted-foreground); animation: ai-progress-label-in 250ms ease-out; }
+.ai-progress-track {
+  position: relative; height: 6px; border-radius: 999px; background: var(--progress-track);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--progress-accent) 18%, transparent);
+}
+.ai-progress-fill {
+  position: relative; height: 100%; max-width: 100%; border-radius: inherit; overflow: hidden;
+  background: var(--progress-fill); transition: width 300ms ease-out;
+  box-shadow: 0 0 10px color-mix(in oklch, var(--progress-accent) 55%, transparent);
+}
+.ai-progress[data-phase=running] .ai-progress-fill::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / .45), transparent);
+  transform: translateX(-100%); animation: ai-progress-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes ai-progress-shimmer { to { transform: translateX(100%); } }
+@keyframes ai-progress-label-in { from { opacity: 0; transform: translateY(2px); } }

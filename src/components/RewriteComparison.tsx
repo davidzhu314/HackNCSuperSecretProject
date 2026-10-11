@@ -22,6 +22,8 @@ import {
 import { PLATFORM_CONFIGS } from "@/lib/rubrics";
 import { checkLength, checkStyle } from "@/lib/style-check";
 import { findRepeatedPhrases, type QualityField } from "@/lib/profile-quality";
+import { ProgressBar } from "@/components/ProgressBar";
+import { EXPECTED_MS } from "@/lib/progress";
 
 const RECEIPT_LABEL: Record<ReceiptStatus, string> = {
   traced: "Traced",
@@ -91,6 +93,7 @@ export function RewriteComparison(props: {
           {loading ? "Writing two versions..." : result ? "Rewrite again" : "Generate rewrites"}
         </Button>
       </div>
+      <ProgressBar active={loading} label="Writing two versions and running FactCheck…" expectedMs={EXPECTED_MS.rewrite} />
       <ExtraFacts facts={confirmedFacts} what={props.textName} onAdd={props.onAddFact} onRemove={props.onRemoveFact} />
       <p className="empty-note">
         You’ll get two versions, a direct one and a narrative one, built only from your own words and any facts you add.

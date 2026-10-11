@@ -28,7 +28,9 @@ import { emptyLinkedInProfile, factCheckSegments, findSection, profileCharCount,
 import { changedSections, profileAsText, sectionText, withSectionText } from "@/lib/profile-edits";
 import { cleanProfile, importProfileFile } from "@/lib/profile-import";
 import { DEFAULT_LINKEDIN_AUDIENCES, PLATFORM_CONFIGS } from "@/lib/rubrics";
-import { runLimited } from "@/lib/run-limited";
+import { PARALLEL_REWRITES, runLimited } from "@/lib/run-limited";
+import { EXPECTED_MS } from "@/lib/progress";
+import { ProgressBar } from "@/components/ProgressBar";
 import {
   LIMITS,
   LinkedInProfileSchema,
@@ -59,9 +61,6 @@ const [INPUT, CONSENT, AUDIENCES, CLASH, REWRITE] = [0, 1, 2, 3, 4];
  * Identity Hub.
  */
 const ORDER = [INPUT, CONSENT, AUDIENCES, CLASH, REWRITE];
-
-/** At most this many section rewrites run at once ("Rewrite all"). */
-const PARALLEL_REWRITES = 3;
 
 /** The Hinge demo has two answers; fill the third slot with an unused prompt. */
 function demoHingePairs(): HingePair[] {
@@ -670,6 +669,10 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
               Sample mode: results below are cached demo data for the fictitious persona, not a live AI run.
             </p>
           )}
+
+          {/* Lives here, not in the lens step: results move the studio to Audience Clash, and the bar
+              should finish and fade there instead of vanishing with the step. */}
+          <ProgressBar active={evaluating} label="Reading your profile through each lens…" expectedMs={EXPECTED_MS.evaluate} />
 
           {error && (
             <div className="flow-error" role="alert">

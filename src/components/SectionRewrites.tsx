@@ -15,6 +15,9 @@ import type {
   Segment,
 } from "@/lib/schemas";
 import { LENGTH_STEPS, STYLE_ORDER, STYLES, targetChars } from "@/lib/styles";
+import { ProgressBar } from "@/components/ProgressBar";
+import { EXPECTED_MS, expectedBatchMs } from "@/lib/progress";
+import { PARALLEL_REWRITES } from "@/lib/run-limited";
 
 // LinkedIn rewrites, one card per section in LinkedIn order. Each card picks a style (Direct,
 // Narrative, Professional) and a length (slider), generates on demand, caches per style + length,
@@ -187,6 +190,11 @@ export function SectionRewrites(props: {
           {rewritingAll ? "Rewriting sections…" : "Rewrite all sections"}
         </Button>
       </div>
+      <ProgressBar
+        active={rewritingAll}
+        label={`Rewriting ${sections.length} sections, ${PARALLEL_REWRITES} at a time…`}
+        expectedMs={expectedBatchMs(sections.length, PARALLEL_REWRITES)}
+      />
       <ExtraFacts facts={confirmedFacts} what="profile" onAdd={onAddFact} onRemove={onRemoveFact} />
       {sampleMode && <p className="empty-note">Sample results exist at the same length only; turn off sample mode to change the length.</p>}
 
@@ -256,12 +264,15 @@ export function SectionRewrites(props: {
                     : ""}
                 </p>
               )}
-              {st.loading && (
-                <p className="loading-row" role="status">
-                  <LoaderCircle className="animate-spin" size={14} />
-                  Writing the {STYLES[st.loading.style].label.toLowerCase()} version ({lengthLabel(st.loading.length).toLowerCase()}) and running FactCheck…
-                </p>
-              )}
+              <ProgressBar
+                active={Boolean(st.loading)}
+                label={
+                  st.loading
+                    ? `Writing the ${STYLES[st.loading.style].label.toLowerCase()} version (${lengthLabel(st.loading.length).toLowerCase()}) and running FactCheck…`
+                    : ""
+                }
+                expectedMs={EXPECTED_MS.section}
+              />
               {st.error && !st.loading && (
                 <div className="flow-error section-error" role="alert">
                   <TriangleAlert />

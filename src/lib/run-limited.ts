@@ -1,3 +1,6 @@
+/** Section rewrites run at most this many at once ("Rewrite all sections"). */
+export const PARALLEL_REWRITES = 3;
+
 /**
  * Run `worker` over every item with at most `limit` running at once. A failing item doesn't stop
  * the others: workers are expected to record their own errors, and any throw is swallowed here.
