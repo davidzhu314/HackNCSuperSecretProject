@@ -1,7 +1,7 @@
 "use client";
 
 import { Moon, Sun } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 
 // Light/dark switch for the Identity Hub only. The choice is a non-sensitive preference kept in
@@ -12,12 +12,19 @@ const KEY = "personify-hub-theme";
 
 export const HUB_THEME_SCRIPT = `try{var t=localStorage.getItem("${KEY}");if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.dataset.hubTheme=t}catch(e){}`;
 
-export function HubThemeToggle() {
-  const [dark, setDark] = useState(false);
+// The theme lives on <html> (set by HUB_THEME_SCRIPT before React runs), so read it from there.
+function subscribe(onChange: () => void) {
+  const observer = new MutationObserver(onChange);
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-hub-theme"] });
+  return () => observer.disconnect();
+}
 
-  useEffect(() => {
-    setDark(document.documentElement.dataset.hubTheme === "dark");
-  }, []);
+export function HubThemeToggle() {
+  const dark = useSyncExternalStore(
+    subscribe,
+    () => document.documentElement.dataset.hubTheme === "dark",
+    () => false,
+  );
 
   function toggle() {
     const next = dark ? "light" : "dark";
@@ -27,7 +34,6 @@ export function HubThemeToggle() {
     } catch {
       // Storage blocked (private mode): the switch still works for this visit.
     }
-    setDark(!dark);
   }
 
   return (

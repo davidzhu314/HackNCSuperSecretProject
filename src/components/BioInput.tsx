@@ -38,7 +38,7 @@ export function BioInput(props: {
           <div className="panel-header">
             <h2 className="section-heading">
               <FileText />
-              Your {config.label} {field}
+              {config.label}
             </h2>
           </div>
           <div className="profile-content">
