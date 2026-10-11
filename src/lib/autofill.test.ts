@@ -60,8 +60,8 @@ describe("sourceSentences and rankFor", () => {
   it("drops duplicates and sentences already in the target", () => {
     const sentences = [
       { text: "I like pancakes.", from: "instagram" as const, group: "social" as const, kind: "text" as const },
-      { text: "i like pancakes.", from: "facebook" as const, group: "social" as const, kind: "text" as const },
-      { text: "I walk a lot.", from: "facebook" as const, group: "social" as const, kind: "text" as const },
+      { text: "i like pancakes.", from: "github" as const, group: "social" as const, kind: "text" as const },
+      { text: "I walk a lot.", from: "github" as const, group: "social" as const, kind: "text" as const },
     ];
     expect(rankFor("tinder", sentences, "I walk a lot.").map((x) => x.text)).toEqual(["I like pancakes."]);
   });
@@ -76,12 +76,12 @@ describe("sourceSentences and rankFor", () => {
 
 describe("Fill (no AI)", () => {
   it("fills an empty bio with whole sentences that fit the limit, and leaves a written one alone", () => {
-    const sentences = sourceSentences(ALL, "facebook", FACTS);
-    const { value, notes } = fillBio("facebook", "", sentences);
+    const sentences = sourceSentences(ALL, "github", FACTS);
+    const { value, notes } = fillBio("github", "", sentences);
     expect(value.length).toBeGreaterThan(0);
-    expect([...value].length).toBeLessThanOrEqual(PLATFORM_CONFIGS.facebook.maxChars!);
-    expect(notes[0]).toMatch(/^Intro: from /);
-    expect(fillBio("facebook", "Mine.", sentences)).toEqual({ value: "Mine.", notes: [] });
+    expect([...value].length).toBeLessThanOrEqual(PLATFORM_CONFIGS.github.maxChars!);
+    expect(notes[0]).toMatch(/^Bio: from /);
+    expect(fillBio("github", "Mine.", sentences)).toEqual({ value: "Mine.", notes: [] });
   });
 
   it("fills only empty Hinge answers, each under the limit", () => {
@@ -153,11 +153,11 @@ describe("Draft with AI: what is sent", () => {
   });
 
   it("builds a valid request and a prompt with the slots and nothing private", () => {
-    const slots = draftSlots({ kind: "bio", platform: "facebook", value: "" });
-    const req = { consent: true, platform: "facebook", sources, facts: FACTS, slots };
+    const slots = draftSlots({ kind: "bio", platform: "github", value: "" });
+    const req = { consent: true, platform: "github", sources, facts: FACTS, slots };
     expect(DraftRequestSchema.safeParse(req).success).toBe(true);
-    const { system, user } = draftPrompt({ config: PLATFORM_CONFIGS.facebook, slots, sources, facts: FACTS });
-    expect(user).toContain("id=bio: Intro");
+    const { system, user } = draftPrompt({ config: PLATFORM_CONFIGS.github, slots, sources, facts: FACTS });
+    expect(user).toContain("id=bio: Bio");
     expect(system).toContain("Use ONLY information in the sources");
     for (const value of ["Brookhaven", "Scorpio", "Sober curious"]) expect(system + user).not.toContain(value);
   });
@@ -182,7 +182,7 @@ describe("draftSlots and applyDrafts", () => {
 describe("buildDrafts: FactCheck on every drafted sentence", () => {
   const sources = draftSources(ALL);
   const slots = [
-    { id: "bio", label: "Intro", maxChars: 101 },
+    { id: "bio", label: "Bio", maxChars: 101 },
     { id: "a0", label: "Answer 1", prompt: "I go crazy for…", maxChars: 300 },
   ];
 

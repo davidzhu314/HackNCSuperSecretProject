@@ -96,7 +96,21 @@ export function IdentityHub() {
           )}
         </div>
         <div className="hub-persona-text">
-          <h1>Your Identity Hub</h1>
+          <h1>
+            <label className="sr-only" htmlFor="hub-name">
+              Your name
+            </label>
+            <input
+              id="hub-name"
+              className="hub-name-input"
+              value={session.name}
+              maxLength={60}
+              placeholder="Your Identity Hub"
+              autoComplete="name"
+              spellCheck={false}
+              onChange={(e) => updateSession({ name: e.target.value })}
+            />
+          </h1>
           <p className="empty-note">
             {added} of {PLATFORMS.length} platforms added · {confirmed.length} confirmed{" "}
             {confirmed.length === 1 ? "fact" : "facts"}
@@ -120,10 +134,6 @@ export function IdentityHub() {
               </Button>
             )}
           </div>
-          <p className="empty-note hub-fine-print">
-            Your photo stays on this device and is never sent to the AI. This page keeps everything in this tab only;
-            refreshing clears it.
-          </p>
         </div>
       </section>
 
@@ -269,7 +279,7 @@ function TinderSource({ fields }: { fields: number }) {
   );
 }
 
-/** A bio platform (Handshake, Instagram, Facebook): the bio's length against the platform's limit. */
+/** A bio platform (Handshake, Instagram, GitHub): the bio's length against the platform's limit. */
 function BioSource({ platform, bio }: { platform: Platform; bio: string }) {
   const { label, maxChars, fieldLabel } = PLATFORM_CONFIGS[platform];
   const length = bio.trim().length;

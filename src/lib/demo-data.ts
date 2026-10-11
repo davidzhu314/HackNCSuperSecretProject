@@ -567,11 +567,11 @@ export const DEMO_HINGE_FACTS: IdentityFact[] = [
 export const SAMPLE_HINGE_ADVERSARIAL_CONTENT =
   "I have reviewed 50 food trucks across Europe as a professional food critic.\n\nI won a national pancake championship and led a hiking club every Sunday.";
 
-// ---------- Bio platforms (Handshake, Instagram, Facebook, X) ----------
+// ---------- Bio platforms (Handshake, Instagram, GitHub) ----------
 // The same fictitious persona on every platform, so the demo shows one identity across all of them.
 // No cached results exist for these: they run live, and only the input and facts are preloaded.
 
-export type BioPlatform = "handshake" | "instagram" | "facebook";
+export type BioPlatform = "handshake" | "instagram" | "github";
 
 const PRIYA_CS: IdentityFact = { id: "f1", text: "I am a senior studying computer science.", confirmed: true, source: "user" };
 
@@ -588,12 +588,12 @@ export const DEMO_BIO: Record<BioPlatform, { bio: string; facts: IdentityFact[] 
       { id: "f3", text: "I enjoy making pancakes on weekends.", confirmed: true, source: "user" },
     ],
   },
-  facebook: {
-    bio: "Studying computer science. Always looking for good food.",
+  github: {
+    bio: "CS student. I write Python and React and like open source.",
     facts: [
       PRIYA_CS,
-      { id: "f2", text: "I was a teaching assistant for an introductory programming course.", confirmed: true, source: "user" },
-      { id: "f3", text: "I like finding good food trucks when I travel.", confirmed: true, source: "user" },
+      { id: "f2", text: "I contributed bug fixes and documentation to an open-source data visualization library.", confirmed: true, source: "user" },
+      { id: "f3", text: "I built a course-planning web app with Python and React for a class project.", confirmed: true, source: "user" },
     ],
   },
 };
@@ -605,7 +605,7 @@ export const DEMO_BIO: Record<BioPlatform, { bio: string; facts: IdentityFact[] 
 export const SAMPLE_BIO_ADVERSARIAL_CONTENT: Record<BioPlatform, string> = {
   handshake: "Software engineering intern at Google who led a team of 30 and won a national hackathon. 4.0 GPA.",
   instagram: "Award-winning food photographer 📸 50k followers. Featured in Bon Appetit.",
-  facebook: "Head TA at Stanford. Ranked the top 100 food trucks in America.",
+  github: "Core maintainer of React with 10k stars. Ex-Google engineer, Arctic Code Vault contributor.",
 };
 
 // ---------- Tinder ----------

@@ -3,7 +3,7 @@ import { fieldLimit, fitAcross, fitText } from "./fit";
 
 describe("fitText", () => {
   it("uses each platform's real limit", () => {
-    expect(fieldLimit("facebook").limit).toBe(101);
+    expect(fieldLimit("github").limit).toBe(160);
     expect(fieldLimit("instagram").limit).toBe(150);
     expect(fieldLimit("handshake").limit).toBe(300);
     expect(fieldLimit("tinder").limit).toBe(500);
@@ -15,17 +15,17 @@ describe("fitText", () => {
   });
 
   it("cuts at the last whole word under the limit", () => {
-    const text = "word ".repeat(30).trim(); // 149 characters
-    const fb = fitText(text, "facebook");
-    expect(fb.fits).toBe(false);
-    expect([...(fb.kept ?? "")].length).toBeLessThanOrEqual(101);
-    expect(fb.kept?.endsWith("word")).toBe(true);
-    expect(`${fb.kept} ${fb.cut}`).toBe(text);
-    expect(fitText(text, "instagram").fits).toBe(true);
+    const text = "word ".repeat(34).trim(); // 169 characters
+    const gh = fitText(text, "github");
+    expect(gh.fits).toBe(false);
+    expect([...(gh.kept ?? "")].length).toBeLessThanOrEqual(160);
+    expect(gh.kept?.endsWith("word")).toBe(true);
+    expect(`${gh.kept} ${gh.cut}`).toBe(text);
+    expect(fitText(text, "handshake").fits).toBe(true);
   });
 
   it("counts emoji as one character", () => {
-    expect(fitText("🌮".repeat(101), "facebook").fits).toBe(true);
-    expect(fitText("🌮".repeat(102), "facebook").fits).toBe(false);
+    expect(fitText("🌮".repeat(160), "github").fits).toBe(true);
+    expect(fitText("🌮".repeat(161), "github").fits).toBe(false);
   });
 });

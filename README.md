@@ -7,7 +7,7 @@ Personify is a writing and feedback tool. It does not sign in to LinkedIn, Hinge
 ## Supported platforms
 
 - **Professional:** LinkedIn, Handshake
-- **Social:** Instagram, Facebook, X
+- **Social:** Instagram, GitHub
 - **Dating:** Hinge, Tinder
 
 ## What you can do

@@ -37,7 +37,7 @@ export const LIMITS = {
   maxLanguages: 10,
 } as const;
 
-export const PlatformSchema = z.enum(["linkedin", "handshake", "instagram", "facebook", "hinge", "tinder"]);
+export const PlatformSchema = z.enum(["linkedin", "handshake", "instagram", "github", "hinge", "tinder"]);
 export type Platform = z.infer<typeof PlatformSchema>;
 
 /** The three groups platforms are shown in. The group drives prompt rules and theming. */
@@ -46,7 +46,7 @@ export type PlatformGroup = z.infer<typeof PlatformGroupSchema>;
 
 /**
  * How the profile is entered: sections = LinkedIn's sectioned profile; prompts = prompt question +
- * answer pairs (Hinge); bio = one short text field (Handshake, Instagram, Facebook); tinder = About
+ * answer pairs (Hinge); bio = one short text field (Handshake, Instagram, GitHub); tinder = About
  * me, prompt answers, and profile fields (TinderProfile).
  */
 export type InputShape = "sections" | "prompts" | "bio" | "tinder";

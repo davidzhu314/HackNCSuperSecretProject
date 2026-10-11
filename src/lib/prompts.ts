@@ -226,6 +226,10 @@ function rewriteFormat(config: PlatformConfig): string[] {
       ? [
           "For a Handshake summary, lead with the person's current study or work, then one relevant project, activity, or stated goal. Keep one or two short, natural sentences; omit lower-value details rather than listing keywords or generic traits.",
         ]
+      : config.id === "github"
+        ? [
+            "For a GitHub bio, say what the person builds or studies and name the languages, tools, or projects the sources mention. One or two short lines; no hashtags, no emoji strings, no list of every skill.",
+          ]
       : config.group === "social"
         ? [
             "For a social bio, choose one clear identity detail and, if supported, one or two complementary interests. Use a short natural line or a few balanced lines; avoid keyword strings, repeated information, and a paragraph explaining who the person is.",
@@ -284,7 +288,7 @@ const PROFILE_COPY_RULES: Record<PlatformGroup, string[]> = {
     "Favor concise, specific wording and scan-friendly structure. Use bullets for lists or when the source/selected format calls for bullets; keep headlines and summaries in their required formats.",
   ],
   social: [
-    "Audience fit: Instagram and Facebook copy should give visitors a quick, authentic sense of the interests and details the person actually shared.",
+    "Audience fit: Instagram and GitHub copy should give visitors a quick, authentic sense of the interests and details the person actually shared.",
     "Prioritize useful details and avoid repeating the same idea. Favor short, readable phrasing, but do not cram facts together or use fragments that sound awkward. Do not add a separate description of the person's characteristics.",
   ],
   dating: [

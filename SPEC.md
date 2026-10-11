@@ -5,7 +5,7 @@
 **Tagline:** One identity. Every platform. Authentically you.
 **Principle:** Improve expression, not invent identity.
 
-Users paste profile text, pick an audience, and get evidence-backed feedback plus rewrites grounded only in their own words and facts they add. A deterministic **FactCheck** layer flags anything the rewrite invented. Platforms, in three groups: **Professional** (LinkedIn, Handshake), **Social** (Instagram, Facebook, X), **Dating** (Hinge, Tinder). No dummy buttons for other platforms.
+Users paste profile text, pick an audience, and get evidence-backed feedback plus rewrites grounded only in their own words and facts they add. A deterministic **FactCheck** layer flags anything the rewrite invented. Platforms, in three groups: **Professional** (LinkedIn, Handshake), **Social** (Instagram, GitHub), **Dating** (Hinge, Tinder). No dummy buttons for other platforms.
 
 Why it isn't "ChatGPT with a nicer UI": (1) several audience perspectives side by side, (2) every critique links to the exact source text, (3) a deterministic fabrication check instead of a prompt that says "don't make things up", (4) rewrites limited to user-approved facts.
 

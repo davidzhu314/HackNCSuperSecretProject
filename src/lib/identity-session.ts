@@ -9,6 +9,8 @@ import type { IdentityFact, LinkedInProfile, Platform, TinderProfile } from "./s
 // still asks for consent before any of it reaches the AI.
 
 export type IdentitySession = {
+  /** The name the user typed on the Hub. Shown in the Hub only; never sent to the AI. */
+  name: string;
   /** A profile photo, as a local object URL. Shown on this device only; never uploaded. */
   photo: { name: string; url: string } | null;
   linkedin: LinkedInProfile | null;
@@ -18,7 +20,7 @@ export type IdentitySession = {
   linkedinImport: { fileName: string; warnings: string[] } | null;
   jobDescription: string;
   hinge: HingePair[] | null;
-  /** Bio platforms (Handshake, Instagram, Facebook): the bio text, per platform. */
+  /** Bio platforms (Handshake, Instagram, GitHub): the bio text, per platform. */
   bios: Partial<Record<Platform, string>>;
   /** Tinder: About me, prompt answers, and profile fields. Profile fields stay in this tab. */
   tinder: TinderProfile | null;
@@ -35,6 +37,7 @@ export type IdentitySession = {
 };
 
 const EMPTY_DATA: Omit<IdentitySession, "rev"> = {
+  name: "",
   photo: null,
   linkedin: null,
   linkedinOriginal: null,

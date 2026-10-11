@@ -79,7 +79,7 @@ import {
 // as a flag), only confirmed facts reach a rewrite, and sample mode, which sends nothing and so
 // needs no consent, is only offered for the LinkedIn demo persona (the only one with cached results).
 // LinkedIn works on a sectioned profile; Hinge keeps its prompt answers and single rewrite; the bio
-// platforms (Handshake, Instagram, Facebook, X) follow Hinge's steps with one bio field; Tinder adds
+// platforms (Handshake, Instagram, GitHub) follow Hinge's steps with one bio field; Tinder adds
 // About me and profile fields to prompt answers (only About, answers, and work fields reach the AI).
 
 const STEPS = ["Your profile", "Consent", "Audience lenses", "Audience Clash", "Rewrite + FactCheck"];
@@ -845,8 +845,8 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
   // Labels for the platforms (and facts) this one can be filled from.
   const autofillFrom = PLATFORM_GROUPS.flatMap((g) => g.platforms)
     .filter((p) => p !== platform && hasProfile(p, autofillSources))
-    .map((p) => PLATFORM_CONFIGS[p].label);
-  if (confirmedFacts.length) autofillFrom.push(`${confirmedFacts.length} confirmed ${confirmedFacts.length === 1 ? "fact" : "facts"}`);
+    .map((p) => `your ${PLATFORM_CONFIGS[p].label}`);
+  if (confirmedFacts.length) autofillFrom.push(`your ${confirmedFacts.length} confirmed ${confirmedFacts.length === 1 ? "fact" : "facts"}`);
   const autofillPanel = (
     <AutofillPanel
       sources={autofillFrom}
