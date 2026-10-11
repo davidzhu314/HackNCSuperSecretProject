@@ -1,5 +1,7 @@
 # Handoff: PERSONA / Personify hackathon app
 
+> **Newer handoff:** the next session's goal is rewrite quality. Start with [HANDOFF-WRITING.md](HANDOFF-WRITING.md); it also lists what changed since this file was written.
+
 Updated 2026-10-10 (late night) for the next Claude session. Read this, then [CLAUDE.md](CLAUDE.md) (rules, stack), then [SPEC.md](SPEC.md) (product spec). Also read [AGENTS.md](AGENTS.md): this is Next.js 16.4 / React 19.3, newer than your training data, so check `node_modules/next/dist/docs/` before writing Next code. [PROGRESS.md](PROGRESS.md) and [README.md](README.md) have more detail.
 
 ## State in one paragraph
