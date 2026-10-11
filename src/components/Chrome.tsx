@@ -1,24 +1,25 @@
 import Image from "next/image";
 import Link from "next/link";
 import aeroSky from "@/assets/aero-sky.jpg";
-import hingeTown from "@/assets/hinge-town.jpg";
-import linkedinCity from "@/assets/linkedin-city.jpg";
+import hingeNightlife from "@/assets/hinge-nightlife.jpg";
+import linkedinSpeaker from "@/assets/linkedin-speaker.jpg";
 import personifyLogo from "@/assets/personify-logo-v3.png";
 import type { Platform } from "@/lib/schemas";
 
 // Page chrome shared by the home page, the hub, and the studio (from the Lovable designs:
-// the Aero sky, and the scenic LinkedIn city / Hinge town "destinations").
+// the Aero sky, and the scenic LinkedIn speaker / Hinge nightlife "destinations"). The two scene
+// photos are from Unsplash (free license): unsplash.com/photos/RfiBK6Y_upQ and /j4esZ9owgzA.
 
 export const SCENES = {
   linkedin: {
-    image: linkedinCity,
+    image: linkedinSpeaker,
     name: "LinkedIn",
     lens: "RECRUITERS · HIRING LEADS",
     caption: "A world of opportunity.",
     description: "Your experience. Your ambitions. Your next chapter.",
   },
   hinge: {
-    image: hingeTown,
+    image: hingeNightlife,
     name: "Hinge",
     lens: "POTENTIAL MATCHES · SHARED INTERESTS",
     caption: "Somewhere you belong.",

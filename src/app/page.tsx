@@ -4,7 +4,7 @@ import Link from "next/link";
 import { BrandMark, SCENES, Wordmark } from "@/components/Chrome";
 import { Button } from "@/components/ui/button";
 
-// Home: the Lovable "destinations" (LinkedIn city, Hinge town), each opening the studio on
+// Home: the Lovable "destinations" (LinkedIn speaker, Hinge nightlife), each opening the studio on
 // that platform, then how it works and the Identity Hub.
 
 export default function HomePage() {

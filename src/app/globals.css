@@ -465,7 +465,7 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .cited-link:hover { border-color: var(--primary); }
 
 /* ---------- Scenic "tour" chrome (merged from the Lovable aero-persona-hub design) ----------
-   Home: the LinkedIn city / Hinge town destinations. Studio: the platform's photo behind the
+   Home: the LinkedIn speaker / Hinge nightlife destinations. Studio: the platform's photo behind the
    page, hotspot pearls as the step rail, and the work itself in a wide light panel (not a
    drawer), so the section editor and annotated feedback keep their room. */
 :root {
@@ -537,7 +537,7 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .tour-root { padding: 0; min-height: 100svh; display: flex; flex-direction: column; }
 .scenic-backdrop { position: fixed; inset: 0; z-index: -1; overflow: hidden; background: var(--tour-ink); }
 .scenic-photo { object-fit: cover; animation: tour-arrival 1.2s ease-out; }
-.scenic-photo[data-platform=hinge] { object-position: 60% center; }
+.scenic-photo[data-platform=hinge] { object-position: 55% center; }
 .scenic-shade { position: absolute; inset: 0; background: var(--tour-photo-gradient); }
 .tour-platform-switch { display: flex; }
 .tour-platform-switch .tour-button { gap: 8px; border-color: transparent; background: transparent; backdrop-filter: none; padding: 10px 14px; }
