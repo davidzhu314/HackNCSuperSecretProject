@@ -1124,13 +1124,13 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 
 /* With no saved choice, the Hub follows the system setting: the same dark values as above. */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-hub-theme=light]) .hub-root { color-scheme: dark;
+  :root:not([data-hub-theme=light]):not([data-hub-theme=aero]) .hub-root { color-scheme: dark;
   --hub-bg: oklch(.17 .006 260); --hub-surface: oklch(.21 .007 260); --hub-ink: oklch(.95 .004 260); --hub-muted: oklch(.7 .008 260); --hub-line: oklch(.31 .008 260); --hub-wash: oklch(.26 .008 260); --hub-on-ink: oklch(.17 .006 260);
   --hub-texture: url(/textures/hub-waves-dark.svg);
   --card: var(--hub-surface); --foreground: var(--hub-ink); --muted-foreground: var(--hub-muted); --border: var(--hub-line); --secondary: var(--hub-wash);
   --primary: oklch(.74 .12 245); --accent: oklch(.3 .05 245); --success: oklch(.78 .14 150); --warning: oklch(.82 .13 80); --warning-surface: oklch(.3 .05 80); --destructive: oklch(.7 .18 25); --danger-surface: oklch(.28 .06 25); }
-  :root:not([data-hub-theme=light]) .hub-root [data-platform=hinge] .platform-icon { box-shadow: inset 0 0 0 1px var(--hub-line); }
-  :root:not([data-hub-theme=light]) .hub-root { --success-surface: oklch(.3 .05 150); }
+  :root:not([data-hub-theme=light]):not([data-hub-theme=aero]) .hub-root [data-platform=hinge] .platform-icon { box-shadow: inset 0 0 0 1px var(--hub-line); }
+  :root:not([data-hub-theme=light]):not([data-hub-theme=aero]) .hub-root { --success-surface: oklch(.3 .05 150); }
 }
 
 /* Tinder editor: prompts, profile fields, "from your LinkedIn" tags */
@@ -1205,4 +1205,61 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .hub-progress-next { grid-area: next; font-size: 11px; color: var(--hub-muted); display: inline-flex; align-items: center; gap: 4px; }
 @media (max-width: 560px) {
   .hub-progress-rows li { grid-template-columns: minmax(0, 1fr) 42px; grid-template-areas: "name count" "bar bar" "next next"; }
+}
+
+/* Hub look switch: light / dark / Aero */
+.hub-theme-switch { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--hub-line); border-radius: 10px; background: var(--hub-surface); }
+.hub-theme-option { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border: 0; border-radius: 7px; background: transparent; color: var(--hub-muted); font: inherit; font-size: 12px; font-weight: 500; cursor: pointer; }
+.hub-theme-option svg { width: 15px; height: 15px; }
+.hub-theme-option:hover { color: var(--hub-ink); background: var(--hub-wash); }
+.hub-theme-option[aria-pressed=true] { color: var(--hub-on-ink); background: var(--hub-ink); }
+.hub-theme-option:focus-visible { outline: 2px solid var(--hub-ink); outline-offset: 2px; }
+@media (max-width: 640px) { .hub-theme-label { display: none; } .hub-theme-option { padding: 0 9px; } }
+
+/* Frutiger Aero Hub: sky photo with soap bubbles, frosted-glass panels, glossy aqua buttons, gel bars. */
+:root[data-hub-theme=aero] .hub-root { color-scheme: light;
+  --hub-bg: #bfe6fb; --hub-surface: oklch(1 0 0 / .62); --hub-ink: #0b3556; --hub-muted: #3a6584; --hub-line: oklch(1 0 0 / .75);
+  --hub-wash: oklch(1 0 0 / .45); --hub-on-ink: #fff;
+  --card: var(--hub-surface); --foreground: var(--hub-ink); --muted-foreground: var(--hub-muted); --border: oklch(.82 .05 230 / .7); --secondary: var(--hub-wash);
+  --primary: #0a7fc9; --accent: oklch(.93 .06 210 / .8); --success: #13955a;
+  --aero-gloss: linear-gradient(180deg, oklch(1 0 0 / .95) 0%, oklch(1 0 0 / .35) 48%, oklch(1 0 0 / 0) 52%);
+  font-family: "Segoe UI", Frutiger, "Frutiger Linotype", "Myriad Pro", "Helvetica Neue", Arial, sans-serif; }
+:root[data-hub-theme=aero] .hub-root::before {
+  background-image:
+    radial-gradient(circle at 12% 22%, oklch(1 0 0 / .55) 0 1.6%, oklch(1 0 0 / .12) 2.4%, transparent 3.2%),
+    radial-gradient(circle at 86% 14%, oklch(1 0 0 / .5) 0 2.6%, oklch(1 0 0 / .1) 3.6%, transparent 4.6%),
+    radial-gradient(circle at 74% 68%, oklch(1 0 0 / .45) 0 1.2%, oklch(1 0 0 / .1) 1.9%, transparent 2.6%),
+    radial-gradient(circle at 24% 82%, oklch(1 0 0 / .4) 0 2%, oklch(1 0 0 / .08) 3%, transparent 4%),
+    radial-gradient(ellipse at 50% 120%, oklch(.86 .17 145 / .55), transparent 55%),
+    linear-gradient(180deg, oklch(.98 .02 220 / .2), oklch(.9 .06 210 / .35)),
+    url(../assets/aero-sky.jpg);
+  background-size: cover; background-position: center; }
+:root[data-hub-theme=aero] .hub-root .tour-header { background: linear-gradient(180deg, oklch(1 0 0 / .75), oklch(1 0 0 / .45)); border-bottom-color: oklch(1 0 0 / .8);
+  backdrop-filter: blur(14px) saturate(1.4); -webkit-backdrop-filter: blur(14px) saturate(1.4); box-shadow: 0 1px 0 oklch(1 0 0 / .9) inset, 0 6px 20px oklch(.45 .1 230 / .12); }
+:root[data-hub-theme=aero] .hub-root .hub-card { position: relative; border-radius: 18px; border-color: oklch(1 0 0 / .85);
+  background: linear-gradient(180deg, oklch(1 0 0 / .78), oklch(1 0 0 / .5));
+  backdrop-filter: blur(16px) saturate(1.5); -webkit-backdrop-filter: blur(16px) saturate(1.5);
+  box-shadow: inset 0 1px 0 #fff, inset 0 -1px 0 oklch(.85 .05 220 / .5), 0 10px 30px oklch(.4 .12 235 / .18); }
+:root[data-hub-theme=aero] .hub-root .aero-btn { border-radius: 999px; border: 1px solid #0a6fb3; color: #fff; text-shadow: 0 1px 1px oklch(.3 .1 240 / .6);
+  background: var(--aero-gloss), linear-gradient(180deg, #5fd0ff 0%, #1d9fe6 50%, #0a7fc9 51%, #2cb4f2 100%);
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / .8), 0 3px 10px oklch(.45 .15 235 / .35); }
+:root[data-hub-theme=aero] .hub-root .aero-btn:hover { opacity: 1; filter: brightness(1.07) saturate(1.1); }
+:root[data-hub-theme=aero] .hub-root .tour-button,
+:root[data-hub-theme=aero] .hub-root .glass-btn,
+:root[data-hub-theme=aero] .hub-root .hub-theme-switch { border-radius: 999px; border-color: oklch(1 0 0 / .9); color: var(--hub-ink);
+  background: var(--aero-gloss), linear-gradient(180deg, oklch(1 0 0 / .7), oklch(.93 .04 215 / .7));
+  box-shadow: inset 0 1px 0 #fff, 0 2px 8px oklch(.45 .1 230 / .18); }
+:root[data-hub-theme=aero] .hub-root .hub-theme-option { border-radius: 999px; }
+:root[data-hub-theme=aero] .hub-root .hub-theme-option[aria-pressed=true] { color: #fff; text-shadow: 0 1px 1px oklch(.3 .1 240 / .5);
+  background: var(--aero-gloss), linear-gradient(180deg, #5fd0ff, #0a7fc9); }
+:root[data-hub-theme=aero] .hub-root .platform-icon { box-shadow: inset 0 1px 0 oklch(1 0 0 / .6), 0 3px 8px oklch(.4 .1 235 / .25); }
+:root[data-hub-theme=aero] .hub-root .hub-progress-bar { height: 12px; border-color: oklch(1 0 0 / .9); background: linear-gradient(180deg, oklch(.9 .03 220 / .7), oklch(1 0 0 / .8)); box-shadow: inset 0 1px 3px oklch(.4 .1 235 / .25); }
+:root[data-hub-theme=aero] .hub-root .hub-progress-bar > span { background: var(--aero-gloss), linear-gradient(180deg, #b6f06b 0%, #4cc43a 50%, #2fa52b 51%, #63d24a 100%); box-shadow: 0 0 6px oklch(.75 .2 140 / .5); }
+:root[data-hub-theme=aero] .hub-root .hub-progress-total strong { background: linear-gradient(180deg, #2cb4f2, #0a5f9e); -webkit-background-clip: text; background-clip: text; color: transparent; }
+:root[data-hub-theme=aero] .hub-root h1, :root[data-hub-theme=aero] .hub-root .hub-name-input { text-shadow: 0 1px 0 oklch(1 0 0 / .8); }
+:root[data-hub-theme=aero] .hub-root .tour-footer { background: oklch(1 0 0 / .55); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+:root[data-hub-theme=aero] .hub-root .hub-persona { padding: 22px 24px; }
+/* Phones: the look switch and the studio link get their own row under the wordmark. */
+@media (max-width: 640px) {
+  .hub-root .tour-header-actions { grid-column: 1 / -1; justify-self: stretch; justify-content: space-between; margin-top: 10px; }
 }
