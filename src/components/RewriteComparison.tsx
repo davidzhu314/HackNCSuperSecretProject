@@ -122,7 +122,8 @@ export function VariationResult(props: {
   original: string;
   segments: Segment[];
   confirmedFacts: IdentityFact[];
-  variation: RewriteVariation;
+  /** The style isn't shown here, so any style works (Hinge's two, or a LinkedIn section's three). */
+  variation: Omit<RewriteVariation, "style">;
   source: ResultSource;
   onError: (message: string) => void;
   /**

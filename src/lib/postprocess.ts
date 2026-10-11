@@ -14,7 +14,9 @@ import {
   type HingeAnswer,
   type IdentityFact,
   type Segment,
+  type LengthStep,
   type RewritableSection,
+  type SectionStyle,
   type RewriteSectionResponse,
   RewriteSectionResponseSchema,
 } from "./schemas";
@@ -22,6 +24,7 @@ import type { z } from "zod";
 import type { ModelEvaluateSchema, ModelHingeRewriteSchema, ModelRewriteSchema, ModelSectionRewriteSchema } from "./schemas";
 import { splitSentences } from "./segments";
 import { checkStyle } from "./style-check";
+import { countBullets, sectionCap, targetChars } from "./styles";
 
 // Server-side cleanup of model output. The model is never trusted: ids are checked,
 // strings are clamped, and unrequested audience/trait combinations are dropped.
@@ -176,13 +179,6 @@ export function buildHingeVariations(
 
 // ---------- LinkedIn by sections ----------
 
-const BULLET_LINE = /^\s*[-•·*–]\s+/;
-const countBullets = (text: string) => text.split("\n").filter((l) => BULLET_LINE.test(l)).length;
-
-function sectionCap(kind: RewritableSection["kind"]): number {
-  if (kind === "headline" || kind === "about") return LIMITS.sectionRewriteChars[kind];
-  return LIMITS.sectionRewriteChars.entry;
-}
 
 /** Cut at a word boundary so LinkedIn accepts it; the caller says so in changeSummary. */
 function cutToCap(text: string, cap: number): string {
@@ -199,9 +195,15 @@ function cutToCap(text: string, cap: number): string {
  */
 export function buildSectionRewrite(
   model: z.infer<typeof ModelSectionRewriteSchema>,
-  args: { section: RewritableSection; style: RewriteStyle; segments: Segment[]; facts: IdentityFact[] },
+  args: {
+    section: RewritableSection;
+    style: SectionStyle;
+    length?: LengthStep;
+    segments: Segment[];
+    facts: IdentityFact[];
+  },
 ): RewriteSectionResponse {
-  const { section, style, segments, facts } = args;
+  const { section, style, length = "same", segments, facts } = args;
   const notes: string[] = [];
   let content = model.content.trim();
   if (section.kind === "headline") content = content.replace(/\s*\n+\s*/g, " | ").replace(/\s+/g, " ");
@@ -248,6 +250,8 @@ export function buildSectionRewrite(
     source: "live",
     sectionKey: section.key,
     style,
+    length,
+    chars: { original: section.text.length, target: targetChars(section.kind, section.text.length, length), actual: content.length },
     rewrite: rewrite.data,
     warnings: [...extra, ...checkRewrite({ rewrite: rewrite.data, segments, facts })],
     styleWarnings: checkStyle(content),

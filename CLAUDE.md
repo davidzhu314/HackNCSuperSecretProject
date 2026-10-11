@@ -25,7 +25,7 @@ Start with [HANDOFF.md](HANDOFF.md) (current state and next steps), then the ful
 - `src/lib/identity-session.ts`: memory-only session shared by hub and studio (profiles, facts, photo); cleared on refresh, never sent or stored
 - `src/lib/fact-platforms.ts`: write once, show up everywhere. One fact pool; each fact is shared with chosen platforms (found facts default to where they were found, typed facts to all). The studio's `confirmedFacts` is filtered by platform, so an unshared fact can't support a claim there. "Start from my facts" seeds an empty Hinge or LinkedIn About with the user's own confirmed sentences
 - `src/lib/profile-edits.ts`: "Use this version" (write a section rewrite into the profile, undo), copy-all text, Hinge fact coverage. The studio keeps the pre-rewrite profile as `original` so FactCheck and rewrites still check against the user's own words
-- `src/lib/`: `llm.ts`, `rubrics.ts`, `fact-guard.ts`, `segments.ts`, `schemas.ts`, `demo-data.ts`, `profile.ts` (sections, segment ids like `exp2-s1`, per-section FactCheck corpus, `factCoverage`), `linkedin-pdf.ts` (browser-side PDF import via `pdfjs-dist`)
+- `src/lib/`: `llm.ts`, `rubrics.ts`, `fact-guard.ts`, `segments.ts`, `schemas.ts`, `demo-data.ts`, `profile.ts` (sections, segment ids like `exp2-s1`, per-section FactCheck corpus, `factCoverage`), `linkedin-pdf.ts` (browser-side PDF import via `pdfjs-dist`), `styles.ts` (section rewrite styles, length steps, and deterministic style checks)
 
 ## Rules
 - Audiences are simulated lenses, defined by what they look for, never demographics. No hireability/match percentages, no predictions, no made-up scores (only real counts). The "simulated AI feedback" label is dropped for now (user decision).

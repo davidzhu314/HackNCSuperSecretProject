@@ -13,7 +13,7 @@ import { LinkedInEditor, type ImportState } from "@/components/LinkedInEditor";
 import { ProfileClash } from "@/components/ProfileClash";
 import { ProfileInput } from "@/components/ProfileInput";
 import { RewriteComparison } from "@/components/RewriteComparison";
-import { SectionRewrites, type SectionRewriteState } from "@/components/SectionRewrites";
+import { resultKey, SectionRewrites, type SectionRewriteState } from "@/components/SectionRewrites";
 import { StudioFinish } from "@/components/StudioFinish";
 import { TourStops } from "@/components/TourStops";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,8 @@ import {
   type LinkedInProfile,
   type Platform,
   type RewriteResponse,
-  type RewriteStyle,
+  type LengthStep,
+  type SectionStyle,
   type Segment,
 } from "@/lib/schemas";
 import { segmentHinge } from "@/lib/segments";
@@ -74,7 +75,13 @@ const defaultTraits = (p: Platform) => PLATFORM_CONFIGS[p].traits.slice(0, 3).ma
 /** What the extracted facts were found in, so extraction reruns only when the text changes. */
 const textKey = (platform: Platform, segments: Segment[]) => `${platform}|${segments.map((s) => s.text).join("\n")}`;
 
-const emptySection = (style: RewriteStyle): SectionRewriteState => ({ style, results: {}, loading: null, error: null });
+const emptySection = (style: SectionStyle, length: LengthStep): SectionRewriteState => ({
+  style,
+  length,
+  results: {},
+  loading: null,
+  error: null,
+});
 
 type FlowError = { message: string; retry?: () => void };
 
@@ -152,13 +159,19 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
   const [adversarial, setAdversarial] = useState<RewriteResponse | null>(null);
   // LinkedIn: one rewrite per section per style, cached.
   const [sectionStates, setSectionStates] = useState<Record<string, SectionRewriteState>>({});
-  const [allStyle, setAllStyle] = useState<RewriteStyle>("direct");
+  const [allStyle, setAllStyle] = useState<SectionStyle>("direct");
+  const [allLength, setAllLength] = useState<LengthStep>("same");
   const [rewritingAll, setRewritingAll] = useState(false);
   const [focusSection, setFocusSection] = useState<string | null>(null);
 
   // Ignore responses from requests that were superseded (new input, new facts, platform switch, reset).
   const requestId = useRef(0);
   const sectionGen = useRef(0);
+  // Section rewrites: what each section was last set to (generated once its current request
+  // finishes), which results are cached, and which sections have a request in flight.
+  const wantedSection = useRef<Record<string, { style: SectionStyle; length: LengthStep }>>({});
+  const cachedSection = useRef(new Set<string>());
+  const sectionInFlight = useRef(new Set<string>());
 
   const clean = useMemo(() => cleanProfile(profile), [profile]);
   const segments = useMemo(
@@ -211,6 +224,9 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
   function clearRewrites() {
     sectionGen.current++;
     setSectionStates({});
+    wantedSection.current = {};
+    cachedSection.current.clear();
+    sectionInFlight.current.clear();
     setRewritingAll(false);
     setRewrite(null);
     setAdversarial(null);
@@ -478,11 +494,11 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
   }
 
   function patchSection(key: string, patch: Partial<SectionRewriteState>) {
-    setSectionStates((prev) => ({ ...prev, [key]: { ...(prev[key] ?? emptySection(allStyle)), ...patch } }));
+    setSectionStates((prev) => ({ ...prev, [key]: { ...(prev[key] ?? emptySection(allStyle, allLength)), ...patch } }));
   }
 
-  /** LinkedIn: rewrite one section in one style. Errors stay on that section's card. */
-  async function runSection(key: string, style: RewriteStyle) {
+  /** LinkedIn: rewrite one section in one style and length. Errors stay on that section's card. */
+  async function runSection(key: string, style: SectionStyle, length: LengthStep) {
     if (!allowed) {
       go(CONSENT);
       return;
@@ -494,7 +510,8 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
       return;
     }
     const gen = sectionGen.current;
-    patchSection(key, { style, loading: style, error: null });
+    sectionInFlight.current.add(key);
+    patchSection(key, { style, length, loading: { style, length }, error: null });
     try {
       const res = await rewriteSection(
         {
@@ -504,6 +521,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
           profile: baseClean,
           facts: confirmedFacts.map((f) => ({ ...f, confirmed: true as const })),
           style,
+          length,
           audiences,
           goal: goal.trim() || undefined,
           jobDescription: jobDescription.trim() || undefined,
@@ -511,22 +529,49 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
         { sample },
       );
       if (gen !== sectionGen.current) return;
+      cachedSection.current.add(`${key}|${resultKey(style, length)}`);
+      // Keep the style and length the user has moved to since; only the result is stored.
       setSectionStates((prev) => {
-        const cur = prev[key] ?? emptySection(style);
-        return { ...prev, [key]: { ...cur, results: { ...cur.results, [style]: res }, loading: null, error: null } };
+        const cur = prev[key] ?? emptySection(style, length);
+        return {
+          ...prev,
+          [key]: { ...cur, results: { ...cur.results, [resultKey(style, length)]: res }, loading: null, error: null },
+        };
       });
     } catch (err) {
       if (gen !== sectionGen.current) return;
+      sectionInFlight.current.delete(key);
       patchSection(key, { loading: null, error: errorMessage(err) });
+      return;
+    }
+    sectionInFlight.current.delete(key);
+    // The slider or style moved while this ran: generate where it ended up, unless that's cached.
+    const want = wantedSection.current[key];
+    if (want && !cachedSection.current.has(`${key}|${resultKey(want.style, want.length)}`)) {
+      void runSection(key, want.style, want.length);
     }
   }
 
-  /** Picking a style shows its cached result; if the other style was already generated, generate this one too. */
-  function chooseStyle(key: string, style: RewriteStyle) {
-    const cur = sectionStates[key] ?? emptySection(allStyle);
+  /** Generate a section's chosen style + length now, or after its current request (cached results show instantly). */
+  function requestSection(key: string, style: SectionStyle, length: LengthStep) {
+    wantedSection.current[key] = { style, length };
+    if (sectionInFlight.current.has(key) || cachedSection.current.has(`${key}|${resultKey(style, length)}`)) return;
+    void runSection(key, style, length);
+  }
+
+  /** Picking a style shows its cached result at the current length; once a section has results, it generates. */
+  function chooseStyle(key: string, style: SectionStyle) {
+    const cur = sectionStates[key] ?? emptySection(allStyle, allLength);
     patchSection(key, { style });
-    const engaged = Object.keys(cur.results).length > 0;
-    if (engaged && !cur.results[style]) void runSection(key, style);
+    const engaged = Object.keys(cur.results).length > 0 || Boolean(cur.loading);
+    if (engaged) requestSection(key, style, cur.length);
+  }
+
+  /** The slider: dragging only moves it; releasing generates that length (or shows it from the cache). */
+  function chooseLength(key: string, length: LengthStep, commit: boolean) {
+    const cur = sectionStates[key] ?? emptySection(allStyle, allLength);
+    patchSection(key, { length });
+    if (commit) requestSection(key, cur.style, length);
   }
 
   async function rewriteAll() {
@@ -537,9 +582,9 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
     setRewritingAll(true);
     const gen = sectionGen.current;
     // Cached sections switch instantly; the rest run at most PARALLEL_REWRITES at a time.
-    for (const s of sections) patchSection(s.key, { style: allStyle });
-    const todo = sections.filter((s) => !sectionStates[s.key]?.results[allStyle]);
-    await runLimited(todo, PARALLEL_REWRITES, (s) => runSection(s.key, allStyle));
+    for (const s of sections) patchSection(s.key, { style: allStyle, length: allLength });
+    const todo = sections.filter((s) => !sectionStates[s.key]?.results[resultKey(allStyle, allLength)]);
+    await runLimited(todo, PARALLEL_REWRITES, (s) => runSection(s.key, allStyle, allLength));
     if (gen === sectionGen.current) setRewritingAll(false);
   }
 
@@ -765,6 +810,8 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
               confirmedFacts={confirmedFacts}
               goal={goal}
               allStyle={allStyle}
+              allLength={allLength}
+              sampleMode={sample}
               rewritingAll={rewritingAll}
               focusKey={focusSection}
               adversarial={adversarial}
@@ -778,8 +825,10 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
                 setGoal(g);
               }}
               onStyle={chooseStyle}
-              onGenerate={(key) => void runSection(key, sectionStates[key]?.style ?? allStyle)}
+              onLength={chooseLength}
+              onGenerate={(key) => void runSection(key, sectionStates[key]?.style ?? allStyle, sectionStates[key]?.length ?? allLength)}
               onAllStyle={setAllStyle}
+              onAllLength={setAllLength}
               onRewriteAll={() => void rewriteAll()}
               onAdversarial={(enabled) => (enabled ? void runRewrite("adversarial") : setAdversarial(null))}
               onError={(message) => setError({ message })}

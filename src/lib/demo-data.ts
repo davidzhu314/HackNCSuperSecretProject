@@ -1,5 +1,5 @@
 import { checkRewrite } from "./fact-guard";
-import { factCheckSegments } from "./profile";
+import { factCheckSegments, findSection } from "./profile";
 import type {
   AudienceCritique,
   EvaluateResponse,
@@ -8,7 +8,7 @@ import type {
   LinkedInProfile,
   RewriteResponse,
   RewriteSectionResponse,
-  RewriteStyle,
+  SectionStyle,
   Segment,
 } from "./schemas";
 import { segmentHinge, segmentLinkedIn } from "./segments";
@@ -362,12 +362,15 @@ export const SAMPLE_REWRITE: RewriteResponse = {
 };
 
 /** Build a sample section response; warnings come from running the real checks, never typed by hand. */
-function sampleSection(sectionKey: string, style: RewriteStyle, content: string, changeSummary: string[]): RewriteSectionResponse {
+function sampleSection(sectionKey: string, style: SectionStyle, content: string, changeSummary: string[]): RewriteSectionResponse {
   const usedFactIds = DEMO_LINKEDIN_FACTS.map((f) => f.id);
+  const original = findSection(DEMO_LINKEDIN_PROFILE, sectionKey)?.text ?? "";
   return {
     source: "sample",
     sectionKey,
     style,
+    length: "same",
+    chars: { original: original.length, target: original.length, actual: content.length },
     rewrite: { platform: "linkedin", content, usedFactIds, changeSummary },
     warnings: checkRewrite({
       rewrite: { content, usedFactIds },
@@ -378,8 +381,11 @@ function sampleSection(sectionKey: string, style: RewriteStyle, content: string,
   };
 }
 
-/** One sample rewrite per rewritable section per style. Tests require empty warnings on all of them. */
-export const SAMPLE_SECTION_REWRITES: Record<string, Record<RewriteStyle, RewriteSectionResponse>> = {
+/**
+ * One sample rewrite per rewritable section per style, at "same" length only (the length slider
+ * needs live AI). Tests require empty warnings and no style-rule breaks on all of them.
+ */
+export const SAMPLE_SECTION_REWRITES: Record<string, Record<SectionStyle, RewriteSectionResponse>> = {
   headline: {
     direct: sampleSection("headline", "direct", "Computer science senior | Python and React | Teaching assistant", [
       "States your field, tools, and role instead of \"aspiring\" and \"passionate\".",
@@ -390,6 +396,7 @@ export const SAMPLE_SECTION_REWRITES: Record<string, Record<RewriteStyle, Rewrit
       "Computer science senior who enjoys explaining technical ideas to non-technical people",
       ["Leads with what you study and what you enjoy, in a sentence."],
     ),
+    professional: sampleSection("headline", "professional", "Computer Science Senior | Python and React | Teaching Assistant | Open-Source Contributor", ["Title-style summary of your field, tools, and roles."]),
   },
   about: {
     direct: sampleSection(
@@ -404,6 +411,7 @@ export const SAMPLE_SECTION_REWRITES: Record<string, Record<RewriteStyle, Rewrit
       "I'm a computer science senior at Calder Valley University, and I enjoy explaining technical ideas to non-technical people.\n\nI've been a teaching assistant for an introductory programming course, contributed bug fixes and documentation to an open-source data visualization library, and wrote data-cleaning scripts in Python as a software engineering intern.\n\nI love learning new things, and I'm looking for opportunities to grow.",
       ["Told your experience as a short sequence: teaching, open source, internship.", "Kept \"love learning new things\" from your original text."],
     ),
+    professional: sampleSection("about", "professional", "Computer science senior at Calder Valley University working in Python and React.\n\nExperience includes a software engineering internship writing data-cleaning scripts in Python, a teaching assistant role for an introductory programming course, and bug fixes and documentation for an open-source data visualization library.\n\nInterested in explaining technical ideas to non-technical people and in opportunities to grow.", ["A compact summary without first person: profile, experience, interests."]),
   },
   exp1: {
     direct: sampleSection("exp1", "direct", "- Wrote data-cleaning scripts in Python\n- Helped the team with day-to-day tasks\n- Attended team meetings", [
@@ -416,6 +424,7 @@ export const SAMPLE_SECTION_REWRITES: Record<string, Record<RewriteStyle, Rewrit
       "- Wrote data-cleaning scripts in Python for the team\n- Helped with other tasks and learned a lot from the meetings I attended",
       ["Merged the two vaguer bullets into one."],
     ),
+    professional: sampleSection("exp1", "professional", "- Wrote data-cleaning scripts in Python\n- Assisted the team with various tasks\n- Participated in team meetings", ["Parallel bullets in past tense, no first person."]),
   },
   exp2: {
     direct: sampleSection(
@@ -430,6 +439,7 @@ export const SAMPLE_SECTION_REWRITES: Record<string, Record<RewriteStyle, Rewrit
       "- Helped students work through an introductory programming course\n- Held office hours and answered their questions",
       ["Kept your wording, slightly more personal."],
     ),
+    professional: sampleSection("exp2", "professional", "- Supported students in an introductory programming course\n- Held office hours to answer student questions", ["Formal, parallel bullets."]),
   },
   exp3: {
     direct: sampleSection(
@@ -444,6 +454,7 @@ export const SAMPLE_SECTION_REWRITES: Record<string, Record<RewriteStyle, Rewrit
       "- Contributed bug fixes and documentation to Vizbloom, an open-source library for data visualization",
       ["Named the library; kept \"contributed\"."],
     ),
+    professional: sampleSection("exp3", "professional", "- Contributed bug fixes and documentation to an open-source data visualization library (Vizbloom)", ["Formal wording; kept \"contributed\"."]),
   },
   proj1: {
     direct: sampleSection("proj1", "direct", "- Built a course-planning web app with Python and React for a class project", [
@@ -455,6 +466,7 @@ export const SAMPLE_SECTION_REWRITES: Record<string, Record<RewriteStyle, Rewrit
       "- For a class project, built a web app for planning courses with Python and React",
       ["Opened with the context, then what you built."],
     ),
+    professional: sampleSection("proj1", "professional", "- Developed a course-planning web application in Python and React as part of a class project", ["Formal wording for the same project."]),
   },
   vol1: {
     direct: sampleSection("vol1", "direct", "Volunteer tutor at a library coding club, teaching kids to code on weekends.", [
@@ -466,6 +478,7 @@ export const SAMPLE_SECTION_REWRITES: Record<string, Record<RewriteStyle, Rewrit
       "On weekends, I volunteer as a tutor at a library coding club and teach kids to code.",
       ["First person, same facts."],
     ),
+    professional: sampleSection("vol1", "professional", "Volunteer tutor at a library coding club, teaching coding to children on weekends.", ["Implied-subject sentence, no first person."]),
   },
 };
 
