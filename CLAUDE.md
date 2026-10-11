@@ -39,7 +39,7 @@
 - Consent before any text goes to Google through the Gemini API. Asked once per browser (a `localStorage` flag only, with a way to withdraw); every API request still sends `consent: true` and is rejected without it. Never log or persist profile text by default.
 - Never commit a real person's profile (the repo is public). Test with real exports locally only; commit synthetic fixtures.
 - Demo/cached outputs must be visibly labeled. Never disguise them as live runs. No silent fake results.
-- Never expose `GEMINI_API_KEY` to the browser. Read it from `process.env` in server code only.
+- Never expose `GEMINI_API_KEY` or `OPENROUTER_API_KEY` to the browser. Read it from `process.env` in server code only.
 - Secrets live in `.env.local` (gitignored). `.env.example` lists names only. Never commit `.env*` values or paste keys into chat.
 - Use current official Gemini API docs, not memory. Verify the chosen model actually returns valid structured JSON before relying on it.
 - Define zod schemas first; build UI against mock JSON so work can run in parallel.
@@ -47,7 +47,7 @@
 - Don't run `npm audit fix --force`. The current audit warnings are in dev tooling and accepted.
 
 ## Environment variables
-- `GEMINI_API_KEY`: server-side Gemini API key
+- `GEMINI_API_KEY`: server-side Gemini API key. When it is unset, `src/lib/llm.ts` falls back to OpenRouter if `OPENROUTER_API_KEY` is set (models `OPENROUTER_MODEL` / `OPENROUTER_REWRITE_MODEL`, defaults Claude Haiku / Sonnet). Production on Vercel has only the OpenRouter key (2026-10-11), so it runs through OpenRouter
 - `GEMINI_MODEL`: model for extraction and evaluation (default `gemini-3.8-flash`)
 - `GEMINI_REWRITE_MODEL`: optional model for `/api/rewrite` and `/api/rewrite-section` (default `gemini-3.8-flash`)
 - `GEMINI_TEMPERATURE`: optional generation temperature; unset by default

@@ -33,7 +33,7 @@ export function ConsentScreen(props: {
         </div>
         <div>
           <dt>Who receives it</dt>
-          <dd>Google, through the Gemini API, to generate feedback and rewrites.</dd>
+          <dd>The AI provider, to generate feedback and rewrites: Google (Gemini API), or OpenRouter and the model&apos;s provider.</dd>
         </div>
         <div>
           <dt>What is stored</dt>
