@@ -3,6 +3,7 @@
 import { Check, LoaderCircle, PenLine, Sparkles, TriangleAlert, Undo2 } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { ExtraFacts } from "@/components/ExtraFacts";
+import type { LieCheck } from "@/components/FactCheckDetail";
 import { VariationResult } from "@/components/RewriteComparison";
 import { Button } from "@/components/ui/button";
 import type {
@@ -91,6 +92,7 @@ export function SectionRewrites(props: {
   confirmedFacts: IdentityFact[];
   onAddFact: (text: string) => void;
   onRemoveFact: (id: string) => void;
+  lieCheck?: LieCheck;
   goal: string;
   allStyle: SectionStyle;
   allLength: LengthStep;
@@ -120,7 +122,7 @@ export function SectionRewrites(props: {
 }) {
   const { sections, states, sourcesFor, confirmedFacts, goal, allStyle, allLength, sampleMode, rewritingAll, focusKey } = props;
   const { adversarial, adversarialOriginal, adversarialSegments } = props;
-  const { applied, currentText, onUse, onUndo, onAddFact, onRemoveFact } = props;
+  const { applied, currentText, onUse, onUndo, onAddFact, onRemoveFact, lieCheck } = props;
   const { onGoal, onStyle, onLength, onGenerate, onAllStyle, onAllLength, onRewriteAll, onAdversarial, onError } = props;
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -195,7 +197,7 @@ export function SectionRewrites(props: {
         label={`Rewriting ${sections.length} sections, ${PARALLEL_REWRITES} at a time…`}
         expectedMs={expectedBatchMs(sections.length, PARALLEL_REWRITES)}
       />
-      <ExtraFacts facts={confirmedFacts} what="profile" onAdd={onAddFact} onRemove={onRemoveFact} />
+      <ExtraFacts facts={confirmedFacts} what="profile" onAdd={onAddFact} onRemove={onRemoveFact} lieCheck={lieCheck} />
       {sampleMode && <p className="empty-note">Sample results exist at the same length only; turn off sample mode to change the length.</p>}
 
       <div className="section-cards" ref={listRef}>

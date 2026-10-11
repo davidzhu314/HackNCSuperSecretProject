@@ -306,6 +306,38 @@ export const ExtractFactsResponseSchema = z.object({
 });
 export type ExtractFactsResponse = z.infer<typeof ExtractFactsResponseSchema>;
 
+// ---------- API: POST /api/facts/verify (Lie Checker) ----------
+// Checks one fact for consistency with the user's own profile and other facts. It can't know what's
+// true: "consistent" means nothing contradicts it, never "verified true".
+
+export const FactVerdictSchema = z.enum(["consistent", "not_mentioned", "exaggerated", "contradicts"]);
+export type FactVerdict = z.infer<typeof FactVerdictSchema>;
+
+const FactRefSchema = IdentityFactSchema.pick({ id: true, text: true });
+
+export const VerifyFactRequestSchema = z.object({
+  consent: z.literal(true),
+  platform: PlatformSchema,
+  fact: FactRefSchema,
+  /** May be empty: a fact can be checked against the other facts alone. */
+  segments: z.array(SegmentSchema).max(LIMITS.maxSegments),
+  otherFacts: z.array(FactRefSchema).max(LIMITS.maxFacts),
+});
+export type VerifyFactRequest = z.infer<typeof VerifyFactRequestSchema>;
+
+export const VerifyFactResponseSchema = z.object({
+  source: ResultSourceSchema,
+  verdict: FactVerdictSchema,
+  reason: z.string().max(500),
+  /** How to make the fact match the user's own words. Empty unless the verdict is a flag. */
+  suggestion: z.string().max(300),
+  /** Cited profile segments or facts, resolved server-side. Quotes never come from the model. */
+  evidence: z.array(z.object({ id: z.string(), text: z.string() })),
+  /** Cited ids that don't exist (dropped from `evidence`). */
+  warnings: z.array(GuardWarningSchema),
+});
+export type VerifyFactResponse = z.infer<typeof VerifyFactResponseSchema>;
+
 // ---------- API: POST /api/evaluate ----------
 
 /** A question the user typed ("Can they tell I lead teams?"). Untrusted text; critiques cite its id. */
@@ -471,6 +503,13 @@ export type PlatformConfig = {
 
 export const ModelExtractSchema = z.object({
   facts: z.array(z.string()),
+});
+
+export const ModelVerifyFactSchema = z.object({
+  verdict: FactVerdictSchema,
+  sourceIds: z.array(z.string()),
+  reason: z.string(),
+  suggestion: z.string(),
 });
 
 export const ModelEvaluateSchema = z.object({

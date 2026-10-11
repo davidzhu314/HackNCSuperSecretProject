@@ -24,9 +24,10 @@ export function ConsentScreen(props: {
         <div>
           <dt>What is sent</dt>
           <dd>
-            Your profile text, any job description you added, and only the facts you confirm in the next step. On
-            Tinder, that means your About me and prompt answers; rewrites also get your job title, company, school, and
-            languages. Never where you live, and never your relationship, basics, or lifestyle picks.
+            Your profile text, any job description you added, and the facts you add. On Tinder, that means your About me
+            and prompt answers; rewrites also get your job title, company, school, and languages. Never where you live,
+            and never your relationship, basics, or lifestyle picks. Lie Checker reads each fact you add, with your
+            other facts, to check it adds up.
           </dd>
         </div>
         <div>

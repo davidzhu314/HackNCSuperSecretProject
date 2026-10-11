@@ -3,6 +3,7 @@
 import { Check, CircleAlert, Clipboard, Download, FileCheck, LoaderCircle, PenLine, ShieldCheck, Sparkles, TriangleAlert, Undo2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { ExtraFacts } from "@/components/ExtraFacts";
+import type { LieCheck } from "@/components/FactCheckDetail";
 import { Button } from "@/components/ui/button";
 import { checkRewrite } from "@/lib/fact-guard";
 import { scoreRewrite, type RewriteScorecard } from "@/lib/lint";
@@ -59,6 +60,7 @@ export function RewriteComparison(props: {
   textName: string;
   onAddFact: (text: string) => void;
   onRemoveFact: (id: string) => void;
+  lieCheck?: LieCheck;
   qualityFields?: QualityField[];
   qualityTargetKey?: string;
   use?: { current: string; applied: boolean; onUse: (text: string) => void; onUndo: () => void };
@@ -97,7 +99,7 @@ export function RewriteComparison(props: {
         </Button>
       </div>
       <ProgressBar active={loading} label="Writing two versions and running FactCheck…" expectedMs={EXPECTED_MS.rewrite} />
-      <ExtraFacts facts={confirmedFacts} what={props.textName} onAdd={props.onAddFact} onRemove={props.onRemoveFact} />
+      <ExtraFacts facts={confirmedFacts} what={props.textName} onAdd={props.onAddFact} onRemove={props.onRemoveFact} lieCheck={props.lieCheck} />
       <p className="empty-note">
         You’ll get two versions, a direct one and a narrative one, built only from your own words and any facts you add.
         Neither may add anything else.

@@ -34,7 +34,7 @@ import {
   DEMO_TINDER_FACTS,
   type BioPlatform,
 } from "@/lib/demo-data";
-import { emptyHingePairs, HINGE_PROMPTS, mergeFacts, MAX_HINGE_ANSWER, MAX_HINGE_PROMPTS, type HingePair } from "@/lib/persona-ui";
+import { emptyHingePairs, factTextSchema, HINGE_PROMPTS, mergeFacts, MAX_HINGE_ANSWER, MAX_HINGE_PROMPTS, type HingePair } from "@/lib/persona-ui";
 import { emptyLinkedInProfile, factCheckSegments, findSection, profileCharCount, rewritableSections, segmentProfile } from "@/lib/profile";
 import { changedSections, profileAsText, sectionText, withSectionText } from "@/lib/profile-edits";
 import { cleanProfile, importProfileFile } from "@/lib/profile-import";
@@ -58,6 +58,9 @@ import {
   type TinderProfile,
 } from "@/lib/schemas";
 import { segmentBio, segmentHinge } from "@/lib/segments";
+import { checkFactClaims, factCheckView, type FactCheckView } from "@/lib/fact-claims";
+import { useFactChecks } from "@/lib/use-fact-checks";
+import type { LieCheck } from "@/components/FactCheckDetail";
 import {
   carryOverFromLinkedIn,
   emptyTinderProfile,
@@ -169,6 +172,8 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
   const session = useIdentitySession();
 
   const [facts, setFacts] = useState<IdentityFact[]>(() => getSession().facts);
+  // Lie Checker AI results, kept here so they survive moving between steps.
+  const factChecks = useFactChecks();
 
   // Keep the hub's session in step with the studio, writing only values this studio actually
   // changed. Mounting, or Next re-showing a page it kept hidden, re-runs this effect with the
@@ -721,11 +726,53 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
   const evalTraits = [...traits, ...customQuestions.map((q) => q.id)];
 
   /** LinkedIn: a fact that isn't on the profile, typed on the rewrite screen. Used only on LinkedIn until shared. */
+  // Lie Checker compares facts with the user's ORIGINAL text (before "Use this version"), like
+  // FactCheck, so an accepted rewrite never becomes evidence for a fact.
+  const lieCheckSegments = useMemo(
+    () => (platform === "linkedin" ? segmentProfile(baseClean) : segments),
+    [platform, baseClean, segments],
+  );
+  const lieCheckBasis = textKey(platform, lieCheckSegments);
+  const otherFactsOf = (id: string, all: IdentityFact[]) =>
+    all.filter((f) => f.id !== id && f.text.trim()).map(({ id, text }) => ({ id, text: text.trim() }));
+
+  function checkFact(fact: IdentityFact, all: IdentityFact[] = facts, force = false) {
+    // The AI check sends text to the provider: only after consent, and never in sample mode.
+    if (!consent || sample || !factTextSchema.safeParse(fact.text).success) return;
+    factChecks.run(
+      { platform, fact: { id: fact.id, text: fact.text }, segments: lieCheckSegments, otherFacts: otherFactsOf(fact.id, all) },
+      lieCheckBasis,
+      { force },
+    );
+  }
+
+  const factViews = useMemo(() => {
+    const out: Record<string, FactCheckView> = {};
+    for (const fact of facts) {
+      const issues = checkFactClaims(fact.text, { segments: lieCheckSegments, otherFacts: otherFactsOf(fact.id, facts) });
+      out[fact.id] = factCheckView(fact.text, lieCheckBasis, issues, factChecks.checks[fact.id]);
+    }
+    return out;
+  }, [facts, lieCheckSegments, lieCheckBasis, factChecks.checks]);
+
+  const lieCheck: LieCheck = {
+    views: factViews,
+    canCheck: consent && !sample,
+    onCheck: (id) => {
+      const fact = facts.find((f) => f.id === id);
+      if (fact) checkFact(fact, facts, true);
+    },
+    checkDraft: (text) => checkFactClaims(text, { segments: lieCheckSegments, otherFacts: otherFactsOf("", facts) }),
+  };
+
   function addExtraFact(text: string) {
     const t = text.trim().slice(0, LIMITS.factText);
     if (!t) return;
-    setFacts((prev) => mergeFacts(prev, [{ id: "f1", text: t, confirmed: true, source: "user" }]));
+    const merged = mergeFacts(facts, [{ id: "f1", text: t, confirmed: true, source: "user" }]);
+    setFacts(merged);
     clearRewrites();
+    const added = merged.find((f) => f.text.trim().toLowerCase() === t.toLowerCase());
+    if (added) checkFact(added, merged);
   }
 
   function removeExtraFact(id: string) {
@@ -962,6 +1009,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
               confirmedFacts={confirmedFacts}
               onAddFact={addExtraFact}
               onRemoveFact={removeExtraFact}
+              lieCheck={lieCheck}
               goal={goal}
               allStyle={allStyle}
               allLength={allLength}
@@ -1005,6 +1053,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
               textName={platform === "hinge" ? "answers" : platform === "tinder" ? "About me and answers" : config.fieldLabel.toLowerCase()}
               onAddFact={addExtraFact}
               onRemoveFact={removeExtraFact}
+              lieCheck={lieCheck}
               use={{
                 current: singleApplied ?? textOriginal,
                 applied: singleApplied !== null,

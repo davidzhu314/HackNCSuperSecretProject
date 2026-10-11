@@ -21,7 +21,7 @@ import {
   RewriteSectionResponseSchema,
 } from "./schemas";
 import type { z } from "zod";
-import type { ModelEvaluateSchema, ModelHingeRewriteSchema, ModelRewriteSchema, ModelSectionRewriteSchema } from "./schemas";
+import type { ModelEvaluateSchema, ModelHingeRewriteSchema, ModelRewriteSchema, ModelSectionRewriteSchema, ModelVerifyFactSchema, VerifyFactResponse } from "./schemas";
 import { splitSentences } from "./segments";
 import { PLATFORM_CONFIGS } from "./rubrics";
 import { checkLength, checkStyle } from "./style-check";
@@ -43,6 +43,41 @@ export function buildCandidateFacts(raw: string[]): (IdentityFact & { confirmed:
     if (out.length >= LIMITS.maxFacts) break;
   }
   return out;
+}
+
+/**
+ * Lie Checker: resolve the cited ids to the user's own text, flag unknown ones, clamp strings.
+ * A verdict that needs evidence ("consistent", "contradicts") but cites none that exists is
+ * downgraded to "not_mentioned": the model may not accuse, or vouch, without pointing at a line.
+ */
+export function buildFactVerdict(
+  raw: z.infer<typeof ModelVerifyFactSchema>,
+  ctx: { factId: string; segments: Segment[]; otherFacts: Pick<IdentityFact, "id" | "text">[] },
+): VerifyFactResponse {
+  const known = new Map<string, string>([
+    ...ctx.segments.map((s) => [s.id, s.text] as const),
+    ...ctx.otherFacts.map((f) => [f.id, f.text] as const),
+  ]);
+  const ids = [...new Set(raw.sourceIds)].filter((id) => id !== ctx.factId);
+  const evidence = ids.filter((id) => known.has(id)).map((id) => ({ id, text: known.get(id)! }));
+  const warnings: GuardWarning[] = ids
+    .filter((id) => !known.has(id))
+    .map((id) => ({
+      kind: "unverified_segment" as const,
+      text: id.slice(0, 40),
+      explanation: "The model cited a source that does not exist, so it was ignored.",
+    }));
+  const needsEvidence = raw.verdict === "consistent" || raw.verdict === "contradicts";
+  const verdict = needsEvidence && !evidence.length ? "not_mentioned" : raw.verdict;
+  const flagged = verdict === "exaggerated" || verdict === "contradicts";
+  return {
+    source: "live",
+    verdict,
+    reason: verdict === raw.verdict ? raw.reason.trim().slice(0, 500) : "Nothing in your profile or other facts mentions this.",
+    suggestion: flagged ? raw.suggestion.trim().slice(0, 300) : "",
+    evidence: flagged || verdict === "consistent" ? evidence : [],
+    warnings,
+  };
 }
 
 export function buildCritiques(

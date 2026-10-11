@@ -79,6 +79,38 @@ export function extractPrompt(platform: Platform, segments: Segment[]) {
   };
 }
 
+/** Lie Checker: one fact against the person's own profile and other facts. Consistency, never truth. */
+export function verifyFactPrompt(args: {
+  platform: Platform;
+  fact: Pick<IdentityFact, "id" | "text">;
+  segments: Segment[];
+  otherFacts: Pick<IdentityFact, "id" | "text">[];
+}) {
+  const { platform, fact, segments, otherFacts } = args;
+  const config = PLATFORM_CONFIGS[platform];
+  return {
+    system: [
+      `You check one statement a person wrote about themselves for their ${config.label} profile. You cannot know whether anything is true. Judge only whether it is consistent with their own profile text and their other statements, and whether it overstates them.`,
+      ...(config.input === "prompts" ? [PROMPTS_NOTE] : []),
+      "Pick exactly one verdict:",
+      '- "contradicts": the profile or another statement says something incompatible (a different number, date, role, school, employer, place, or a direct opposite).',
+      '- "exaggerated": it overstates what the profile or other statements say (a bigger role, a larger number, "led" where they "helped"), or makes a status claim no one could back up ("best in the world", "#1"). A plausible new detail is NOT exaggerated.',
+      '- "consistent": the profile or other statements support it and it does not overstate them.',
+      '- "not_mentioned": the profile and other statements say nothing about it either way. Most new details are this. When unsure, choose this.',
+      "Playful lines on dating or social profiles (\"I make the best tacos\") are not lies; only flag them if they contradict something.",
+      "sourceIds: the ids (segment ids like s1 or exp1-s2, statement ids like f1 or u…) your verdict relies on. Empty for not_mentioned. Never invent ids.",
+      'reason: one or two plain sentences to the person ("Your About says you helped run it."). Never call it a lie, never judge their character, and never say a statement is true or verified.',
+      "suggestion: for contradicts or exaggerated, one sentence on how to make it match their own words, adding no new detail. Otherwise an empty string.",
+      DATA_RULE,
+    ].join("\n"),
+    user: [
+      fence("user_data", `Statement to check (${fact.id}): ${fact.text}`),
+      `Profile segments:\n${fence("user_data", segments.length ? formatSegmentsForPrompt(segments) : "(none)")}`,
+      `Their other statements:\n${fence("user_data", otherFacts.length ? otherFacts.map((f) => `[${f.id}] ${f.text}`).join("\n") : "(none)")}`,
+    ].join("\n\n"),
+  };
+}
+
 const PROMPTS_EVALUATE_RULE =
   "Each segment is the person's answer to the prompt shown before it in parentheses. Judge the answer as a reply to that prompt: the prompt is fixed by the app, only the answer is the person's writing.";
 

@@ -237,7 +237,7 @@ function checkEntities(content: string, corpus: string): GuardWarning[] {
 
 // ---------- 3. inflated verbs ----------
 
-type VerbEntry = { lemma: string; rank: 1 | 2 | 3; forms: string[] };
+export type VerbEntry = { lemma: string; rank: 1 | 2 | 3; forms: string[] };
 
 // rank 1 = participation, 2 = doing the work, 3 = ownership / leadership.
 // Ambiguous noun-like forms (lead, own, head, direct, drive) are left out on purpose.
@@ -284,7 +284,7 @@ const BASE_TO_VERB = new Map<string, VerbEntry>(
   VERBS.filter((v) => v.lemma !== "found").flatMap((v) => [[v.lemma, v] as const, [`${v.lemma}s`, v] as const]),
 );
 
-function verbsIn(text: string, includeBase = false): Map<string, VerbEntry> {
+export function verbsIn(text: string, includeBase = false): Map<string, VerbEntry> {
   const found = new Map<string, VerbEntry>();
   for (const w of text.toLowerCase().match(/[a-z]+(?:-[a-z]+)?/g) ?? []) {
     const v = FORM_TO_VERB.get(w) ?? (includeBase ? BASE_TO_VERB.get(w) : undefined);

@@ -20,6 +20,7 @@ import {
   ExtractFactsResponseSchema,
   RewriteResponseSchema,
   RewriteSectionResponseSchema,
+  VerifyFactResponseSchema,
   type ApiError,
   type EvaluateRequest,
   type EvaluateResponse,
@@ -29,6 +30,8 @@ import {
   type RewriteResponse,
   type RewriteSectionRequest,
   type RewriteSectionResponse,
+  type VerifyFactRequest,
+  type VerifyFactResponse,
 } from "./schemas";
 import type { z } from "zod";
 
@@ -67,15 +70,17 @@ export function errorMessage(err: unknown): string {
   return FRIENDLY.network_error;
 }
 
-async function post<T>(path: string, body: unknown, schema: z.ZodType<T>): Promise<T> {
+async function post<T>(path: string, body: unknown, schema: z.ZodType<T>, signal?: AbortSignal): Promise<T> {
   let res: Response;
   try {
     res = await fetch(path, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
+      signal,
     });
-  } catch {
+  } catch (err) {
+    if (signal?.aborted) throw err;
     throw new ClientApiError("network_error", FRIENDLY.network_error);
   }
   const json: unknown = await res.json().catch(() => null);
@@ -169,4 +174,9 @@ export async function rewriteSection(
     return cached;
   }
   return post("/api/rewrite-section", req, RewriteSectionResponseSchema);
+}
+
+/** Lie Checker: one fact against the profile and other facts. No sample mode: it always runs live, after consent. */
+export async function verifyFact(req: VerifyFactRequest, opts: { signal?: AbortSignal } = {}): Promise<VerifyFactResponse> {
+  return post("/api/facts/verify", req, VerifyFactResponseSchema, opts.signal);
 }
