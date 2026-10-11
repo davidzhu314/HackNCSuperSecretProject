@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AudienceClash } from "@/components/AudienceClash";
 import { AudienceSelection } from "@/components/AudienceSelection";
 import { BioInput } from "@/components/BioInput";
-import { BrandMark, SCENES, ScenicBackdrop, Wordmark } from "@/components/Chrome";
+import { SCENES, ScenicBackdrop, Wordmark } from "@/components/Chrome";
 import { ConsentScreen } from "@/components/ConsentScreen";
 import { IdentityFacts } from "@/components/IdentityFacts";
 import { LinkedInEditor, type ImportState } from "@/components/LinkedInEditor";
@@ -725,12 +725,6 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
 
       {step === INPUT && (
         <section className="tour-location" aria-label={`${scene.name} studio`}>
-          <span className="tour-kicker">
-            <span className="destination-mark">
-              <BrandMark platform={platform} />
-            </span>
-            {scene.lens} <span className="tour-line" aria-hidden="true" /> THROUGH THEIR EYES
-          </span>
           <h1>{scene.caption}</h1>
           <p>
             Add your profile, confirm what’s true, see it through their eyes, then rewrite. A first impression that

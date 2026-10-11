@@ -1,66 +1,54 @@
 import Image, { type StaticImageData } from "next/image";
 import Link from "next/link";
 import aeroSky from "@/assets/aero-sky.jpg";
-import hingeNightlife from "@/assets/hinge-nightlife.jpg";
+import datingCouple from "@/assets/dating-couple.jpg";
 import linkedinSpeaker from "@/assets/linkedin-speaker.jpg";
 import personifyLogo from "@/assets/personify-logo-v3.png";
+import socialNightlife from "@/assets/social-nightlife.jpg";
 import type { Platform } from "@/lib/schemas";
 
-// Page chrome shared by the home page, the hub, and the studio (from the Lovable designs:
-// the Aero sky, and the scenic LinkedIn speaker / Hinge nightlife "destinations"). The two scene
-// photos are from Unsplash (free license): unsplash.com/photos/RfiBK6Y_upQ and /j4esZ9owgzA.
-// Other platforms reuse their group's scene: professional the speaker, dating the nightlife,
-// social the Aero sky.
+// Page chrome shared by the home page, the hub, and the studio (from the Lovable designs: the Aero
+// sky, and the scenic "destinations"). Each platform uses its group's scene: professional the
+// speaker, social the nightlife, dating the couple. The scene photos are from Unsplash (free license):
+// unsplash.com/photos/RfiBK6Y_upQ (speaker), /j4esZ9owgzA (nightlife), and /xM4wUnvbCKk (couple,
+// Priscilla Du Preez).
 
-type Scene = { image: StaticImageData; name: string; lens: string; caption: string; description: string };
+type Scene = { image: StaticImageData; name: string; caption: string; description: string };
 
 export const SCENES: Record<Platform, Scene> = {
   linkedin: {
     image: linkedinSpeaker,
     name: "LinkedIn",
-    lens: "RECRUITERS · HIRING LEADS",
     caption: "A world of opportunity.",
     description: "Your experience. Your ambitions. Your next chapter.",
   },
   handshake: {
     image: linkedinSpeaker,
     name: "Handshake",
-    lens: "CAMPUS RECRUITERS · HIRING MANAGERS",
     caption: "Your first big break.",
     description: "Your studies. Your projects. Your first role.",
   },
   instagram: {
-    image: aeroSky,
+    image: socialNightlife,
     name: "Instagram",
-    lens: "NEW VISITORS · SHARED INTERESTS",
     caption: "A first glance that's yours.",
     description: "Your interests. Your voice. In one short bio.",
   },
   facebook: {
-    image: aeroSky,
+    image: socialNightlife,
     name: "Facebook",
-    lens: "OLD FRIENDS · COMMUNITIES",
     caption: "What you're up to now.",
     description: "Your news. Your groups. Your people.",
   },
-  twitter: {
-    image: aeroSky,
-    name: "X (Twitter)",
-    lens: "POTENTIAL FOLLOWERS · PEERS",
-    caption: "Say what you post about.",
-    description: "Your topics. Your voice. In 160 characters.",
-  },
   hinge: {
-    image: hingeNightlife,
+    image: datingCouple,
     name: "Hinge",
-    lens: "POTENTIAL MATCHES · SHARED INTERESTS",
     caption: "Somewhere you belong.",
     description: "Your quirks. Your stories. Your kind of connection.",
   },
   tinder: {
-    image: hingeNightlife,
+    image: datingCouple,
     name: "Tinder",
-    lens: "POTENTIAL MATCHES · SHARED INTERESTS",
     caption: "A first line worth replying to.",
     description: "Your quirks. Your stories. Your kind of connection.",
   },
@@ -122,7 +110,6 @@ const BRAND_LETTERS: Record<Platform, string> = {
   handshake: "hs",
   instagram: "ig",
   facebook: "f",
-  twitter: "X",
   hinge: "H",
   tinder: "t",
 };

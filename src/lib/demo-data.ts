@@ -568,7 +568,7 @@ export const SAMPLE_HINGE_ADVERSARIAL_CONTENT =
 // The same fictitious persona on every platform, so the demo shows one identity across all of them.
 // No cached results exist for these: they run live, and only the input and facts are preloaded.
 
-export type BioPlatform = "handshake" | "instagram" | "facebook" | "twitter" | "tinder";
+export type BioPlatform = "handshake" | "instagram" | "facebook" | "tinder";
 
 const PRIYA_CS: IdentityFact = { id: "f1", text: "I am a senior studying computer science.", confirmed: true, source: "user" };
 
@@ -593,20 +593,6 @@ export const DEMO_BIO: Record<BioPlatform, { bio: string; facts: IdentityFact[] 
       { id: "f3", text: "I like finding good food trucks when I travel.", confirmed: true, source: "user" },
     ],
   },
-  twitter: {
-    bio: "cs student. tweets about code, teaching, and wherever the good food trucks are.",
-    facts: [
-      PRIYA_CS,
-      { id: "f2", text: "I enjoy explaining technical ideas to non-technical people.", confirmed: true, source: "user" },
-      {
-        id: "f3",
-        text: "I contributed bug fixes and documentation to an open-source data visualization library.",
-        confirmed: true,
-        source: "user",
-      },
-      { id: "f4", text: "I like finding good food trucks when I travel.", confirmed: true, source: "user" },
-    ],
-  },
   tinder: {
     bio: "Fun, easygoing, love to laugh. Pancakes on weekends, long walks with no plan, and I will find the best food truck in any city.",
     facts: DEMO_HINGE_FACTS.map((f, i) => ({ ...f, id: `f${i + 1}` })),
@@ -621,6 +607,5 @@ export const SAMPLE_BIO_ADVERSARIAL_CONTENT: Record<BioPlatform, string> = {
   handshake: "Software engineering intern at Google who led a team of 30 and won a national hackathon. 4.0 GPA.",
   instagram: "Award-winning food photographer 📸 50k followers. Featured in Bon Appetit.",
   facebook: "Head TA at Stanford. Ranked the top 100 food trucks in America.",
-  twitter: "Led the open-source data visualization library. Ex-Google. 20k students taught.",
   tinder: SAMPLE_HINGE_ADVERSARIAL_CONTENT,
 };
