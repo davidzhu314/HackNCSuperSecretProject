@@ -2,12 +2,57 @@ import OpenAI from "openai";
 import { z } from "zod";
 import type { ApiError } from "./schemas";
 
-// Server-side only: reads GEMINI_API_KEY from process.env. Import this file
-// from route handlers only, never from client components.
+// Server-side only: reads GEMINI_API_KEY (or, without it, OPENROUTER_API_KEY) from process.env.
+// Import this file from route handlers only, never from client components.
 // Never log prompts, profile text, or keys.
 
+/**
+ * Which AI provider the server uses. Gemini (Google's OpenAI-compatible endpoint) when
+ * GEMINI_API_KEY is set; otherwise OpenRouter when OPENROUTER_API_KEY is set, so a deployment that
+ * only has the OpenRouter key keeps working. Each provider has its own model and temperature vars.
+ */
+type Provider = {
+  name: "gemini" | "openrouter";
+  keyVar: string;
+  baseURL: string;
+  model: string;
+  rewriteModel: string;
+  temperatureVar: string;
+  /** Extra request fields this provider needs. */
+  extra: Record<string, unknown>;
+};
+
 export const DEFAULT_MODEL = "gemini-3.8-flash";
-const BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/";
+/** Rewrites can use a separately configured model when desired. */
+export const DEFAULT_REWRITE_MODEL = "gemini-3.8-flash";
+export const OPENROUTER_DEFAULT_MODEL = "anthropic/claude-haiku-5.5";
+export const OPENROUTER_DEFAULT_REWRITE_MODEL = "anthropic/claude-sonnet-5.5";
+
+const env = (name: string) => process.env[name]?.trim() || undefined;
+
+export function getProvider(): Provider {
+  if (!env("GEMINI_API_KEY") && env("OPENROUTER_API_KEY")) {
+    return {
+      name: "openrouter",
+      keyVar: "OPENROUTER_API_KEY",
+      baseURL: "https://openrouter.ai/api/v1",
+      model: env("OPENROUTER_MODEL") ?? OPENROUTER_DEFAULT_MODEL,
+      rewriteModel: env("OPENROUTER_REWRITE_MODEL") ?? OPENROUTER_DEFAULT_REWRITE_MODEL,
+      temperatureVar: "OPENROUTER_TEMPERATURE",
+      // Route only to endpoints that support every parameter we send (incl. json_schema).
+      extra: { provider: { require_parameters: true } },
+    };
+  }
+  return {
+    name: "gemini",
+    keyVar: "GEMINI_API_KEY",
+    baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
+    model: env("GEMINI_MODEL") ?? DEFAULT_MODEL,
+    rewriteModel: env("GEMINI_REWRITE_MODEL") ?? DEFAULT_REWRITE_MODEL,
+    temperatureVar: "GEMINI_TEMPERATURE",
+    extra: {},
+  };
+}
 
 export class LlmError extends Error {
   constructor(
@@ -32,29 +77,28 @@ export type ChatClient = {
 };
 
 function getClient(): ChatClient {
-  const apiKey = process.env.GEMINI_API_KEY?.trim();
+  const provider = getProvider();
+  const apiKey = env(provider.keyVar);
   if (!apiKey) {
-    throw new LlmError("missing_api_key", "The server has no Gemini API key configured.");
+    throw new LlmError("missing_api_key", "The server has no AI API key configured (GEMINI_API_KEY or OPENROUTER_API_KEY).");
   }
-  return new OpenAI({ apiKey, baseURL: BASE_URL }) as unknown as ChatClient;
+  return new OpenAI({ apiKey, baseURL: provider.baseURL }) as unknown as ChatClient;
 }
 
 export function getModel(): string {
-  return process.env.GEMINI_MODEL?.trim() || DEFAULT_MODEL;
+  return getProvider().model;
 }
 
-/** Rewrites can use a separately configured Gemini model when desired. */
-export const DEFAULT_REWRITE_MODEL = "gemini-3.8-flash";
-
 export function getRewriteModel(): string {
-  return process.env.GEMINI_REWRITE_MODEL?.trim() || DEFAULT_REWRITE_MODEL;
+  return getProvider().rewriteModel;
 }
 
 /**
- * Temperature is optional; leave it unset to use Gemini's model default.
+ * Temperature is optional; leave it unset to use the model's default. (Some OpenRouter models, e.g.
+ * anthropic/claude-haiku-5.5, have no endpoint that accepts it at all.)
  */
 function temperatureParam(): { temperature?: number } {
-  const raw = process.env.GEMINI_TEMPERATURE?.trim();
+  const raw = env(getProvider().temperatureVar);
   const t = raw ? Number(raw) : NaN;
   return Number.isFinite(t) ? { temperature: t } : {};
 }
@@ -125,6 +169,7 @@ export async function callStructured<T>(opts: StructuredCall<T>): Promise<T> {
     try {
       const res = await createWithRateRetry(client, {
         model: opts.model ?? getModel(),
+        ...getProvider().extra,
         ...temperatureParam(),
         max_tokens: opts.maxTokens ?? 2000,
         messages: [

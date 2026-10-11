@@ -1,5 +1,15 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { callStructured, DEFAULT_REWRITE_MODEL, getRewriteModel, LlmError, type ChatClient } from "./llm";
+import {
+  callStructured,
+  DEFAULT_REWRITE_MODEL,
+  getModel,
+  getProvider,
+  getRewriteModel,
+  LlmError,
+  OPENROUTER_DEFAULT_MODEL,
+  OPENROUTER_DEFAULT_REWRITE_MODEL,
+  type ChatClient,
+} from "./llm";
 import { ModelExtractSchema } from "./schemas";
 
 function fakeClient(replies: (string | Error)[]) {
@@ -21,12 +31,17 @@ function fakeClient(replies: (string | Error)[]) {
 
 const base = { system: "s", user: "u", schemaName: "extract", schema: ModelExtractSchema };
 
+const ENV_VARS = ["GEMINI_API_KEY", "GEMINI_MODEL", "GEMINI_REWRITE_MODEL", "OPENROUTER_API_KEY", "OPENROUTER_MODEL", "OPENROUTER_REWRITE_MODEL"];
+const savedEnv = Object.fromEntries(ENV_VARS.map((k) => [k, process.env[k]]));
+afterEach(() => {
+  for (const k of ENV_VARS) {
+    if (savedEnv[k] === undefined) delete process.env[k];
+    else process.env[k] = savedEnv[k];
+  }
+});
+const clearEnv = () => ENV_VARS.forEach((k) => delete process.env[k]);
+
 describe("callStructured", () => {
-  const savedKey = process.env.GEMINI_API_KEY;
-  afterEach(() => {
-    if (savedKey === undefined) delete process.env.GEMINI_API_KEY;
-    else process.env.GEMINI_API_KEY = savedKey;
-  });
 
   it("returns validated data and sends a strict json_schema", async () => {
     const { client, calls } = fakeClient(['{"facts":["I study CS."]}']);
@@ -73,22 +88,43 @@ describe("callStructured", () => {
     expect(calls).toHaveLength(1);
   });
 
-  it("reports a missing API key", async () => {
-    delete process.env.GEMINI_API_KEY;
+  it("reports a missing API key when neither provider has one", async () => {
+    clearEnv();
     await expect(callStructured(base)).rejects.toBeInstanceOf(LlmError);
     await expect(callStructured(base)).rejects.toMatchObject({ code: "missing_api_key" });
   });
 });
 
-describe("getRewriteModel", () => {
-  it("defaults to sonnet and can be overridden by env", () => {
-    const saved = process.env.GEMINI_REWRITE_MODEL;
-    delete process.env.GEMINI_REWRITE_MODEL;
+describe("provider", () => {
+  it("uses Gemini when its key is set, with its own model vars", () => {
+    clearEnv();
+    process.env.GEMINI_API_KEY = "test";
+    process.env.OPENROUTER_API_KEY = "test";
+    expect(getProvider().name).toBe("gemini");
     expect(getRewriteModel()).toBe(DEFAULT_REWRITE_MODEL);
-    expect(DEFAULT_REWRITE_MODEL).toBe("gemini-3.8-flash");
     process.env.GEMINI_REWRITE_MODEL = "gemini-3.8-flash-preview";
     expect(getRewriteModel()).toBe("gemini-3.8-flash-preview");
-    if (saved === undefined) delete process.env.GEMINI_REWRITE_MODEL;
-    else process.env.GEMINI_REWRITE_MODEL = saved;
+  });
+
+  it("falls back to OpenRouter when only its key is set, with its own models and routing", async () => {
+    clearEnv();
+    process.env.OPENROUTER_API_KEY = "test";
+    expect(getProvider().name).toBe("openrouter");
+    expect(getModel()).toBe(OPENROUTER_DEFAULT_MODEL);
+    expect(getRewriteModel()).toBe(OPENROUTER_DEFAULT_REWRITE_MODEL);
+    process.env.OPENROUTER_MODEL = "google/gemini-3.1-flash-lite";
+    expect(getModel()).toBe("google/gemini-3.1-flash-lite");
+    const { client, calls } = fakeClient(['{"facts":[]}']);
+    await callStructured({ ...base, client });
+    expect(calls[0]).toMatchObject({ model: "google/gemini-3.1-flash-lite", provider: { require_parameters: true } });
+  });
+
+  it("sends no OpenRouter routing field to Gemini", async () => {
+    clearEnv();
+    process.env.GEMINI_API_KEY = "test";
+    const { client, calls } = fakeClient(['{"facts":[]}']);
+    await callStructured({ ...base, client });
+    expect(calls[0]).not.toHaveProperty("provider");
+    expect(calls[0]).toMatchObject({ model: "gemini-3.8-flash" });
   });
 });
