@@ -243,6 +243,9 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .prototype-notice svg { flex-shrink: 0; margin-top: 3px; }
 .selection-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 25px; }
 .selection-count { font-size: 11px; font-weight: 400; color: var(--muted-foreground); }
+.selection-heading-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.selection-heading-row .section-heading { flex: 1 1 190px; }
+.selection-heading-row > .glass-btn { flex: 0 0 auto; }
 .audience-options { display: grid; gap: 10px; margin-top: 17px; }
 .audience-option { justify-content: flex-start; width: 100%; height: auto; min-height: 48px; white-space: normal; text-align: left; }
 .audience-option > span { flex: 1; }
@@ -831,6 +834,7 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .fact-meta .fact-share { margin-top: 0; }
 .share-chip { height: 24px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--card); color: var(--muted-foreground); font-size: 11px; font-weight: 600; text-decoration: line-through; }
 .share-chip[data-on=true] { background: var(--accent); border-color: var(--primary); color: var(--primary); text-decoration: none; }
+.share-all-button { min-height: 24px; height: 24px; padding: 0 5px; font-size: 10px; }
 .share-chip:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .seed-heading { margin-top: 26px; }
 .fact-platform[data-shared=false] { color: var(--muted-foreground); }
@@ -961,13 +965,13 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .trait-scorecard { margin: 22px 0; padding: 18px; border: 1px solid var(--border); border-radius: 14px; background: var(--card); }
 .trait-scorecard-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
 .trait-scorecard-head h2 { margin: 0; font-size: 18px; }
-.trait-scorecard-head p, .trait-scorecard-note { margin: 5px 0 0; color: var(--muted-foreground); font-size: 12px; }
+.trait-scorecard-head p, .trait-scorecard-note { max-width: 70ch; margin: 5px 0 0; color: var(--muted-foreground); font-size: 12px; line-height: 1.5; }
 .trait-score-list { display: grid; gap: 12px; }
 .trait-score-row { display: grid; gap: 6px; }
 .trait-score-title { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; }
 .trait-score-title span { color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
 /* One segment per lens: filled when that lens can tell (Moderate or Strong); Strong is the full color. */
-.answered-total { display: flex; align-items: center; gap: 6px; margin: 0; flex-shrink: 0; color: var(--muted-foreground); font-size: 13px; font-variant-numeric: tabular-nums; }
+.trait-scorecard-head .answered-total { display: flex; max-width: none; align-items: center; gap: 6px; margin: 0; flex-shrink: 0; color: var(--muted-foreground); font-size: 13px; font-variant-numeric: tabular-nums; }
 .answered-total strong { font-size: 26px; line-height: 1; color: var(--foreground); }
 .answered-total strong[data-verdict=better] { color: var(--success); }
 .answered-total strong[data-verdict=worse], .answered-total strong[data-verdict=mixed] { color: var(--warning); }

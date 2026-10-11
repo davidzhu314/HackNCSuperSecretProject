@@ -111,23 +111,33 @@ const USUAL_CHARS: Partial<Record<LinkedInSectionKind, number>> = { headline: 10
 
 /** Target character count for a length step, within LinkedIn's limit. */
 export function targetChars(kind: LinkedInSectionKind, originalChars: number, step: LengthStep): number {
-  const ratio = RATIOS[kind === "headline" || kind === "about" ? "wide" : "entry"][step];
-  const base = Math.max(originalChars, USUAL_CHARS[kind] ?? 0);
+  const wide = kind === "headline" || kind === "about";
+  const ratio = RATIOS[wide ? "wide" : "entry"][step];
+  // "Same" and the shorter settings are relative to this section's actual text. The
+  // usual-size baseline is useful only when the user asks to expand a short headline/About.
+  const base =
+    step === "same" || step === "shorter" || step === "much_shorter"
+      ? originalChars
+      : Math.max(originalChars, USUAL_CHARS[kind] ?? 0);
+  if (step === "same") return Math.min(sectionCap(kind), originalChars);
   const floor = Math.min(originalChars, 20); // a very short entry can't usefully shrink
   return Math.min(sectionCap(kind), Math.max(floor, Math.round(base * ratio)));
 }
 
 export function lengthInstruction(args: { original: number; target: number; step: LengthStep; format: TextFormat; bullets: number }): string {
   const { original, target, step, format, bullets } = args;
+  const selected = LENGTH_STEPS.find((item) => item.id === step)!.label;
   const how =
     step === "same"
-      ? "Keep about the same length."
-      : target < original
-        ? "Get shorter by cutting filler and merging; keep every concrete fact you can."
-        : "Get longer only with detail the sources actually contain (how, with what, for what, as stated). Never add facts, numbers, names, or claims to reach the length. Never add purposes, motivations, or outcomes the sources don't state (no 'with the aim of', 'to ensure', 'helping the team'), and never restate the same point in more words: that is padding. If the sources don't support that much, stop shorter.";
+      ? "Stay close to the original length. Do not expand a short section just to reach a typical size."
+      : step === "shorter" || step === "much_shorter"
+        ? target < original
+          ? "Actually make it shorter by cutting filler and merging; do not expand it to a typical size. Keep the most useful concrete facts."
+          : "This section is already very short. Keep it natural and no longer than necessary; do not add text to hit the target."
+        : "Get longer only with distinct detail the sources actually contain (how, with what, for what, as stated). Never add facts, numbers, names, or claims to reach the length. Never add purposes, motivations, or outcomes the sources don't state (no 'with the aim of', 'to ensure', 'helping the team'), and never restate the same point in more words: that is padding. If the sources don't support that much, stop shorter.";
   const bulletRule =
     format === "bullets" ? ` Keep ${bullets} bullet${bullets === 1 ? "" : "s"} or fewer at any length: change their length, not their number.` : "";
-  return `Length: aim for about ${target} characters (the original is ${original}), within about 15%. ${how}${bulletRule}`;
+  return `Selected length for this section: ${selected}. Aim for about ${target} characters (the original is ${original}), within about 15% when the source supports it. Treat this target as guidance, never pad to hit it. ${how}${bulletRule}`;
 }
 
 /**

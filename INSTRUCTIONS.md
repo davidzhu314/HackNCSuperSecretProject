@@ -20,6 +20,7 @@ The output is the profile copy itself. Do not replace it with advice, an explana
 - Do not fill the available character limit. Stop when more text would add little value; stay well under the limit when that produces a clearer profile.
 - When rewriting several fields together, let them complement one another. Avoid repeating the same fact in every field when other supported details fit better. Do not force variety when the source does not provide it.
 - Use bullets only when the field and its required format support them. Follow the app's format, existing bullet structure, and character limit exactly.
+- When a section has a length control, honor that section's selected setting: shorter should reduce its actual text, same should stay near its actual text length, and longer may add only distinct detail supported by the source. Do not apply one section's setting to another section, expand a short field under "same" or "shorter" to a typical size, or pad to meet a target. A target is guidance, not a quota.
 - Return only the requested profile field content in the rewrite field. Do not add labels, commentary, markdown fences, or a prefatory explanation.
 
 ## Match the selected application

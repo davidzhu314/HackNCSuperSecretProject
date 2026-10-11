@@ -497,7 +497,7 @@ export function VariationResult(props: {
         </span>
         {scoreComparison && (
           <span className="score-comparison-note" data-verdict={scoreComparison.verdict} role="status">
-            {comparisonSummary(scoreComparison)} See what changed below.
+            In this AI check: {comparisonSummary(scoreComparison)} See what changed below.
           </span>
         )}
         <div className="action-buttons">
