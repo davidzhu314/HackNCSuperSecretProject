@@ -300,10 +300,6 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 
 /* ---------- Added in the Next.js port ---------- */
 /* Lucide no longer ships brand icons, so platforms use simple letter marks. */
-.brand-mark { font-weight: 800; line-height: 1; letter-spacing: -0.5px; }
-.brand-mark[data-platform=linkedin] { font-family: var(--font-sans); font-size: 22px; }
-.brand-mark[data-platform=hinge] { font-family: Georgia, serif; font-size: 30px; }
-@media (max-width: 680px) { .brand-mark[data-platform=linkedin] { font-size: 16px; } .brand-mark[data-platform=hinge] { font-size: 22px; } }
 .loading-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted-foreground); margin-bottom: 12px; }
 .sample-toggle { display: flex; gap: 9px; align-items: flex-start; font-size: 12px; line-height: 1.7; color: var(--foreground); margin: 0 0 20px; }
 .sample-toggle input { accent-color: var(--primary); margin-top: 4px; }
@@ -494,9 +490,10 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .tour-button:hover { background: var(--tour-button-gradient); }
 .tour-button:focus-visible, .tour-hotspot:focus-visible, .tour-avatar:focus-visible, .tour-link:focus-visible { outline: 2px solid var(--tour-apricot); outline-offset: 2px; }
 .tour-privacy { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 7px; font-size: 11px; color: var(--tour-caption); }
-.destination-mark { display: inline-grid; place-items: center; width: 26px; height: 26px; border: 1px solid var(--tour-edge); background: var(--tour-translucent); color: var(--tour-white); }
-.destination-mark .brand-mark[data-platform=linkedin] { font-size: 13px; }
-.destination-mark .brand-mark[data-platform=hinge] { font-size: 17px; }
+/* Platform logos: sized by font-size, colored by color. Hinge is a serif "H" letter. */
+.brand-mark { display: inline-grid; place-items: center; line-height: 1; }
+.brand-mark svg { width: 1em; height: 1em; display: block; }
+.brand-mark[data-platform=hinge] { font-family: Georgia, serif; font-weight: 800; font-size: 1.15em; }
 
 /* Home: destinations */
 .destination-home { position: relative; isolation: isolate; color: var(--tour-white); background: var(--tour-ink); }
@@ -510,18 +507,15 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .destination-platforms { list-style: none; margin: 0; padding: 0; display: grid; width: max-content; gap: 10px; }
 .destination-platforms .tour-button { gap: 10px; width: 100%; justify-content: flex-start; }
 .destination-platforms .tour-button > svg:last-child { margin-left: auto; padding-left: 8px; box-sizing: content-box; }
-.destination-platforms .destination-mark { width: 22px; height: 22px; font-size: 11px; }
+.destination-mark { display: inline-grid; place-items: center; font-size: 16px; }
 /* Platform buttons in each company's own colors (approximate brand colors, no logos). */
 .destination-platforms .tour-button[data-brand] { color: #fff; border: 0; padding: 11px 19px; backdrop-filter: none; transition: filter .2s, transform .2s; }
 .destination-platforms .tour-button[data-brand]:hover { filter: brightness(1.12); transform: translateY(-1px); }
-.destination-platforms .tour-button[data-brand] .destination-mark { border-color: oklch(1 0 0 / .45); background: oklch(1 0 0 / .14); color: inherit; }
 .tour-button[data-brand=linkedin] { background: #0a66c2; }
 .tour-button[data-brand=handshake] { background: #d3fb52; color: #0f2b1e !important; }
-.tour-button[data-brand=handshake] .destination-mark { border-color: oklch(0.25 0.04 160 / .4) !important; background: oklch(0.25 0.04 160 / .08) !important; }
 .tour-button[data-brand=instagram] { background: linear-gradient(45deg, #f58529, #dd2a7b 45%, #8134af 75%, #515bd4); }
 .tour-button[data-brand=facebook] { background: #0866ff; }
 .tour-button[data-brand=hinge] { background: #fff; color: #000 !important; }
-.tour-button[data-brand=hinge] .destination-mark { border-color: oklch(0 0 0 / .3) !important; background: oklch(0 0 0 / .05) !important; }
 .tour-button[data-brand=tinder] { background: linear-gradient(45deg, #fd267a, #ff6036); }
 .destination:hover .destination-photo { transform: scale(1.045); }
 .destination-shade { position: absolute; inset: 0; background: var(--tour-split-gradient); }
@@ -620,15 +614,16 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .hub-persona-text .empty-note { font-size: 13px; margin: 0; }
 .hub-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
 .hub-fine-print { margin: 10px 0 0; }
-.hub-groups { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: start; }
-.hub-group { display: grid; gap: 12px; }
+/* The groups share rows (subgrid), so cards side by side get one height and their buttons line up. */
+.hub-groups { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: auto; grid-auto-rows: auto; column-gap: 20px; }
+.hub-group { display: grid; grid-row: span 3; grid-template-rows: subgrid; row-gap: 12px; }
 .hub-group-label { margin: 0 0 2px; font-size: 13px; font-weight: 600; color: var(--hub-muted); }
 .hub-source { display: flex; flex-direction: column; gap: 12px; padding: 20px; }
 .hub-source .hub-actions { margin-top: auto; padding-top: 4px; }
 .hub-source-head { display: flex; gap: 12px; align-items: center; }
 .hub-source-head h3 { margin: 0 0 2px; font-size: 16px; font-weight: 650; }
 .hub-source-head p { margin: 0; line-height: 1.5; }
-.hub-root .platform-icon { width: 36px; height: 36px; margin: 0; border-radius: 8px; border: 0; box-shadow: none; color: #fff; font-size: 13px; font-weight: 700; background: var(--hub-ink); }
+.hub-root .platform-icon { width: 40px; height: 40px; margin: 0; border-radius: 9px; border: 0; box-shadow: none; color: #fff; font-size: 22px; background: var(--hub-ink); }
 .hub-root [data-platform=linkedin] .platform-icon { background: #0a66c2; }
 .hub-root [data-platform=handshake] .platform-icon { background: #d3fb52; color: #0f2b1e; }
 .hub-root [data-platform=instagram] .platform-icon { background: linear-gradient(45deg, #f58529, #dd2a7b 45%, #8134af 75%, #515bd4); }
@@ -698,7 +693,8 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
   .tour-privacy { font-size: 10px; }
   .tour-progress { font-size: 16px; }
   .tour-progress-label { font-size: 11px; margin-right: 4px; }
-  .hub-groups { grid-template-columns: minmax(0, 1fr); }
+  .hub-groups { grid-template-columns: minmax(0, 1fr); row-gap: 28px; }
+  .hub-group { grid-row: auto; grid-template-rows: none; }
   .hub-layout .hub-persona { align-items: flex-start; }
   .hub-root .tour-header { padding: 14px 16px; }
   .hub-main { margin-top: 28px; }
@@ -848,12 +844,31 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 /* The header's platform picker: a native select with the three groups, styled like a tour button. */
 .tour-platform-picker { display: inline-flex; align-items: center; gap: 8px; }
 .tour-platform-picker > span { font-size: 10px; letter-spacing: 1.4px; color: var(--tour-caption); }
-.tour-platform-select { appearance: none; font: inherit; font-size: 12px; font-weight: 500; color: var(--tour-white); background: var(--tour-translucent); border: 1px solid var(--tour-edge); border-bottom: 2px solid var(--tour-apricot); border-radius: 0; min-height: 42px; padding: 10px 34px 10px 14px; backdrop-filter: blur(8px); cursor: pointer; background-image: linear-gradient(45deg, transparent 50%, var(--tour-white) 50%), linear-gradient(135deg, var(--tour-white) 50%, transparent 50%); background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%; background-size: 5px 5px; background-repeat: no-repeat; }
+.tour-platform-select { display: inline-flex; align-items: center; gap: 9px; font: inherit; font-size: 12px; font-weight: 500; color: var(--tour-white); background: var(--tour-translucent); border: 1px solid var(--tour-edge); border-bottom: 2px solid var(--tour-apricot); border-radius: 0; min-height: 42px; padding: 10px 12px 10px 14px; backdrop-filter: blur(8px); cursor: pointer; }
 .tour-platform-select:hover { background-color: oklch(1 0 0 / .18); }
 .tour-platform-select:focus-visible { outline: 2px solid var(--tour-apricot); outline-offset: 2px; }
-.tour-platform-select option, .tour-platform-select optgroup { color: var(--tour-ink); background: var(--tour-white); }
+.tour-platform-select[data-disabled] { opacity: .6; cursor: default; }
+.tour-platform-select .brand-mark { font-size: 15px; }
+.tour-platform-chevron { display: inline-flex; transition: transform .15s; }
+.tour-platform-select[data-popup-open] .tour-platform-chevron { transform: rotate(180deg); }
+/* The menu renders in a portal, outside the studio's theme. */
+.platform-menu-positioner { z-index: 60; outline: 0; }
+.platform-menu { min-width: 200px; padding: 6px; background: #fff; color: oklch(.22 .01 260); border: 1px solid oklch(.92 .004 260); border-radius: 10px; box-shadow: 0 16px 40px oklch(.2 .02 260 / .22); font-size: 13px; outline: 0; transform-origin: var(--transform-origin); transition: opacity .12s, transform .12s; }
+.platform-menu[data-starting-style], .platform-menu[data-ending-style] { opacity: 0; transform: translateY(-4px); }
+.platform-menu-group + .platform-menu-group { margin-top: 4px; padding-top: 4px; border-top: 1px solid oklch(.94 .004 260); }
+.platform-menu-label { padding: 6px 10px 4px; font-size: 11px; font-weight: 600; color: oklch(.55 .01 260); }
+.platform-menu-item { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 7px; cursor: pointer; outline: 0; user-select: none; }
+.platform-menu-item[data-highlighted] { background: oklch(.96 .004 260); }
+.platform-menu-item[data-selected] { font-weight: 600; }
+.platform-menu-logo { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; color: #fff; font-size: 13px; background: #111; }
+.platform-menu-logo[data-platform=linkedin] { background: #0a66c2; }
+.platform-menu-logo[data-platform=handshake] { background: #d3fb52; color: #0f2b1e; }
+.platform-menu-logo[data-platform=instagram] { background: linear-gradient(45deg, #f58529, #dd2a7b 45%, #8134af 75%, #515bd4); }
+.platform-menu-logo[data-platform=facebook] { background: #0866ff; }
+.platform-menu-logo[data-platform=tinder] { background: linear-gradient(45deg, #fd267a, #ff6036); }
+.platform-menu-check { margin-left: auto; display: inline-flex; }
 .bio-count[data-over=true] { color: var(--destructive); font-weight: 600; }
 @media (max-width: 680px) {
   .tour-platform-picker > span { display: none; }
-  .tour-platform-select { min-height: 36px; padding: 6px 28px 6px 10px; }
+  .tour-platform-select { min-height: 36px; padding: 6px 10px; }
 }

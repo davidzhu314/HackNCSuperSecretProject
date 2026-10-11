@@ -11,6 +11,7 @@ import { SCENES, ScenicBackdrop, Wordmark } from "@/components/Chrome";
 import { ConsentScreen } from "@/components/ConsentScreen";
 import { IdentityFacts } from "@/components/IdentityFacts";
 import { LinkedInEditor, type ImportState } from "@/components/LinkedInEditor";
+import { PlatformSelect } from "@/components/PlatformSelect";
 import { ProfileClash } from "@/components/ProfileClash";
 import { ProfileInput } from "@/components/ProfileInput";
 import { RewriteComparison } from "@/components/RewriteComparison";
@@ -27,7 +28,7 @@ import { emptyHingePairs, HINGE_PROMPTS, mergeFacts, MAX_HINGE_ANSWER, MAX_HINGE
 import { emptyLinkedInProfile, factCheckSegments, findSection, profileCharCount, rewritableSections, segmentProfile } from "@/lib/profile";
 import { changedSections, profileAsText, sectionText, withSectionText } from "@/lib/profile-edits";
 import { cleanProfile, importProfileFile } from "@/lib/profile-import";
-import { DEFAULT_LINKEDIN_AUDIENCES, PLATFORM_CONFIGS, PLATFORM_GROUPS } from "@/lib/rubrics";
+import { DEFAULT_LINKEDIN_AUDIENCES, PLATFORM_CONFIGS } from "@/lib/rubrics";
 import { runLimited } from "@/lib/run-limited";
 import {
   LIMITS,
@@ -687,25 +688,10 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
         </Button>
         <Wordmark className="tour-wordmark" />
         <div className="tour-header-actions">
-          <label className="tour-platform-picker">
+          <div className="tour-platform-picker">
             <span>PLATFORM</span>
-            <select
-              className="tour-platform-select"
-              value={platform}
-              disabled={loading}
-              onChange={(event) => switchPlatform(event.target.value as Platform)}
-            >
-              {PLATFORM_GROUPS.map((g) => (
-                <optgroup key={g.group} label={g.label}>
-                  {g.platforms.map((id) => (
-                    <option key={id} value={id}>
-                      {PLATFORM_CONFIGS[id].label}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-          </label>
+            <PlatformSelect value={platform} disabled={loading} onChange={switchPlatform} />
+          </div>
           <Link href="/hub" className="tour-hub-link" title="Your Identity Hub: facts and sources for every platform">
             <span className="tour-avatar" aria-hidden="true">
               {session.photo ? (
