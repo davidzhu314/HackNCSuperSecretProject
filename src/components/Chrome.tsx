@@ -4,13 +4,14 @@ import aeroSky from "@/assets/aero-sky.jpg";
 import hingeNightlife from "@/assets/hinge-nightlife.jpg";
 import linkedinSpeaker from "@/assets/linkedin-speaker.jpg";
 import personifyLogo from "@/assets/personify-logo-v3.png";
+import socialCafe from "@/assets/social-cafe.jpg";
 import type { Platform } from "@/lib/schemas";
 
 // Page chrome shared by the home page, the hub, and the studio (from the Lovable designs:
-// the Aero sky, and the scenic LinkedIn speaker / Hinge nightlife "destinations"). The two scene
-// photos are from Unsplash (free license): unsplash.com/photos/RfiBK6Y_upQ and /j4esZ9owgzA.
-// Other platforms reuse their group's scene: professional the speaker, dating the nightlife,
-// social the Aero sky.
+// the Aero sky, and the scenic LinkedIn speaker / Hinge nightlife "destinations"). The scene
+// photos are from Unsplash (free license): unsplash.com/photos/RfiBK6Y_upQ, /j4esZ9owgzA, and the
+// social cafe /qk1hk6R9rIQ (Benjamin Zanatta). Each platform uses its group's scene: professional
+// the speaker, social the cafe, dating the nightlife.
 
 type Scene = { image: StaticImageData; name: string; lens: string; caption: string; description: string };
 
@@ -30,14 +31,14 @@ export const SCENES: Record<Platform, Scene> = {
     description: "Your studies. Your projects. Your first role.",
   },
   instagram: {
-    image: aeroSky,
+    image: socialCafe,
     name: "Instagram",
     lens: "NEW VISITORS · SHARED INTERESTS",
     caption: "A first glance that's yours.",
     description: "Your interests. Your voice. In one short bio.",
   },
   facebook: {
-    image: aeroSky,
+    image: socialCafe,
     name: "Facebook",
     lens: "OLD FRIENDS · COMMUNITIES",
     caption: "What you're up to now.",

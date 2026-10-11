@@ -512,17 +512,25 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .destination-platforms { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
 .destination-platforms .tour-button { gap: 10px; }
 .destination-platforms .destination-mark { width: 22px; height: 22px; font-size: 11px; }
+/* Platform buttons in each company's own colors (approximate brand colors, no logos). */
+.destination-platforms .tour-button[data-brand] { color: #fff; border-color: transparent; backdrop-filter: none; transition: filter .2s, transform .2s; }
+.destination-platforms .tour-button[data-brand]:hover { filter: brightness(1.12); transform: translateY(-1px); }
+.destination-platforms .tour-button[data-brand] .destination-mark { border-color: oklch(1 0 0 / .45); background: oklch(1 0 0 / .14); color: inherit; }
+.tour-button[data-brand=linkedin] { background: #0a66c2; }
+.tour-button[data-brand=handshake] { background: #d3fb52; color: #0f2b1e !important; }
+.tour-button[data-brand=handshake] .destination-mark { border-color: oklch(0.25 0.04 160 / .4) !important; background: oklch(0.25 0.04 160 / .08) !important; }
+.tour-button[data-brand=instagram] { background: linear-gradient(45deg, #f58529, #dd2a7b 45%, #8134af 75%, #515bd4); }
+.tour-button[data-brand=facebook] { background: #0866ff; }
+.tour-button[data-brand=hinge] { background: #fff; color: #000 !important; }
+.tour-button[data-brand=hinge] .destination-mark { border-color: oklch(0 0 0 / .3) !important; background: oklch(0 0 0 / .05) !important; }
+.tour-button[data-brand=tinder] { background: linear-gradient(45deg, #fd267a, #ff6036); }
 .destination:hover .destination-photo { transform: scale(1.045); }
 .destination-shade { position: absolute; inset: 0; background: var(--tour-split-gradient); }
 .destination-content { position: relative; z-index: 1; padding: 100px 10% 120px; width: 100%; }
-.destination-index { display: flex; align-items: center; gap: 14px; font-size: 10px; letter-spacing: 1.4px; color: var(--tour-caption); margin-bottom: 48px; }
-.destination-index > span { width: 38px; height: 1px; background: var(--tour-apricot); }
 .destination-platform { display: flex; gap: 11px; align-items: center; font-size: 10px; letter-spacing: 1.4px; margin-bottom: 17px; color: var(--tour-caption); }
 .destination-content h2 { font-size: 56px; line-height: 1.1; color: inherit; margin: 0 0 14px; font-weight: 750; text-shadow: 0 2px 20px oklch(.15 .02 250 / .35); }
 .destination-caption { font-size: 20px; margin: 0 0 32px; }
 .destination-content .tour-button { border-color: var(--tour-apricot); }
-.destination-bottom { position: absolute; z-index: 1; bottom: 48px; left: 10%; right: 10%; display: flex; justify-content: space-between; align-items: center; color: var(--tour-caption); gap: 20px; }
-.destination-bottom p { max-width: 300px; font-size: 12px; line-height: 1.8; margin: 0; }
 .home-band { background: linear-gradient(180deg, var(--background), oklch(.95 .03 230)); color: var(--foreground); padding: 72px 42px 64px; }
 .home-band-inner { max-width: 1180px; margin: auto; }
 .home-band h2 { font-size: 36px; color: var(--deep-ocean); margin: 14px 0 6px; }
@@ -648,8 +656,6 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
   .destination:not(:last-child) { border-right: 0; border-bottom: 1px solid var(--tour-edge); }
   .destination-content { padding: 110px 24px 120px; }
   .destination-content h2 { font-size: 44px; }
-  .destination-index { margin-bottom: 26px; }
-  .destination-bottom { left: 24px; right: 24px; bottom: 30px; }
   .home-band { padding: 48px 16px; }
   .home-band h2 { font-size: 28px; }
   .destination-footer { padding: 18px 16px; }

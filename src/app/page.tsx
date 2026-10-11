@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUpRight, Eye, Fingerprint, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowUpRight, Eye, Fingerprint, ShieldCheck, Sparkles } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { BrandMark, SCENES, Wordmark } from "@/components/Chrome";
@@ -6,26 +6,14 @@ import { Button } from "@/components/ui/button";
 import { PLATFORM_GROUPS } from "@/lib/rubrics";
 import type { PlatformGroup } from "@/lib/schemas";
 
-// Home: the Lovable "destinations", one per platform group (professional speaker, social sky,
+// Home: the Lovable "destinations", one per platform group (professional speaker, social cafe,
 // dating nightlife), each listing its platforms and opening the studio on the one picked, then how
 // it works and the Identity Hub.
 
-const GROUP_COPY: Record<PlatformGroup, { lens: string; caption: string; bottom: string }> = {
-  professional: {
-    lens: "RECRUITERS · HIRING LEADS",
-    caption: "A world of opportunity.",
-    bottom: "LinkedIn by section, or import LinkedIn’s PDF. Handshake’s 300-character bio.",
-  },
-  social: {
-    lens: "NEW VISITORS · OLD FRIENDS",
-    caption: "A first glance that’s yours.",
-    bottom: "One short bio, kept within each platform’s character limit.",
-  },
-  dating: {
-    lens: "POTENTIAL MATCHES · SHARED INTERESTS",
-    caption: "Somewhere you belong.",
-    bottom: "Hinge prompt answers or a Tinder bio. Edits keep your own words and add nothing new.",
-  },
+const GROUP_CAPTION: Record<PlatformGroup, string> = {
+  professional: "A world of opportunity.",
+  social: "A first glance that’s yours.",
+  dating: "Somewhere you belong.",
 };
 
 export default function HomePage() {
@@ -47,7 +35,7 @@ export default function HomePage() {
       <main>
         <h1 className="sr-only">Personify: feedback and fact-checked rewrites for six platforms</h1>
         <div className="destination-split" aria-label="Choose a platform">
-          {PLATFORM_GROUPS.map(({ group, label, platforms }, index) => {
+          {PLATFORM_GROUPS.map(({ group, label, platforms }) => {
             const scene = SCENES[platforms[0]];
             return (
               <section className="destination" data-destination={group} key={group} aria-labelledby={`dest-${group}`}>
@@ -62,15 +50,17 @@ export default function HomePage() {
                 />
                 <div className="destination-shade" />
                 <div className="destination-content">
-                  <span className="destination-index">
-                    0{index + 1} <span aria-hidden="true" /> {GROUP_COPY[group].lens}
-                  </span>
                   <h2 id={`dest-${group}`}>{label}</h2>
-                  <p className="destination-caption">{GROUP_COPY[group].caption}</p>
+                  <p className="destination-caption">{GROUP_CAPTION[group]}</p>
                   <ul className="destination-platforms">
                     {platforms.map((id) => (
                       <li key={id}>
-                        <Button variant="tour" nativeButton={false} render={<Link href={`/studio?platform=${id}`} />}>
+                        <Button
+                          variant="tour"
+                          nativeButton={false}
+                          render={<Link href={`/studio?platform=${id}`} />}
+                          data-brand={id}
+                        >
                           <span className="destination-mark">
                             <BrandMark platform={id} />
                           </span>
@@ -80,10 +70,6 @@ export default function HomePage() {
                       </li>
                     ))}
                   </ul>
-                </div>
-                <div className="destination-bottom">
-                  <p>{GROUP_COPY[group].bottom}</p>
-                  <ArrowDown size={16} aria-hidden="true" />
                 </div>
               </section>
             );
