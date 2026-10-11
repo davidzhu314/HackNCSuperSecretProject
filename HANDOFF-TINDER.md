@@ -1,6 +1,6 @@
 # Handoff: a full Tinder profile
 
-Written 2026-10-11 for a future Claude session. **Plan only: nothing here is implemented yet.** Read [CLAUDE.md](CLAUDE.md) (rules) and [AGENTS.md](AGENTS.md) (Next.js 16.4) first. [HANDOFF-WRITING.md](HANDOFF-WRITING.md) is the other queued task (rewrite quality). Ask the user which comes first.
+Written 2026-10-11 for a future Claude session (current as of `main` 4c7ef0f). **Plan only: nothing here is implemented yet.** Read [CLAUDE.md](CLAUDE.md) (rules) and [AGENTS.md](AGENTS.md) (Next.js 16.4) first. [HANDOFF-WRITING.md](HANDOFF-WRITING.md) is the other queued task (rewrite quality). Ask the user which comes first.
 
 ## Goal
 
@@ -170,4 +170,4 @@ Also check the list against the current Tinder app if possible; the user dictate
 - **Process:**
   - Work on a branch; `git fetch` before pushing (teammates push to `main` directly).
   - Ask the user before pushing, merging, deploying, or deleting.
-  - `npm test`, `npm run lint`, and `npm run build` must pass. Note that `npm run lint` currently fails on `main` because of `HubThemeToggle.tsx` (setState in an effect, from #26). Fix it or confirm it was fixed before relying on lint.
+  - `npm test`, `npm run lint`, and `npm run build` must pass. (Lint passes on `main` again since #30.)
