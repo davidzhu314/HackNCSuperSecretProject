@@ -24,8 +24,13 @@ describe("length targets", () => {
     expect(targetChars("about", 400, "longer")).toBeGreaterThan(targetChars("experience", 400, "longer"));
   });
 
-  it("don't shrink a very short original below itself", () => {
-    expect(targetChars("headline", 18, "much_shorter")).toBe(18);
+  it("measure a very short headline or About from a usual length, but an entry from itself", () => {
+    expect(targetChars("headline", 21, "same")).toBe(100);
+    expect(targetChars("headline", 21, "much_shorter")).toBe(50);
+    expect(targetChars("headline", 21, "much_longer")).toBe(200);
+    expect(targetChars("about", 120, "same")).toBe(300);
+    expect(targetChars("experience", 18, "much_shorter")).toBe(18);
+    expect(targetChars("experience", 120, "same")).toBe(120);
   });
 
   it("tell the model to grow without new facts and to keep the bullet count", () => {
