@@ -26,6 +26,7 @@ import { splitSentences } from "./segments";
 import { PLATFORM_CONFIGS } from "./rubrics";
 import { checkLength, checkStyle } from "./style-check";
 import { countBullets, sectionCap, targetChars } from "./styles";
+import { checkTinderLength } from "./tinder";
 
 // Server-side cleanup of model output. The model is never trusted: ids are checked,
 // strings are clamped, and unrequested audience/trait combinations are dropped.
@@ -109,13 +110,15 @@ function finishVariation(
     throw new LlmError("invalid_model_output", "The AI returned an unusable rewrite. Please try again.");
   }
   const config = PLATFORM_CONFIGS[platform];
-  // Prompt platforms limit each answer; bio platforms limit the whole text.
+  // Prompt platforms limit each answer (Tinder: About me and answers differ); bio platforms the whole text.
   const pieces = parsed.data.answers ? parsed.data.answers.map((a) => a.text) : [parsed.data.content];
+  const lengthWarnings =
+    config.input === "tinder" ? checkTinderLength(pieces, segments) : checkLength(pieces, config.maxChars, config.label);
   return {
     style,
     rewrite: parsed.data,
     warnings: [...extraWarnings, ...checkRewrite({ rewrite: parsed.data, segments, facts: confirmedFacts })],
-    styleWarnings: [...checkStyle(parsed.data.content), ...checkLength(pieces, config.maxChars, config.label)],
+    styleWarnings: [...checkStyle(parsed.data.content), ...lengthWarnings],
   };
 }
 
@@ -144,7 +147,8 @@ export function buildHingeAnswers(
 ): { answers: HingeAnswer[]; content: string; warnings: GuardWarning[]; keptOriginal: Segment[] } {
   const byId = new Map<string, string>();
   for (const a of model.answers) {
-    const text = a.text.trim().slice(0, LIMITS.segmentText);
+    // Blank lines separate answers in the joined text, so none may appear inside one.
+    const text = a.text.replace(/\n\s*\n+/g, "\n").trim().slice(0, LIMITS.segmentText);
     if (text && !byId.has(a.segmentId)) byId.set(a.segmentId, text);
   }
   const warnings = checkSegmentCitations([...byId.keys()], segments);

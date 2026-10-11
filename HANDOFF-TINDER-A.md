@@ -1,5 +1,7 @@
 # Handoff: Tinder, Person A (data and AI)
 
+> **Done (2026-10-11):** built together with step 0 on `feat/tinder-profile`. Kept for reference only.
+
 Written 2026-10-11. **Start only after the step 0 PR ([HANDOFF-TINDER-0-CONTRACT.md](HANDOFF-TINDER-0-CONTRACT.md)) is merged.** Its "Decisions" section has the user's answers on wording, fields, what goes to the AI, and limits. Background and design rules: [HANDOFF-TINDER.md](HANDOFF-TINDER.md). Rules: [CLAUDE.md](CLAUDE.md). Person B builds the UI in parallel: [HANDOFF-TINDER-B.md](HANDOFF-TINDER-B.md).
 
 ## You own these files (Person B doesn't touch them)

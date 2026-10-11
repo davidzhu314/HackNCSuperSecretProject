@@ -24,7 +24,9 @@ export function ConsentScreen(props: {
         <div>
           <dt>What is sent</dt>
           <dd>
-            Your profile text, any job description you added, and only the facts you confirm in the next step.
+            Your profile text, any job description you added, and only the facts you confirm in the next step. On
+            Tinder, that means your About me and prompt answers; rewrites also get your job title, company, school, and
+            languages. Never where you live, and never your relationship, basics, or lifestyle picks.
           </dd>
         </div>
         <div>

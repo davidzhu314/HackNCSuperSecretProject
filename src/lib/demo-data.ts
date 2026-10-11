@@ -10,10 +10,12 @@ import type {
   RewriteSectionResponse,
   SectionStyle,
   Segment,
+  TinderProfile,
 } from "./schemas";
 import { segmentHinge, segmentLinkedIn } from "./segments";
 import { checkStyle } from "./style-check";
 import { targetChars } from "./styles";
+import { emptyTinderFields } from "./tinder";
 
 // Fictitious persona. Nothing here describes a real person.
 // Every "sample" output below must be labeled "sample result" in the UI, never shown as a live run.
@@ -55,6 +57,7 @@ export const DEMO_LINKEDIN_PROFILE: LinkedInProfile = {
   education: [
     { id: "edu1", title: "B.S. Computer Science", organization: "Calder Valley University", dates: "2023 - 2027", description: "" },
   ],
+  languages: ["English", "Hindi"],
   projects: [
     {
       id: "proj1",
@@ -564,11 +567,11 @@ export const DEMO_HINGE_FACTS: IdentityFact[] = [
 export const SAMPLE_HINGE_ADVERSARIAL_CONTENT =
   "I have reviewed 50 food trucks across Europe as a professional food critic.\n\nI won a national pancake championship and led a hiking club every Sunday.";
 
-// ---------- Bio platforms (Handshake, Instagram, Facebook, X, Tinder) ----------
+// ---------- Bio platforms (Handshake, Instagram, Facebook, X) ----------
 // The same fictitious persona on every platform, so the demo shows one identity across all of them.
 // No cached results exist for these: they run live, and only the input and facts are preloaded.
 
-export type BioPlatform = "handshake" | "instagram" | "facebook" | "tinder";
+export type BioPlatform = "handshake" | "instagram" | "facebook";
 
 const PRIYA_CS: IdentityFact = { id: "f1", text: "I am a senior studying computer science.", confirmed: true, source: "user" };
 
@@ -593,10 +596,6 @@ export const DEMO_BIO: Record<BioPlatform, { bio: string; facts: IdentityFact[] 
       { id: "f3", text: "I like finding good food trucks when I travel.", confirmed: true, source: "user" },
     ],
   },
-  tinder: {
-    bio: "Fun, easygoing, love to laugh. Pancakes on weekends, long walks with no plan, and I will find the best food truck in any city.",
-    facts: DEMO_HINGE_FACTS.map((f, i) => ({ ...f, id: `f${i + 1}` })),
-  },
 };
 
 /**
@@ -607,5 +606,35 @@ export const SAMPLE_BIO_ADVERSARIAL_CONTENT: Record<BioPlatform, string> = {
   handshake: "Software engineering intern at Google who led a team of 30 and won a national hackathon. 4.0 GPA.",
   instagram: "Award-winning food photographer 📸 50k followers. Featured in Bon Appetit.",
   facebook: "Head TA at Stanford. Ranked the top 100 food trucks in America.",
-  tinder: SAMPLE_HINGE_ADVERSARIAL_CONTENT,
 };
+
+// ---------- Tinder ----------
+// The persona's Tinder profile. The lifestyle and relationship picks are there so the demo shows
+// that they never reach the AI; the work fields match the LinkedIn profile (carry-over).
+
+export const DEMO_TINDER: TinderProfile = {
+  about:
+    "Fun, easygoing, love to laugh. Pancakes on weekends, long walks with no plan, and I will find the best food truck in any city.",
+  prompts: [
+    { prompt: "I go crazy for…", answer: "Finding the best food truck in any city." },
+    { prompt: "My ideal weekend includes…", answer: "Making pancakes and then a long walk with no plan." },
+  ],
+  fields: {
+    ...emptyTinderFields(),
+    jobTitle: "Teaching Assistant",
+    company: "Calder Valley University",
+    school: "Calder Valley University",
+    languages: ["English", "Hindi"],
+    openTo: "Long-term partner",
+    zodiac: "Leo",
+    pets: ["Don't have but love"],
+    drinking: "On special occasions",
+    workout: "Sometimes",
+  },
+};
+
+export const DEMO_TINDER_FACTS: IdentityFact[] = DEMO_HINGE_FACTS.map((f, i) => ({ ...f, id: `f${i + 1}` }));
+
+/** Intentional adversarial rewrite for Tinder: About me, then one line per answer, like a real Tinder rewrite. */
+export const SAMPLE_TINDER_ADVERSARIAL_CONTENT =
+  "Award-winning chef and Google engineer who speaks five languages.\n\nI have reviewed 50 food trucks across Europe as a professional food critic.\n\nI won a national pancake championship and led a hiking club every Sunday.";

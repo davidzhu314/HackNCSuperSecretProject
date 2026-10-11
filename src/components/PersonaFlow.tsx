@@ -16,6 +16,7 @@ import { ProfileInput } from "@/components/ProfileInput";
 import { RewriteComparison } from "@/components/RewriteComparison";
 import { resultKey, SectionRewrites, type SectionRewriteState } from "@/components/SectionRewrites";
 import { StudioFinish } from "@/components/StudioFinish";
+import { TinderEditor } from "@/components/TinderEditor";
 import { TourStops } from "@/components/TourStops";
 import { TraitScorecard } from "@/components/TraitScorecard";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,16 @@ import { errorMessage, evaluateProfile, rewriteProfile, rewriteSection } from "@
 import { saveConsent, useStoredConsent, withdrawConsent } from "@/lib/consent";
 import { factsFor, recordFoundOn, seedBio, seedHinge, seedLinkedIn } from "@/lib/fact-platforms";
 import { getSession, updateSession, useIdentitySession } from "@/lib/identity-session";
-import { DEMO_BIO, DEMO_HINGE_FACTS, DEMO_HINGE_INPUT, DEMO_LINKEDIN_FACTS, DEMO_LINKEDIN_PROFILE, type BioPlatform } from "@/lib/demo-data";
+import {
+  DEMO_BIO,
+  DEMO_HINGE_FACTS,
+  DEMO_HINGE_INPUT,
+  DEMO_LINKEDIN_FACTS,
+  DEMO_LINKEDIN_PROFILE,
+  DEMO_TINDER,
+  DEMO_TINDER_FACTS,
+  type BioPlatform,
+} from "@/lib/demo-data";
 import { emptyHingePairs, HINGE_PROMPTS, mergeFacts, MAX_HINGE_ANSWER, MAX_HINGE_PROMPTS, type HingePair } from "@/lib/persona-ui";
 import { emptyLinkedInProfile, factCheckSegments, findSection, profileCharCount, rewritableSections, segmentProfile } from "@/lib/profile";
 import { changedSections, profileAsText, sectionText, withSectionText } from "@/lib/profile-edits";
@@ -42,15 +52,28 @@ import {
   type LengthStep,
   type SectionStyle,
   type Segment,
+  type TinderFields,
+  type TinderProfile,
 } from "@/lib/schemas";
 import { segmentBio, segmentHinge } from "@/lib/segments";
+import {
+  carryOverFromLinkedIn,
+  emptyTinderProfile,
+  fieldFactsAsFacts,
+  piecesOntoSegments,
+  segmentTinder,
+  TINDER_AI_FIELDS,
+  tinderFieldFacts,
+  type TinderAiField,
+} from "@/lib/tinder";
 
 // Owns the whole studio: state, API calls, and the page layout. Screens are props-only.
 // Rules enforced here: nothing is sent to the AI before consent (asked once per browser, remembered
 // as a flag), only confirmed facts reach a rewrite, and sample mode, which sends nothing and so
 // needs no consent, is only offered for the LinkedIn demo persona (the only one with cached results).
 // LinkedIn works on a sectioned profile; Hinge keeps its prompt answers and single rewrite; the bio
-// platforms (Handshake, Instagram, Facebook, X, Tinder) follow Hinge's steps with one bio field.
+// platforms (Handshake, Instagram, Facebook, X) follow Hinge's steps with one bio field; Tinder adds
+// About me and profile fields to prompt answers (only About, answers, and work fields reach the AI).
 
 const STEPS = ["Your profile", "Consent", "Audience lenses", "Audience Clash", "Rewrite + FactCheck"];
 const [INPUT, CONSENT, AUDIENCES, CLASH, REWRITE] = [0, 1, 2, 3, 4];
@@ -79,8 +102,22 @@ const isDemoBio = (p: Platform, bio: string) => isBioPlatform(p) && bio === DEMO
 
 /** Demo facts are recognized by text: merging may renumber their ids. */
 const DEMO_FACT_TEXTS = new Set(
-  [...DEMO_LINKEDIN_FACTS, ...DEMO_HINGE_FACTS, ...Object.values(DEMO_BIO).flatMap((d) => d.facts)].map((f) => f.text),
+  [...DEMO_LINKEDIN_FACTS, ...DEMO_HINGE_FACTS, ...DEMO_TINDER_FACTS, ...Object.values(DEMO_BIO).flatMap((d) => d.facts)].map(
+    (f) => f.text,
+  ),
 );
+
+/** A new Tinder profile starts with the work fields LinkedIn can fill (tagged "from your LinkedIn"). */
+function initialTinder(): { tinder: TinderProfile; fromLinkedIn: TinderAiField[] } {
+  const { tinder, linkedin } = getSession();
+  if (tinder) return { tinder, fromLinkedIn: [] };
+  const empty = emptyTinderProfile();
+  if (!linkedin) return { tinder: empty, fromLinkedIn: [] };
+  const { fields, filled } = carryOverFromLinkedIn(empty.fields, linkedin);
+  return { tinder: { ...empty, fields }, fromLinkedIn: filled };
+}
+
+const isDemoTinder = (t: TinderProfile) => JSON.stringify(t) === JSON.stringify(DEMO_TINDER);
 const DEMO_PROFILE_JSON = JSON.stringify(DEMO_LINKEDIN_PROFILE);
 
 const defaultAudiences = (p: Platform): string[] =>
@@ -124,6 +161,10 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
   const [hingeDemo, setHingeDemo] = useState(() => isDemoHinge(getSession().hinge));
   // Bio platforms: this platform's bio. Each platform keeps its own in the session.
   const [bio, setBio] = useState(() => getSession().bios[platform] ?? "");
+  // Tinder: About me, prompt answers, and profile fields; which work fields came from LinkedIn.
+  const [tinderInit] = useState(initialTinder);
+  const [tinder, setTinder] = useState<TinderProfile>(tinderInit.tinder);
+  const [fromLinkedIn, setFromLinkedIn] = useState<TinderAiField[]>(tinderInit.fromLinkedIn);
   const [sampleMode, setSampleMode] = useState(false);
   const consent = useStoredConsent();
   const session = useIdentitySession();
@@ -133,10 +174,10 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
   // Keep the hub's session in step with the studio, writing only values this studio actually
   // changed. Mounting, or Next re-showing a page it kept hidden, re-runs this effect with the
   // same values, and must not overwrite newer data from elsewhere with a stale copy.
-  const synced = useRef({ profile, original, imported, jobDescription, hinge, bio, facts });
+  const synced = useRef({ profile, original, imported, jobDescription, hinge, bio, tinder, facts });
   useEffect(() => {
     const prev = synced.current;
-    synced.current = { profile, original, imported, jobDescription, hinge, bio, facts };
+    synced.current = { profile, original, imported, jobDescription, hinge, bio, tinder, facts };
     const patch: Parameters<typeof updateSession>[0] = {};
     if (profile !== prev.profile) patch.linkedin = segmentProfile(profile).length ? profile : null;
     if (original !== prev.original) patch.linkedinOriginal = original;
@@ -144,6 +185,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
     if (jobDescription !== prev.jobDescription) patch.jobDescription = jobDescription;
     if (hinge !== prev.hinge) patch.hinge = hinge.some((p) => p.answer.trim()) ? hinge : null;
     if (bio !== prev.bio) patch.bios = { ...getSession().bios, [platform]: bio.trim() ? bio : undefined };
+    if (tinder !== prev.tinder) patch.tinder = tinder;
     if (facts !== prev.facts) {
       patch.facts = facts;
       // Newly suggested facts are used only on the platform they were found on, until shared.
@@ -152,7 +194,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
       if (Object.keys(recorded).length !== Object.keys(map).length) patch.factPlatforms = recorded;
     }
     if (Object.keys(patch).length) updateSession(patch);
-  }, [platform, profile, original, imported, jobDescription, hinge, bio, facts]);
+  }, [platform, profile, original, imported, jobDescription, hinge, bio, tinder, facts]);
 
   const [audiences, setAudiences] = useState(() => defaultAudiences(initialPlatform));
   const [traits, setTraits] = useState(() => defaultTraits(initialPlatform));
@@ -189,23 +231,41 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
   const clean = useMemo(() => cleanProfile(profile), [profile]);
   const segments = useMemo(
     () =>
-      config.input === "sections" ? segmentProfile(clean) : config.input === "bio" ? segmentBio(bio) : segmentHinge(hinge),
-    [config.input, clean, bio, hinge],
+      config.input === "sections"
+        ? segmentProfile(clean)
+        : config.input === "bio"
+          ? segmentBio(bio)
+          : config.input === "tinder"
+            ? segmentTinder(tinder)
+            : segmentHinge(hinge),
+    [config.input, clean, bio, hinge, tinder],
   );
+  // Tinder: the work fields a rewrite may mention (never location or lifestyle picks).
+  const fieldFacts = useMemo(() => (config.input === "tinder" ? tinderFieldFacts(tinder.fields) : []), [config.input, tinder.fields]);
   // Rewrites work from the original text; `applied` is which sections currently use a rewrite.
   const baseClean = useMemo(() => (original ? cleanProfile(original) : clean), [original, clean]);
   const sections = useMemo(() => (platform === "linkedin" ? rewritableSections(baseClean) : []), [platform, baseClean]);
   const applied = useMemo(() => (original ? changedSections(cleanProfile(original), clean) : []), [original, clean]);
   // The text a single rewrite (Hinge or a bio) is compared against.
   const textOriginal =
-    config.input === "bio" ? bio.trim() : hinge.map((p) => p.answer.trim()).filter(Boolean).join("\n\n");
+    config.input === "bio"
+      ? bio.trim()
+      : config.input === "tinder"
+        ? segments.map((s) => s.text).join("\n\n")
+        : hinge.map((p) => p.answer.trim()).filter(Boolean).join("\n\n");
   const sourceKey = textKey(platform, segments);
   // Write once, show up everywhere: only confirmed facts shared with this platform can be used here.
   const factPlatforms = session.factPlatforms;
   const confirmedFacts = factsFor(platform, facts, factPlatforms);
   const allConfirmed = facts.filter((f) => f.confirmed && f.text.trim()).length;
   const usingDemo =
-    platform === "linkedin" ? JSON.stringify(baseClean) === DEMO_PROFILE_JSON : config.input === "bio" ? isDemoBio(platform, bio) : hingeDemo;
+    platform === "linkedin"
+      ? JSON.stringify(baseClean) === DEMO_PROFILE_JSON
+      : config.input === "bio"
+        ? isDemoBio(platform, bio)
+        : config.input === "tinder"
+          ? isDemoTinder(tinder)
+          : hingeDemo;
   const targetJob = config.jobDescription ? jobDescription.trim() || undefined : undefined;
   const canUseSample = usingDemo && platform === "linkedin";
   const sample = canUseSample && sampleMode;
@@ -224,6 +284,13 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
     if (config.input === "bio") {
       if (!bio.trim()) return `Add your ${config.fieldLabel} before continuing.`;
       return bio.length > LIMITS.sectionText ? `Keep it under ${LIMITS.sectionText.toLocaleString()} characters.` : null;
+    }
+    if (config.input === "tinder") {
+      if (!segments.length) return "Add your About me or at least one prompt answer before continuing.";
+      if ([...tinder.about].length > LIMITS.tinderAbout) return `Keep About me under ${LIMITS.tinderAbout} characters.`;
+      if (tinder.prompts.some((p) => p.answer.length > LIMITS.tinderAnswer))
+        return `Keep each answer under ${LIMITS.tinderAnswer} characters.`;
+      return null;
     }
     if (!hinge.some((p) => p.answer.trim())) return "Add at least one prompt answer before continuing.";
     if (hinge.some((p) => p.answer.length > MAX_HINGE_ANSWER)) return "Keep each Hinge answer under 300 characters.";
@@ -282,6 +349,9 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
       setImported(null);
     } else if (config.input === "bio") {
       setBio("");
+    } else if (config.input === "tinder") {
+      setTinder(emptyTinderProfile());
+      setFromLinkedIn([]);
     } else {
       setHinge(emptyHingePairs());
       setHingeDemo(false);
@@ -348,6 +418,25 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
     resetResults();
   }
 
+  /** About and answers are what feedback and rewrites read; work fields only feed rewrites; the rest neither. */
+  function changeTinder(next: TinderProfile, edited?: keyof TinderFields) {
+    setTinder(next);
+    if (!edited) resetResults();
+    else {
+      setFromLinkedIn((prev) => prev.filter((k) => k !== edited));
+      if ((TINDER_AI_FIELDS as readonly string[]).includes(edited)) clearRewrites();
+    }
+  }
+
+  function fillFromLinkedIn() {
+    if (!session.linkedin) return;
+    const { fields, filled } = carryOverFromLinkedIn(tinder.fields, session.linkedin);
+    if (!filled.length) return;
+    setTinder({ ...tinder, fields });
+    setFromLinkedIn((prev) => [...new Set([...prev, ...filled])]);
+    clearRewrites();
+  }
+
   function changeHinge(next: HingePair[]) {
     setHinge(next);
     setHingeDemo(false);
@@ -390,6 +479,10 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
       const demo = DEMO_BIO[platform];
       setBio(demo.bio);
       addDemoFacts(demo.facts);
+    } else if (config.input === "tinder") {
+      setTinder(structuredClone(DEMO_TINDER));
+      setFromLinkedIn([]);
+      addDemoFacts(DEMO_TINDER_FACTS);
     } else {
       const pairs = demoHingePairs();
       setHinge(pairs);
@@ -473,6 +566,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
           platform,
           segments,
           facts: confirmedFacts.map((f) => ({ ...f, confirmed: true as const })),
+          ...(fieldFacts.length ? { fieldFacts } : {}),
           audiences,
           goal: goal.trim() || undefined,
           tone: "balanced", // the two rewrite versions (direct, narrative) replace a tone control
@@ -498,6 +592,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
     let candidateSegments: Segment[];
     if (platform === "linkedin") candidateSegments = segmentProfile(clean);
     else if (config.input === "bio") candidateSegments = segmentBio(singleApplied ?? bio);
+    else if (config.input === "tinder") candidateSegments = piecesOntoSegments(singleApplied ?? textOriginal, segments);
     else {
       const prompts = hinge.filter((pair) => pair.answer.trim());
       const answers = singleApplied ? singleApplied.split(/\n\s*\n/).map((answer) => answer.trim()).filter(Boolean) : prompts.map((pair) => pair.answer.trim());
@@ -750,6 +845,21 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
               onSeed={() => changeBio(seedBio(bio, confirmedFacts, config.maxChars))}
             />
           )}
+          {step === INPUT && config.input === "tinder" && (
+            <TinderEditor
+              tinder={tinder}
+              fromLinkedIn={fromLinkedIn}
+              demo={usingDemo}
+              canContinue={!inputError}
+              onChange={changeTinder}
+              onLoadDemo={loadDemo}
+              onContinue={continueFromInput}
+              linkedInFill={session.linkedin ? carryOverFromLinkedIn(tinder.fields, session.linkedin).filled.length : 0}
+              onFillFromLinkedIn={fillFromLinkedIn}
+              seedFacts={confirmedFacts.length}
+              onSeed={() => changeTinder({ ...tinder, about: seedBio(tinder.about, confirmedFacts, LIMITS.tinderAbout) })}
+            />
+          )}
           {step === INPUT && config.input === "prompts" && (
             <ProfileInput
               hinge={hinge}
@@ -880,6 +990,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
               original={textOriginal}
               segments={segments}
               confirmedFacts={confirmedFacts}
+              fieldFacts={fieldFactsAsFacts(fieldFacts)}
               result={adversarial ?? rewrite}
               goal={goal}
               loading={rewriting}
@@ -888,7 +999,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
               onGenerate={() => void runRewrite()}
               onAdversarial={(enabled) => (enabled ? void runRewrite("adversarial") : setAdversarial(null))}
               onError={(message) => setError({ message })}
-              textName={platform === "hinge" ? "answers" : config.fieldLabel.toLowerCase()}
+              textName={platform === "hinge" ? "answers" : platform === "tinder" ? "About me and answers" : config.fieldLabel.toLowerCase()}
               onAddFact={addExtraFact}
               onRemoveFact={removeExtraFact}
               use={{
@@ -943,7 +1054,8 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
             Nothing is sent until you agree, once per browser (only that yes is remembered; withdraw it any time
             from the bar below). After that, your profile text and confirmed facts go to OpenRouter and the
             underlying AI model provider; nothing else is stored by this app. Imported PDFs and photos stay in your
-            browser, and entry locations are never sent. Feedback is written by an AI model, not real people.
+            browser, and entry locations are never sent. On Tinder, only your About me, prompt answers, and work
+            fields (job title, company, school, languages) are sent; never where you live or your other profile fields. Feedback is written by an AI model, not real people.
             Rewrites may only use facts you confirm, and FactCheck flags numbers, names, and stronger verbs it
             can&apos;t trace to your words. Sample results are labeled. Refreshing clears your session.
           </p>

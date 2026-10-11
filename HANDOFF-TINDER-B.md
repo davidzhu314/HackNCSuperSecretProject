@@ -1,5 +1,7 @@
 # Handoff: Tinder, Person B (UI)
 
+> **Done (2026-10-11):** built together with step 0 on `feat/tinder-profile`. Kept for reference only.
+
 Written 2026-10-11. **Start only after the step 0 PR ([HANDOFF-TINDER-0-CONTRACT.md](HANDOFF-TINDER-0-CONTRACT.md)) is merged.** It provides the `TinderProfile` type, `TINDER_PROMPTS`, limits, field groups and option labels, and `MOCK_TINDER_PROFILE`. Its "Decisions" section has the user's answers. Background and design rules: [HANDOFF-TINDER.md](HANDOFF-TINDER.md). Rules: [CLAUDE.md](CLAUDE.md). Next.js 16 notes: [AGENTS.md](AGENTS.md); read `node_modules/next/dist/docs/` before writing Next code. Person A builds the data and AI side in parallel: [HANDOFF-TINDER-A.md](HANDOFF-TINDER-A.md).
 
 ## You own these files (Person A doesn't touch them)

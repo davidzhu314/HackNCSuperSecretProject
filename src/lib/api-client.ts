@@ -10,7 +10,9 @@ import {
   SAMPLE_PROFILE_EVALUATE,
   SAMPLE_REWRITE,
   SAMPLE_SECTION_REWRITES,
+  SAMPLE_TINDER_ADVERSARIAL_CONTENT,
 } from "./demo-data";
+import { checkTinderLength, fieldFactsAsFacts } from "./tinder";
 import { sectionOfSegment } from "./profile";
 import {
   ApiErrorSchema,
@@ -118,7 +120,13 @@ export async function rewriteProfile(
     await pause();
     if (req.platform === "linkedin") return SAMPLE_ADVERSARIAL_REWRITE;
     const config = PLATFORM_CONFIGS[req.platform];
-    const content = req.platform === "hinge" ? SAMPLE_HINGE_ADVERSARIAL_CONTENT : SAMPLE_BIO_ADVERSARIAL_CONTENT[req.platform];
+    const content =
+      req.platform === "hinge"
+        ? SAMPLE_HINGE_ADVERSARIAL_CONTENT
+        : req.platform === "tinder"
+          ? SAMPLE_TINDER_ADVERSARIAL_CONTENT
+          : SAMPLE_BIO_ADVERSARIAL_CONTENT[req.platform];
+    const facts = [...req.facts, ...fieldFactsAsFacts(req.fieldFacts ?? [])];
     const rewrite = {
       platform: req.platform,
       content,
@@ -131,10 +139,12 @@ export async function rewriteProfile(
         {
           style: "direct",
           rewrite,
-          warnings: checkRewrite({ rewrite, segments: req.segments, facts: req.facts }),
+          warnings: checkRewrite({ rewrite, segments: req.segments, facts }),
           styleWarnings: [
             ...checkStyle(rewrite.content),
-            ...checkLength(config.input === "prompts" ? content.split(/\n\n+/) : [content], config.maxChars, config.label),
+            ...(config.input === "tinder"
+              ? checkTinderLength(content.split(/\n\n+/), req.segments)
+              : checkLength(config.input === "prompts" ? content.split(/\n\n+/) : [content], config.maxChars, config.label)),
           ],
         },
       ],
