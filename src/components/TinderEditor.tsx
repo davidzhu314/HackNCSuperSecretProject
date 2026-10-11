@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Briefcase, FileText, Fingerprint, LockKeyhole, Plus, Sparkles, X } from "lucide-react";
+import { ArrowRight, FileText, LockKeyhole, Plus, Sparkles, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { QuickCheck } from "@/components/QuickCheck";
 import { Button } from "@/components/ui/button";
@@ -26,14 +26,10 @@ export function TinderEditor(props: {
   onChange: (next: TinderProfile, edited?: keyof TinderFields) => void;
   onLoadDemo: () => void;
   onContinue: () => void;
-  /** Blank work fields LinkedIn could fill; 0 hides the button. */
-  linkedInFill: number;
-  onFillFromLinkedIn: () => void;
-  /** Confirmed facts shared with Tinder, offered as a first draft for an empty About. */
-  seedFacts?: number;
-  onSeed?: () => void;
+  /** "Fill from your other profiles" (AutofillPanel), shown under the demo button. */
+  autofill?: React.ReactNode;
 }) {
-  const { tinder, fromLinkedIn, demo, canContinue, onChange, onLoadDemo, onContinue, linkedInFill, onFillFromLinkedIn, seedFacts, onSeed } =
+  const { tinder, fromLinkedIn, demo, canContinue, onChange, onLoadDemo, onContinue, autofill } =
     props;
   const segments = useMemo(() => segmentTinder(tinder), [tinder]);
   const aboutLength = [...tinder.about].length;
@@ -222,6 +218,7 @@ export function TinderEditor(props: {
           </div>
         </div>
         <div className="perspective-panel">
+          {autofill}
           <h2 className="section-heading">
             <Sparkles />
             Try it with a demo
@@ -232,38 +229,6 @@ export function TinderEditor(props: {
             Load demo persona
           </Button>
           {demo && <p className="demo-note">Fictitious demo persona</p>}
-          {linkedInFill > 0 && (
-            <>
-              <h2 className="section-heading seed-heading">
-                <Briefcase />
-                From your LinkedIn
-              </h2>
-              <p className="section-subtitle">
-                Fills blank job title, company, school, and languages from the LinkedIn profile in this session. Fields you
-                typed stay as they are; edit or clear any of them.
-              </p>
-              <Button variant="glass" onClick={onFillFromLinkedIn}>
-                <Briefcase />
-                Fill {linkedInFill} {linkedInFill === 1 ? "field" : "fields"}
-              </Button>
-            </>
-          )}
-          {!!seedFacts && onSeed && !tinder.about.trim() && (
-            <>
-              <h2 className="section-heading seed-heading">
-                <Fingerprint />
-                Start from your facts
-              </h2>
-              <p className="section-subtitle">
-                Fills your About me with your confirmed facts, word for word, as many as fit Tinder&apos;s 500 characters.
-                Edit them into your own voice.
-              </p>
-              <Button variant="glass" onClick={onSeed}>
-                <Fingerprint />
-                Use my {seedFacts} {seedFacts === 1 ? "fact" : "facts"}
-              </Button>
-            </>
-          )}
           <QuickCheck segments={segments} group="dating" fitText={tinder.about} />
           <p className="flow-description">
             The AI sees your About me, your prompt answers, and your job title, company, school, and languages. Never where

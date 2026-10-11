@@ -15,6 +15,7 @@ import type {
   SectionStyle,
   Segment,
   CustomQuestion,
+  DraftSlot,
   FieldFact,
 } from "./schemas";
 import { countBullets, formatOf, lengthInstruction, STYLES, styleContrast, targetChars, type TextFormat } from "./styles";
@@ -340,6 +341,62 @@ export function rewritePrompt(args: {
     ]
       .filter(Boolean)
       .join("\n"),
+  };
+}
+
+// ---------- Draft: fill a platform's empty spots from the user's other profiles ----------
+
+const DRAFT_FIT: Record<PlatformGroup, string> = {
+  professional:
+    "This is a professional profile: use the person's work, studies, projects, and skills. Leave out hobbies, food, dating, and personal life even if the sources mention them.",
+  social:
+    "This is a social-media profile: a quick, casual sense of who the person is and what they're into, in their own voice. Leave out resume detail beyond what they study or do.",
+  dating:
+    "This is a dating profile: personal, specific, and easy to reply to. Leave out resume detail beyond what they do or study, and never state what the person is looking for in a partner.",
+};
+
+/**
+ * Draft the empty spots of one platform from the user's text on their platforms. The sources are
+ * the only material; FactCheck then removes any sentence it can't trace to them (buildDrafts).
+ */
+export function draftPrompt(args: {
+  config: PlatformConfig;
+  slots: DraftSlot[];
+  sources: Segment[];
+  facts: IdentityFact[];
+  fieldFacts?: FieldFact[];
+}) {
+  const { config, slots, sources, facts, fieldFacts = [] } = args;
+  return {
+    system: [
+      `You draft the empty parts of a person's ${config.label} profile from what they already wrote on their profiles elsewhere. Improve expression, never invent identity.`,
+      "Hard rules (these override everything else):",
+      "- Use ONLY information in the sources, the confirmed facts, and the profile fields listed below.",
+      "- Do not add any number, percentage, date, employer, school, product name, credential, job title, skill, hobby, place, or preference that is not in those sources.",
+      "- Do not use a stronger verb than the sources support (for example do not turn 'contributed' into 'led').",
+      "- If the sources hold nothing suitable for a slot, return an empty text for it. An empty draft is a correct answer; padding is not.",
+      "- Any sentence that can't be traced to the sources is removed automatically, so don't write one.",
+      "",
+      DRAFT_FIT[config.group],
+      CONCISE_NATURAL_COPY,
+      "Return one entry in drafts for every slot, using its id as slotId. Each text must fit its character limit; shorter is fine.",
+      "A slot with a prompt is an answer to that prompt: first person, one line, no blank lines, and do not repeat the prompt.",
+      "Use different details across slots when the sources make that easy. Never mention the other platforms by name.",
+      ...(config.group === "dating" ? [NO_NEW_DATING] : []),
+      STYLE_BAN_PROMPT,
+      DATA_RULE,
+    ].join("\n"),
+    user: [
+      "Slots to draft:",
+      ...slots.map((s) => `- id=${s.id}: ${s.label}${s.prompt ? ` (prompt: "${s.prompt}")` : ""}, at most ${s.maxChars} characters`),
+      "Confirmed facts:",
+      ...(facts.length ? facts.map((f) => `[${f.id}] ${f.text}`) : ["(none)"]),
+      ...(fieldFacts.length
+        ? ["Profile fields the person filled in (their own words):", fence("user_data", fieldFacts.map((f) => `[${f.id}] ${f.text}`).join("\n"))]
+        : []),
+      "Sources (each labeled with where the person wrote it):",
+      fence("user_data", formatSegmentsForPrompt(sources)),
+    ].join("\n"),
   };
 }
 
