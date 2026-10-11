@@ -151,12 +151,26 @@ function rewriteFormat(config: PlatformConfig): string[] {
     return [
       "In each version, return one entry in answers for every original answer, using its segment id (e.g. \"s1\") as segmentId, in the same order. Never merge, split, drop, or add answers.",
       `Each rewritten answer must still answer its own prompt question, stay first person, and be under ${config.maxChars} characters (${config.label}'s limit). Do not repeat the prompt question in the answer.`,
+      "Keep each answer to one concise, natural thought. It may be a short phrase or fragment when that sounds like the person's voice, but it must still answer the prompt. Do not format prompt answers as bullet lists or explain the person's characteristics.",
       NO_NEW_DATING,
     ];
   }
+  const shapeStyle =
+    config.group === "professional"
+      ? [
+          "For a Handshake summary, lead with the person's current study or work, then one relevant project, activity, or goal supported by the sources. Keep it to one or two short sentences; do not list generic personality traits.",
+        ]
+      : config.group === "social"
+        ? [
+            "For a social bio, use compact phrases or one brief sentence that reads naturally at a glance. Fragments and line breaks are fine when they fit the person's voice; avoid a paragraph explaining who the person is or a list of generic traits.",
+          ]
+        : [
+            "For a Tinder bio, use a brief, conversational line or one or two compact thoughts. Fragments are fine when natural; avoid a long explanation or a list of generic traits.",
+          ];
   return [
     `Output format for each content field: the ${config.label} ${config.fieldLabel.toLowerCase()} text only, with no label or quotes. Line breaks are allowed.`,
     `Each version must be at most ${config.maxChars} characters including spaces (${config.label}'s limit). Shorter is fine; cut detail rather than run over.`,
+    ...shapeStyle,
     ...(config.group === "dating" ? [NO_NEW_DATING] : []),
     ...(config.group === "social"
       ? ["Do not add interests, places, groups, links, handles, or hashtags that the text and confirmed facts don't state."]
@@ -198,6 +212,21 @@ const VARIATIONS: Record<PlatformGroup, { direct: string; narrative: string }> =
   },
 };
 
+const PROFILE_COPY_RULES: Record<PlatformGroup, string[]> = {
+  professional: [
+    "Audience fit: LinkedIn and Handshake copy should help a professional reader quickly understand the person's real work, studies, projects, or interests.",
+    "Favor concise, specific wording and scan-friendly structure. Use bullets for lists or when the source/selected format calls for bullets; keep headlines and summaries in their required formats.",
+  ],
+  social: [
+    "Audience fit: Instagram and Facebook copy should give visitors a quick, authentic sense of the interests and details the person actually shared.",
+    "Favor compact phrases, short lines, and the person's own voice over full-sentence explanations. Do not add a separate description of the person's characteristics.",
+  ],
+  dating: [
+    "Audience fit: Hinge and Tinder copy should feel personal, specific, and easy to respond to while staying true to the person's own details.",
+    "Favor concise, conversational wording over long explanations. Answer each Hinge prompt directly; do not turn prompt answers into bullet lists or add a separate list of characteristics.",
+  ],
+};
+
 export function rewritePrompt(args: {
   config: PlatformConfig;
   segments: Segment[];
@@ -223,6 +252,7 @@ export function rewritePrompt(args: {
       "Write two versions:",
       `- ${variations.direct}`,
       `- ${variations.narrative}`,
+      ...PROFILE_COPY_RULES[config.group],
       ...rewriteFormat(config),
       ...style,
       TONE_GUIDE[config.group][tone],
@@ -318,6 +348,7 @@ export function sectionRewritePrompt(args: {
       styleContrast(style),
       lengthInstruction({ original: section.text.length, target, step: length, format, bullets: countBullets(section.text) }),
       "Sound like a person, not a template. Never overstate the sources. Do not end with a question to the reader.",
+      "Write only the profile copy in its required field format. Keep it specific and economical; do not append an explanation of the person's characteristics or of your edits.",
       STYLE_BAN_PROMPT,
       DATA_RULE,
     ].join("\n"),

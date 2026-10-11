@@ -21,6 +21,8 @@
   --radius-sm: 4px; --radius-md: 6px; --radius-lg: 8px;
 }
 :root {
+  --font-jakarta: "Segoe UI", Arial, sans-serif;
+  --font-archivo: "Arial Narrow", "Segoe UI", sans-serif;
   --background: oklch(.97 .018 220); --foreground: oklch(.32 .045 238);
   --card: oklch(1 0 0); --primary: oklch(.52 .15 243); --primary-foreground: oklch(1 0 0);
   --secondary: oklch(.94 .024 225); --muted: oklch(.96 .012 224); --muted-foreground: oklch(.55 .038 232);
