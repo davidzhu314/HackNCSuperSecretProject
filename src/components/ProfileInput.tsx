@@ -28,7 +28,7 @@ export function ProfileInput(props: {
           <div className="panel-header">
             <h2 className="section-heading">
               <FileText />
-              Your Hinge profile
+              Hinge
             </h2>
           </div>
           <div className="profile-content">

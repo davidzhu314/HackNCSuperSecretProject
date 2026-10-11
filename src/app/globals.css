@@ -107,7 +107,7 @@
 .app-root[data-theme=handshake] .tour-hotspot:hover { color: #0f2b1e; }
 /* Studio panels in brand colors, on all six steps: a brand bar across the top of the workspace, a
    tinted workspace with white cards, filled panel headers, and a brand edge on the other cards. */
-.tour-root .tour-workspace { background: var(--brand-tint); border-color: var(--brand-line); }
+.tour-root .tour-workspace { background: var(--brand-tint); border-color: var(--brand-line); overflow: clip; } /* clip, not hidden: keeps sticky columns working */
 .tour-root .tour-workspace::before { content: ''; display: block; height: 6px; border-radius: 5px 5px 0 0; background: var(--brand-fill); }
 .tour-root .flow-title { color: var(--foreground); }
 .tour-root .flow-title svg, .tour-root .section-heading > svg { color: var(--brand-solid); }
@@ -495,6 +495,10 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .demo-row { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 6px 20px; margin-bottom: 14px; }
 .demo-row .demo-note { margin: 0; }
 .demo-row .sample-toggle { margin: 0; max-width: 560px; }
+/* LinkedIn step 1: the long section editor scrolls past; the import/demo column stays in view. */
+.linkedin-side { position: sticky; top: 24px; align-self: start; }
+.linkedin-side .demo-row { margin: 10px 0 0; }
+.linkedin-side .flow-description { margin-top: 22px; }
 .section-editor { display: grid; gap: 16px; margin-bottom: 8px; }
 .editor-box { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; }
 .editor-box-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }
