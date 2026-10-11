@@ -134,7 +134,7 @@ Do these in order, and show the user results at steps 1 and 3 before going furth
 All merged to `main` and deployed, PRs #15–#18:
 - **Lens picker:** one-line summaries.
 - **Section rewrites:** a Professional style and the length slider.
-- **Profile step:** LinkedIn has **no Identity DNA step** now (the profile is the evidence); an optional "Add something that isn't in your profile" box is on the rewrite screen.
+- **Profile step:** no platform has a separate facts step now (your text is the evidence); an optional "Add something that isn't in your …" box is on every rewrite screen.
 - **Lenses:** pick any of the 8 (one model call per lens, 4 at a time), plus up to 3 questions the user types.
 - **Audience Clash:** a rating grid, then one line per audience per section.
 - **Rewrite card:** FactCheck is a single icon; receipts show only when a sentence is clicked.

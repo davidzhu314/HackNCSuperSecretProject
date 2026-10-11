@@ -101,7 +101,7 @@ export function ProfileInput(props: {
         </div>
       </div>
       <div className="action-band">
-        <span className="empty-note">Next: confirm the facts about you.</span>
+        <span className="empty-note">Next: choose who reads it.</span>
         <Button variant="aero" disabled={!canContinue} onClick={onContinue}>
           Continue <ArrowRight />
         </Button>

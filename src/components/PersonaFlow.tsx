@@ -9,7 +9,6 @@ import { AudienceSelection } from "@/components/AudienceSelection";
 import { BioInput } from "@/components/BioInput";
 import { SCENES, ScenicBackdrop, Wordmark } from "@/components/Chrome";
 import { ConsentScreen } from "@/components/ConsentScreen";
-import { IdentityFacts } from "@/components/IdentityFacts";
 import { LinkedInEditor, type ImportState } from "@/components/LinkedInEditor";
 import { PlatformSelect } from "@/components/PlatformSelect";
 import { ProfileClash } from "@/components/ProfileClash";
@@ -19,9 +18,9 @@ import { resultKey, SectionRewrites, type SectionRewriteState } from "@/componen
 import { StudioFinish } from "@/components/StudioFinish";
 import { TourStops } from "@/components/TourStops";
 import { Button } from "@/components/ui/button";
-import { errorMessage, evaluateProfile, extractFacts, rewriteProfile, rewriteSection } from "@/lib/api-client";
+import { errorMessage, evaluateProfile, rewriteProfile, rewriteSection } from "@/lib/api-client";
 import { saveConsent, useStoredConsent, withdrawConsent } from "@/lib/consent";
-import { factsFor, recordFoundOn, seedBio, seedHinge, seedLinkedIn, togglePlatform } from "@/lib/fact-platforms";
+import { factsFor, recordFoundOn, seedBio, seedHinge, seedLinkedIn } from "@/lib/fact-platforms";
 import { getSession, updateSession, useIdentitySession } from "@/lib/identity-session";
 import { DEMO_BIO, DEMO_HINGE_FACTS, DEMO_HINGE_INPUT, DEMO_LINKEDIN_FACTS, DEMO_LINKEDIN_PROFILE, type BioPlatform } from "@/lib/demo-data";
 import { emptyHingePairs, HINGE_PROMPTS, mergeFacts, MAX_HINGE_ANSWER, MAX_HINGE_PROMPTS, type HingePair } from "@/lib/persona-ui";
@@ -33,7 +32,6 @@ import { runLimited } from "@/lib/run-limited";
 import {
   LIMITS,
   LinkedInProfileSchema,
-  PlatformSchema,
   type EvaluateResponse,
   type IdentityFact,
   type LinkedInProfile,
@@ -53,19 +51,14 @@ import { segmentBio, segmentHinge } from "@/lib/segments";
 // LinkedIn works on a sectioned profile; Hinge keeps its prompt answers and single rewrite; the bio
 // platforms (Handshake, Instagram, Facebook, X, Tinder) follow Hinge's steps with one bio field.
 
-const STEPS = ["Your profile", "Consent", "Identity DNA", "Audience lenses", "Audience Clash", "Rewrite + FactCheck"];
-const [INPUT, CONSENT, FACTS, AUDIENCES, CLASH, REWRITE] = [0, 1, 2, 3, 4, 5];
+const STEPS = ["Your profile", "Consent", "Audience lenses", "Audience Clash", "Rewrite + FactCheck"];
+const [INPUT, CONSENT, AUDIENCES, CLASH, REWRITE] = [0, 1, 2, 3, 4];
 /**
- * The steps each platform walks through. LinkedIn has no Identity DNA step: the profile itself is
- * the evidence (FactCheck accepts its text), so there's nothing to reconfirm. Facts that aren't on
- * the profile can still be added on the rewrite screen.
+ * Every platform walks the same five steps. The user's own text is the evidence (FactCheck accepts
+ * it); true facts that aren't in the text can be added on the rewrite step, or come from the
+ * Identity Hub.
  */
-const STEP_ORDER: Record<Platform, number[]> = Object.fromEntries(
-  PlatformSchema.options.map((p) => [
-    p,
-    p === "linkedin" ? [INPUT, CONSENT, AUDIENCES, CLASH, REWRITE] : [INPUT, CONSENT, FACTS, AUDIENCES, CLASH, REWRITE],
-  ]),
-) as Record<Platform, number[]>;
+const ORDER = [INPUT, CONSENT, AUDIENCES, CLASH, REWRITE];
 
 /** At most this many section rewrites run at once ("Rewrite all"). */
 const PARALLEL_REWRITES = 3;
@@ -135,17 +128,6 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
   const session = useIdentitySession();
 
   const [facts, setFacts] = useState<IdentityFact[]>(() => getSession().facts);
-  const [extracting, setExtracting] = useState(false);
-  // Demo text comes with its facts, so it needs no extraction.
-  const extractedFor = useRef<string | null>(
-    JSON.stringify(getSession().linkedin) === JSON.stringify(DEMO_LINKEDIN_PROFILE)
-      ? textKey("linkedin", segmentProfile(DEMO_LINKEDIN_PROFILE))
-      : isDemoHinge(getSession().hinge)
-        ? textKey("hinge", segmentHinge(demoHingePairs()))
-        : isDemoBio(platform, getSession().bios[platform] ?? "")
-          ? textKey(platform, segmentBio(getSession().bios[platform] ?? ""))
-          : null,
-  );
 
   // Keep the hub's session in step with the studio, writing only values this studio actually
   // changed. Mounting, or Next re-showing a page it kept hidden, re-runs this effect with the
@@ -225,7 +207,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
   const sample = canUseSample && sampleMode;
   /** May this run proceed? Sample mode sends nothing, so it never needs consent. */
   const allowed = sample || consent;
-  const loading = extracting || evaluating || rewriting || rewritingAll || importing;
+  const loading = evaluating || rewriting || rewritingAll || importing;
 
   const inputError = (() => {
     if (platform === "linkedin") {
@@ -271,7 +253,6 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
   /** New text means new suggestions and new results. Facts the user typed are kept; consent is remembered. */
   function resetResults() {
     requestId.current++;
-    setExtracting(false);
     setEvaluating(false);
     setRewriting(false);
     setFurthest(INPUT);
@@ -299,7 +280,6 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
       setHingeDemo(false);
     }
     setFacts((prev) => prev.filter((f) => f.confirmed || f.source === "user"));
-    extractedFor.current = null;
     setSampleMode(false);
     setStep(INPUT);
     setError(null);
@@ -389,10 +369,6 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
     updateSession({ factPlatforms: recordFoundOn(getSession().factPlatforms, added, platform, true) });
   }
 
-  function toggleFactPlatform(fact: IdentityFact, p: Platform) {
-    updateSession({ factPlatforms: togglePlatform(getSession().factPlatforms, fact, p) });
-    if (p === platform) clearRewrites(); // the facts this platform's rewrites may use changed
-  }
 
   function loadDemo() {
     resetResults();
@@ -401,53 +377,18 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
       setOriginal(null);
       setImported(null);
       addDemoFacts(DEMO_LINKEDIN_FACTS);
-      // Demo facts are preloaded, so no extraction is needed for this text.
-      extractedFor.current = textKey("linkedin", segmentProfile(DEMO_LINKEDIN_PROFILE));
     } else if (isBioPlatform(platform)) {
       const demo = DEMO_BIO[platform];
       setBio(demo.bio);
       addDemoFacts(demo.facts);
-      extractedFor.current = textKey(platform, segmentBio(demo.bio));
     } else {
       const pairs = demoHingePairs();
       setHinge(pairs);
       setHingeDemo(true);
       addDemoFacts(DEMO_HINGE_FACTS);
-      extractedFor.current = textKey("hinge", segmentHinge(pairs));
     }
     setStep(INPUT);
     setError(null);
-  }
-
-  // `ok` is passed explicitly from the consent click, before the stored flag has re-rendered.
-  async function runExtract(ok = allowed) {
-    if (!ok) return;
-    const id = ++requestId.current;
-    setExtracting(true);
-    setError(null);
-    try {
-      const res = await extractFacts({ consent: true, platform, segments }, { sample });
-      if (id !== requestId.current) return;
-      // Keep confirmed and user-added facts (including ones carried over from the other platform);
-      // replace earlier unconfirmed AI suggestions.
-      setFacts((prev) => mergeFacts(prev, res.facts));
-      extractedFor.current = sourceKey;
-    } catch (err) {
-      if (id !== requestId.current) return;
-      setError({ message: errorMessage(err), retry: () => void runExtract() });
-    } finally {
-      if (id === requestId.current) setExtracting(false);
-    }
-  }
-
-  /** After consent: Hinge confirms facts first; LinkedIn goes straight to the lenses (its profile is the evidence). */
-  function goToFacts(ok = allowed) {
-    if (platform === "linkedin") {
-      go(AUDIENCES);
-      return;
-    }
-    go(FACTS);
-    if (extractedFor.current !== sourceKey) void runExtract(ok);
   }
 
   /** Forget consent in this browser. Results already on screen stay; the next AI call asks again. */
@@ -461,7 +402,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
       setError({ message: inputError });
       return;
     }
-    if (allowed) goToFacts();
+    if (allowed) go(AUDIENCES);
     else go(CONSENT);
   }
 
@@ -510,10 +451,6 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
   async function runRewrite(mode: "normal" | "adversarial" = "normal") {
     if (!allowed) {
       go(CONSENT);
-      return;
-    }
-    if (platform !== "linkedin" && mode === "normal" && !confirmedFacts.length) {
-      setError({ message: "Confirm at least one fact first." });
       return;
     }
     const id = ++requestId.current;
@@ -640,7 +577,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
 
   const sourcesFor = (key: string): Segment[] => factCheckSegments(baseClean, key) ?? [];
   // This platform's steps; `stepPos` is where the current step sits among them.
-  const order = STEP_ORDER[platform];
+  const order = ORDER;
   const stepPos = Math.max(0, order.indexOf(step));
   const prevStep = order[Math.max(0, stepPos - 1)];
   // Feedback screens label the user's own questions like the built-in ones.
@@ -723,7 +660,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
 
       <main className="tour-workspace studio-shell">
         <div className="studio-body">
-          {sample && step >= FACTS && (
+          {sample && step > CONSENT && (
             <p className="prototype-notice">
               <ShieldCheck size={15} />
               Sample mode: results below are cached demo data for the fictitious persona, not a live AI run.
@@ -797,25 +734,10 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
               alreadyAgreed={consent}
               onAgree={() => {
                 saveConsent();
-                goToFacts(true);
+                go(AUDIENCES);
               }}
               onWithdraw={withdraw}
               onBack={() => go(INPUT)}
-            />
-          )}
-          {step === FACTS && (
-            <IdentityFacts
-              facts={facts}
-              demoFactIds={facts.filter((f) => DEMO_FACT_TEXTS.has(f.text)).map((f) => f.id)}
-              loading={extracting}
-              onChange={(next) => {
-                setFacts(next);
-                clearRewrites();
-              }}
-              onContinue={() => go(AUDIENCES)}
-              platform={platform}
-              factPlatforms={factPlatforms}
-              onTogglePlatform={toggleFactPlatform}
             />
           )}
           {step === AUDIENCES && (
@@ -933,6 +855,9 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
               onGenerate={() => void runRewrite()}
               onAdversarial={(enabled) => (enabled ? void runRewrite("adversarial") : setAdversarial(null))}
               onError={(message) => setError({ message })}
+              textName={platform === "hinge" ? "answers" : config.fieldLabel.toLowerCase()}
+              onAddFact={addExtraFact}
+              onRemoveFact={removeExtraFact}
             />
           )}
           {step === REWRITE && (
