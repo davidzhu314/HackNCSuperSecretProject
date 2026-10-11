@@ -40,7 +40,7 @@ export async function POST(req: Request) {
         schema: ModelSectionRewriteSchema,
         model: getRewriteModel(),
         // Room for the longest section (About, 2,600 characters) plus the JSON around it.
-        maxTokens: section.kind === "headline" ? 600 : section.kind === "about" ? 3000 : 2000,
+        maxTokens: section.kind === "about" ? 3000 : 2000,
       });
       return buildSectionRewrite(out, { section, style: data.style, length: data.length, segments: sources, facts: data.facts });
     };

@@ -103,11 +103,18 @@ export function sectionCap(kind: LinkedInSectionKind): number {
   return LIMITS.sectionRewriteChars.entry;
 }
 
+/**
+ * Headline and About measure from at least a usual length: a 21-character headline at "same"
+ * would otherwise just echo itself, though the headline may draw on the whole profile.
+ */
+const USUAL_CHARS: Partial<Record<LinkedInSectionKind, number>> = { headline: 100, about: 300 };
+
 /** Target character count for a length step, within LinkedIn's limit. */
 export function targetChars(kind: LinkedInSectionKind, originalChars: number, step: LengthStep): number {
   const ratio = RATIOS[kind === "headline" || kind === "about" ? "wide" : "entry"][step];
-  const floor = Math.min(originalChars, 20); // a very short original can't usefully shrink
-  return Math.min(sectionCap(kind), Math.max(floor, Math.round(originalChars * ratio)));
+  const base = Math.max(originalChars, USUAL_CHARS[kind] ?? 0);
+  const floor = Math.min(originalChars, 20); // a very short entry can't usefully shrink
+  return Math.min(sectionCap(kind), Math.max(floor, Math.round(base * ratio)));
 }
 
 export function lengthInstruction(args: { original: number; target: number; step: LengthStep; format: TextFormat; bullets: number }): string {

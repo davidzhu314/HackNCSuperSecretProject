@@ -13,6 +13,7 @@ import type {
 } from "./schemas";
 import { segmentHinge, segmentLinkedIn } from "./segments";
 import { checkStyle } from "./style-check";
+import { targetChars } from "./styles";
 
 // Fictitious persona. Nothing here describes a real person.
 // Every "sample" output below must be labeled "sample result" in the UI, never shown as a live run.
@@ -364,13 +365,18 @@ export const SAMPLE_REWRITE: RewriteResponse = {
 /** Build a sample section response; warnings come from running the real checks, never typed by hand. */
 function sampleSection(sectionKey: string, style: SectionStyle, content: string, changeSummary: string[]): RewriteSectionResponse {
   const usedFactIds = DEMO_LINKEDIN_FACTS.map((f) => f.id);
-  const original = findSection(DEMO_LINKEDIN_PROFILE, sectionKey)?.text ?? "";
+  const section = findSection(DEMO_LINKEDIN_PROFILE, sectionKey);
+  const original = section?.text ?? "";
   return {
     source: "sample",
     sectionKey,
     style,
     length: "same",
-    chars: { original: original.length, target: original.length, actual: content.length },
+    chars: {
+      original: original.length,
+      target: section ? targetChars(section.kind, original.length, "same") : original.length,
+      actual: content.length,
+    },
     rewrite: { platform: "linkedin", content, usedFactIds, changeSummary },
     warnings: checkRewrite({
       rewrite: { content, usedFactIds },
