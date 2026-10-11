@@ -50,12 +50,13 @@ export function AudienceSelection(props: {
                     aria-pressed={audiences.includes(option.id)}
                     key={option.id}
                     disabled={loading}
+                    title={option.summary ? option.description : undefined}
                     onClick={() => onAudiences(toggle(audiences, option.id, LIMITS.maxAudiences))}
                   >
                     <Eye />
                     <span>
                       <span className="audience-option-name">{option.label}</span>
-                      <span className="audience-option-desc">{option.description}</span>
+                      <span className="audience-option-desc">{option.summary ?? option.description}</span>
                     </span>
                     {audiences.includes(option.id) && <Check />}
                   </Button>

@@ -312,8 +312,11 @@ export type PlatformConfig = {
   label: string;
   /** LinkedIn only: lens categories, in display order. */
   categories?: { id: string; label: string }[];
-  /** `category` is a categories[].id (LinkedIn only). */
-  audiences: { id: string; label: string; description: string; category?: string }[];
+  /**
+   * `category` is a categories[].id (LinkedIn only). `description` is the full lens definition the
+   * model reads; `summary` is a one-line version for the picker (falls back to `description`).
+   */
+  audiences: { id: string; label: string; description: string; summary?: string; category?: string }[];
   /** `question` is the plain-language label, e.g. "Can they tell what you do?" (LinkedIn only). */
   traits: { id: string; label: string; description: string; question?: string }[];
 };
