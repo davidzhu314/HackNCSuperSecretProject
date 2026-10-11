@@ -1,12 +1,12 @@
 import { MAX_HINGE_ANSWER, type HingePair } from "./persona-ui";
-import type { IdentityFact, LinkedInProfile, Platform } from "./schemas";
+import { PlatformSchema, type IdentityFact, type LinkedInProfile, type Platform } from "./schemas";
 
 // Write once, show up everywhere: one pool of confirmed facts, each shared with the platforms
 // the user chooses. Kept outside the IdentityFact schema (UI state, never sent as such): the
 // studio filters facts by platform before any rewrite or FactCheck, so a fact that isn't shared
 // with a platform can't support a claim there.
 
-export const PLATFORMS: Platform[] = ["linkedin", "hinge"];
+export const PLATFORMS: Platform[] = [...PlatformSchema.options];
 
 /** fact id -> the platforms it's used on. Facts without an entry use `defaultPlatforms`. */
 export type FactPlatforms = Record<string, Platform[]>;
@@ -49,6 +49,21 @@ export function seedHinge(pairs: HingePair[], facts: IdentityFact[]): HingePair[
   const written = new Set(pairs.map((p) => p.answer.trim().toLowerCase()));
   const queue = facts.map((f) => f.text.trim()).filter((t) => t && !written.has(t.toLowerCase()));
   return pairs.map((p) => (p.answer.trim() || !queue.length ? p : { ...p, answer: queue.shift()!.slice(0, MAX_HINGE_ANSWER) }));
+}
+
+/**
+ * "Start from my facts" on a bio platform: an empty bio becomes your confirmed sentences, as many
+ * whole sentences as fit the platform's limit. A bio you wrote is untouched.
+ */
+export function seedBio(bio: string, facts: IdentityFact[], limit = Infinity): string {
+  if (bio.trim()) return bio;
+  let out = "";
+  for (const text of facts.map((f) => f.text.trim()).filter(Boolean)) {
+    const next = out ? `${out} ${text}` : text;
+    if ([...next].length > limit) break;
+    out = next;
+  }
+  return out;
 }
 
 /** "Start from my facts" on LinkedIn: an empty About becomes your confirmed sentences. */

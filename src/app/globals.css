@@ -39,7 +39,7 @@
   --success-surface: oklch(.96 .035 155); --danger-surface: oklch(.97 .03 25);
   --diff-added: oklch(.94 .055 155); --diff-removed: oklch(.94 .045 25);
 }
-.app-root[data-theme=hinge] {
+.app-root[data-theme=hinge], .app-root[data-group=dating] {
   --background: oklch(.97 .018 8); --foreground: oklch(.34 .035 5);
   --primary: oklch(.53 .13 8); --secondary: oklch(.94 .033 8);
   --muted: oklch(.975 .012 8); --muted-foreground: oklch(.52 .035 5);
@@ -537,7 +537,7 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .tour-root { padding: 0; min-height: 100svh; display: flex; flex-direction: column; }
 .scenic-backdrop { position: fixed; inset: 0; z-index: -1; overflow: hidden; background: var(--tour-ink); }
 .scenic-photo { object-fit: cover; animation: tour-arrival 1.2s ease-out; }
-.scenic-photo[data-platform=hinge] { object-position: 55% center; }
+.scenic-photo[data-platform=hinge], .scenic-photo[data-platform=tinder] { object-position: 55% center; }
 .scenic-shade { position: absolute; inset: 0; background: var(--tour-photo-gradient); }
 .tour-platform-switch { display: flex; }
 .tour-platform-switch .tour-button { gap: 8px; border-color: transparent; background: transparent; backdrop-filter: none; padding: 10px 14px; }
@@ -795,3 +795,28 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .extra-facts ul { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 4px; }
 .extra-facts li { display: flex; align-items: center; gap: 8px; }
 .extra-facts li span { flex: 1; }
+
+/* ---------- Seven platforms in three groups (Professional / Social / Dating) ---------- */
+/* Social: the Instagram hue (35) from the platform tokens, built like the dating theme. */
+.app-root[data-group=social] {
+  --background: oklch(.975 .018 50); --foreground: oklch(.34 .04 40);
+  --primary: oklch(.52 .15 38); --secondary: oklch(.945 .033 50);
+  --muted: oklch(.977 .012 50); --muted-foreground: oklch(.52 .04 42);
+  --accent: oklch(.945 .04 50); --border: oklch(.875 .035 50);
+  --sky: oklch(.76 .1 55); --glass: oklch(.965 .032 50 / .96);
+  --shadow-color: oklch(.4 .07 40 / .15); --deep-ocean: oklch(.37 .08 38);
+  --button-gradient: linear-gradient(180deg, oklch(.7 .14 45), oklch(.52 .15 38));
+  --glass-gradient: linear-gradient(180deg, oklch(1 0 0 / .95), oklch(.975 .02 50 / .9));
+}
+/* The header's platform picker: a native select with the three groups, styled like a tour button. */
+.tour-platform-picker { display: inline-flex; align-items: center; gap: 8px; }
+.tour-platform-picker > span { font-size: 10px; letter-spacing: 1.4px; color: var(--tour-caption); }
+.tour-platform-select { appearance: none; font: inherit; font-size: 12px; font-weight: 500; color: var(--tour-white); background: var(--tour-translucent); border: 1px solid var(--tour-edge); border-bottom: 2px solid var(--tour-apricot); border-radius: 0; min-height: 42px; padding: 10px 34px 10px 14px; backdrop-filter: blur(8px); cursor: pointer; background-image: linear-gradient(45deg, transparent 50%, var(--tour-white) 50%), linear-gradient(135deg, var(--tour-white) 50%, transparent 50%); background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%; background-size: 5px 5px; background-repeat: no-repeat; }
+.tour-platform-select:hover { background-color: oklch(1 0 0 / .18); }
+.tour-platform-select:focus-visible { outline: 2px solid var(--tour-apricot); outline-offset: 2px; }
+.tour-platform-select option, .tour-platform-select optgroup { color: var(--tour-ink); background: var(--tour-white); }
+.bio-count[data-over=true] { color: var(--destructive); font-weight: 600; }
+@media (max-width: 680px) {
+  .tour-platform-picker > span { display: none; }
+  .tour-platform-select { min-height: 36px; padding: 6px 28px 6px 10px; }
+}

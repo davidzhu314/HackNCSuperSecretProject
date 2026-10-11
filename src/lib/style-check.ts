@@ -68,6 +68,22 @@ export function checkStyle(content: string): GuardWarning[] {
   return out;
 }
 
+/**
+ * Platform length limit. `pieces` is the whole text for bio and headline platforms, or each
+ * answer for prompt platforms (the limit applies per answer). Counts code points, so an emoji is 1.
+ */
+export function checkLength(pieces: string[], limit: number | undefined, platformLabel: string): GuardWarning[] {
+  if (!limit) return [];
+  return pieces
+    .map((piece) => [...piece.trim()].length)
+    .filter((length) => length > limit)
+    .map((length) => ({
+      kind: "over_limit" as const,
+      text: `${length} / ${limit} characters`,
+      explanation: `${platformLabel} allows ${limit} characters here. Trim it before you paste it in.`,
+    }));
+}
+
 /** The ban list as prompt text, kept next to the checker so they can't drift apart. */
 export const STYLE_BAN_PROMPT = [
   `Never use these words or their forms: ${Object.keys(BANNED_WORDS).join(", ")}.`,

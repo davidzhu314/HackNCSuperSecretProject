@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import type { FactPlatforms } from "./fact-platforms";
 import type { HingePair } from "./persona-ui";
-import type { IdentityFact, LinkedInProfile } from "./schemas";
+import type { IdentityFact, LinkedInProfile, Platform } from "./schemas";
 
 // The Identity Hub's session: one pool of source material and confirmed facts shared by the
 // hub and the studio on both platforms. Memory only (a module-level store), so it survives
@@ -18,6 +18,8 @@ export type IdentitySession = {
   linkedinImport: { fileName: string; warnings: string[] } | null;
   jobDescription: string;
   hinge: HingePair[] | null;
+  /** Bio platforms (Handshake, Instagram, Facebook, X, Tinder): the bio text, per platform. */
+  bios: Partial<Record<Platform, string>>;
   /** Confirmed and user-typed facts carry across platforms; unconfirmed AI suggestions too, until replaced. */
   facts: IdentityFact[];
   /** Which platforms each fact is shared with (fact-platforms.ts). Read by the studio directly. */
@@ -37,6 +39,7 @@ const EMPTY_DATA: Omit<IdentitySession, "rev"> = {
   linkedinImport: null,
   jobDescription: "",
   hinge: null,
+  bios: {},
   facts: [],
   factPlatforms: {},
 };

@@ -23,7 +23,8 @@ import {
 import type { z } from "zod";
 import type { ModelEvaluateSchema, ModelHingeRewriteSchema, ModelRewriteSchema, ModelSectionRewriteSchema } from "./schemas";
 import { splitSentences } from "./segments";
-import { checkStyle } from "./style-check";
+import { PLATFORM_CONFIGS } from "./rubrics";
+import { checkLength, checkStyle } from "./style-check";
 import { countBullets, sectionCap, targetChars } from "./styles";
 
 // Server-side cleanup of model output. The model is never trusted: ids are checked,
@@ -107,11 +108,14 @@ function finishVariation(
   if (!parsed.success) {
     throw new LlmError("invalid_model_output", "The AI returned an unusable rewrite. Please try again.");
   }
+  const config = PLATFORM_CONFIGS[platform];
+  // Prompt platforms limit each answer; bio platforms limit the whole text.
+  const pieces = parsed.data.answers ? parsed.data.answers.map((a) => a.text) : [parsed.data.content];
   return {
     style,
     rewrite: parsed.data,
     warnings: [...extraWarnings, ...checkRewrite({ rewrite: parsed.data, segments, facts: confirmedFacts })],
-    styleWarnings: checkStyle(parsed.data.content),
+    styleWarnings: [...checkStyle(parsed.data.content), ...checkLength(pieces, config.maxChars, config.label)],
   };
 }
 
@@ -158,6 +162,7 @@ export function buildHingeVariations(
   model: z.infer<typeof ModelHingeRewriteSchema>,
   segments: Segment[],
   confirmedFacts: IdentityFact[],
+  platform: Platform = "hinge",
 ): RewriteVariation[] {
   return RewriteStyleSchema.options.map((style) => {
     const v = model[style];
@@ -173,7 +178,7 @@ export function buildHingeVariations(
         ...v.changeSummary,
       ],
     };
-    return finishVariation(style, "hinge", draft, built.warnings, segments, confirmedFacts);
+    return finishVariation(style, platform, draft, built.warnings, segments, confirmedFacts);
   });
 }
 

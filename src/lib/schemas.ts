@@ -30,14 +30,24 @@ export const LIMITS = {
   sectionRewriteChars: { headline: 220, about: 2600, entry: 2000 },
 } as const;
 
-export const PlatformSchema = z.enum(["linkedin", "hinge"]);
+export const PlatformSchema = z.enum(["linkedin", "handshake", "instagram", "facebook", "twitter", "hinge", "tinder"]);
 export type Platform = z.infer<typeof PlatformSchema>;
+
+/** The three groups platforms are shown in. The group drives prompt rules and theming. */
+export const PlatformGroupSchema = z.enum(["professional", "social", "dating"]);
+export type PlatformGroup = z.infer<typeof PlatformGroupSchema>;
+
+/**
+ * How the profile is entered: sections = LinkedIn's sectioned profile; prompts = prompt question +
+ * answer pairs (Hinge); bio = one short text field (Handshake, Instagram, Facebook, X, Tinder).
+ */
+export type InputShape = "sections" | "prompts" | "bio";
 
 /** Input split into numbered pieces server-side. The model cites ids, never quotes. */
 export const SegmentSchema = z.object({
   id: z.string().min(1).max(16), // e.g. "s1"
   text: z.string().min(1).max(LIMITS.segmentText),
-  /** Hinge only: the prompt question this answer responds to. */
+  /** Prompt platforms (Hinge) only: the prompt question this answer responds to. */
   prompt: z.string().max(200).optional(),
 });
 export type Segment = z.infer<typeof SegmentSchema>;
@@ -74,7 +84,7 @@ export type HingeAnswer = z.infer<typeof HingeAnswerSchema>;
 
 export const RewriteSchema = z.object({
   platform: PlatformSchema,
-  /** LinkedIn: headline, blank line, About. Hinge: the answers joined by blank lines, in original order. */
+  /** LinkedIn: headline, blank line, About. Bio platforms: the bio. Hinge: the answers joined by blank lines, in original order. */
   content: z.string().min(1).max(LIMITS.maxRewriteChars),
   /** Hinge only: the same answers as `content`, one per original segment, in order. */
   answers: z.array(HingeAnswerSchema).max(LIMITS.maxSegments).optional(),
@@ -92,6 +102,7 @@ export const GuardWarningKindSchema = z.enum([
   "unsupported_claim",
   "unverified_segment",
   "ai_cliche",
+  "over_limit",
 ]);
 export type GuardWarningKind = z.infer<typeof GuardWarningKindSchema>;
 
@@ -265,7 +276,7 @@ export const RewriteVariationSchema = z.object({
   rewrite: RewriteSchema,
   /** Output of deterministic FactCheck. Empty means "no unsupported concrete claims detected". */
   warnings: z.array(GuardWarningSchema),
-  /** Banned AI-cliche words/phrases found (kind "ai_cliche"). Style only; separate from FactCheck. */
+  /** Banned AI-cliche words/phrases (kind "ai_cliche") and platform length overruns (kind "over_limit"). Style only; separate from FactCheck. */
   styleWarnings: z.array(GuardWarningSchema),
 });
 export type RewriteVariation = z.infer<typeof RewriteVariationSchema>;
@@ -335,11 +346,22 @@ export const ApiErrorSchema = z.object({
 });
 export type ApiError = z.infer<typeof ApiErrorSchema>;
 
-// ---------- Platform config (one engine, two configs) ----------
+// ---------- Platform config (one engine, one config per platform) ----------
 
 export type PlatformConfig = {
   id: Platform;
   label: string;
+  group: PlatformGroup;
+  input: InputShape;
+  /** The platform's name for the profile field, e.g. "About", "Bio", "Summary". */
+  fieldLabel: string;
+  /**
+   * The platform's own character limit for the profile text (per answer for prompts). Rewrites
+   * over it get an "over_limit" style warning. Undefined = no single limit (LinkedIn's are per section).
+   */
+  maxChars?: number;
+  /** Professional platforms accept an optional job description to target. */
+  jobDescription: boolean;
   /** LinkedIn only: lens categories, in display order. */
   categories?: { id: string; label: string }[];
   /**

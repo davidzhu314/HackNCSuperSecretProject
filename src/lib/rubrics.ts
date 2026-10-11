@@ -1,11 +1,16 @@
-import type { Platform, PlatformConfig } from "./schemas";
+import type { Platform, PlatformConfig, PlatformGroup } from "./schemas";
 
-// One engine, two configs. Audiences are simulated evaluation lenses,
-// not real recruiters or daters, and not demographic claims.
+// One engine, one config per platform. Audiences are simulated evaluation lenses,
+// not real recruiters, daters, or followers, and not demographic claims.
+// maxChars is each platform's own limit for the profile field (checked October 2026).
 
 export const LINKEDIN_CONFIG: PlatformConfig = {
   id: "linkedin",
   label: "LinkedIn",
+  group: "professional",
+  input: "sections",
+  fieldLabel: "Profile",
+  jobDescription: true,
   categories: [
     { id: "recruitment", label: "Recruitment" },
     { id: "hiring_leadership", label: "Hiring & Leadership" },
@@ -120,6 +125,11 @@ export const DEFAULT_LINKEDIN_AUDIENCES = ["technical_recruiter", "hiring_manage
 export const HINGE_CONFIG: PlatformConfig = {
   id: "hinge",
   label: "Hinge",
+  group: "dating",
+  input: "prompts",
+  fieldLabel: "Prompt answers",
+  maxChars: 150,
+  jobDescription: false,
   audiences: [
     {
       id: "humor",
@@ -150,10 +160,160 @@ export const HINGE_CONFIG: PlatformConfig = {
   ],
 };
 
+export const HANDSHAKE_CONFIG: PlatformConfig = {
+  id: "handshake",
+  label: "Handshake",
+  group: "professional",
+  input: "bio",
+  fieldLabel: "Summary",
+  maxChars: 300,
+  jobDescription: true,
+  audiences: [
+    {
+      id: "campus_recruiter",
+      label: "Campus recruiter",
+      description: "Scans quickly for your field of study, your stage, and the kind of role you want.",
+    },
+    {
+      id: "internship_manager",
+      label: "Internship hiring manager",
+      description: "Looks for projects, coursework, or jobs that show what you did yourself.",
+    },
+    {
+      id: "alumni_mentor",
+      label: "Alumni mentor",
+      description: "Looks for what you're curious about and an easy reason to start a conversation.",
+    },
+  ],
+  // The same questions as LinkedIn, so professional feedback reads the same on both.
+  traits: LINKEDIN_CONFIG.traits,
+};
+
+const SOCIAL_TRAITS: PlatformConfig["traits"] = [
+  {
+    id: "clarity",
+    label: "At-a-glance clarity",
+    description: "A visitor gets who you are and what you're about in one read.",
+  },
+  { id: "specificity", label: "Specificity", description: "Concrete interests and details instead of generic lines." },
+  { id: "authenticity", label: "Authenticity", description: "Sounds like a real person, not a template." },
+  { id: "voice", label: "Voice", description: "Your personality comes through in the wording." },
+  { id: "economy", label: "Economy", description: "Uses the short space well, without filler." },
+];
+
+export const INSTAGRAM_CONFIG: PlatformConfig = {
+  id: "instagram",
+  label: "Instagram",
+  group: "social",
+  input: "bio",
+  fieldLabel: "Bio",
+  maxChars: 150,
+  jobDescription: false,
+  audiences: [
+    {
+      id: "first_visitor",
+      label: "First-time visitor",
+      description: "Lands on your profile and decides in one glance what you're about.",
+    },
+    {
+      id: "shared_interest",
+      label: "Shared-interest browser",
+      description: "Looks for the hobbies or topics you care about, to see if you have them in common.",
+    },
+    {
+      id: "friend_of_friend",
+      label: "Friend of a friend",
+      description: "Checks that this is really you and what you're into these days.",
+    },
+  ],
+  traits: SOCIAL_TRAITS,
+};
+
+export const FACEBOOK_CONFIG: PlatformConfig = {
+  id: "facebook",
+  label: "Facebook",
+  group: "social",
+  input: "bio",
+  fieldLabel: "Intro",
+  maxChars: 101,
+  jobDescription: false,
+  audiences: [
+    {
+      id: "old_friend",
+      label: "Old friend reconnecting",
+      description: "Wants to know what you're up to now, in plain words.",
+    },
+    {
+      id: "community_member",
+      label: "Group or community member",
+      description: "Looks for a shared interest, school, or local connection.",
+    },
+    {
+      id: "new_acquaintance",
+      label: "New acquaintance",
+      description: "Met you once and wants a quick, friendly sense of who you are.",
+    },
+  ],
+  traits: SOCIAL_TRAITS,
+};
+
+export const TWITTER_CONFIG: PlatformConfig = {
+  id: "twitter",
+  label: "X (Twitter)",
+  group: "social",
+  input: "bio",
+  fieldLabel: "Bio",
+  maxChars: 160,
+  jobDescription: false,
+  audiences: [
+    {
+      id: "potential_follower",
+      label: "Potential follower",
+      description: "Reads the bio to work out what you post about.",
+    },
+    {
+      id: "field_peer",
+      label: "Peer in your field",
+      description: "Looks for specific, credible topics rather than broad labels.",
+    },
+    {
+      id: "casual_browser",
+      label: "Casual browser",
+      description: "Notices voice and personality more than credentials.",
+    },
+  ],
+  traits: SOCIAL_TRAITS,
+};
+
+export const TINDER_CONFIG: PlatformConfig = {
+  id: "tinder",
+  label: "Tinder",
+  group: "dating",
+  input: "bio",
+  fieldLabel: "About me",
+  maxChars: 500,
+  jobDescription: false,
+  // Dating lenses and questions are shared with Hinge.
+  audiences: HINGE_CONFIG.audiences,
+  traits: HINGE_CONFIG.traits,
+};
+
 export const PLATFORM_CONFIGS: Record<Platform, PlatformConfig> = {
   linkedin: LINKEDIN_CONFIG,
+  handshake: HANDSHAKE_CONFIG,
+  instagram: INSTAGRAM_CONFIG,
+  facebook: FACEBOOK_CONFIG,
+  twitter: TWITTER_CONFIG,
   hinge: HINGE_CONFIG,
+  tinder: TINDER_CONFIG,
 };
+
+/** The three groups, in display order, each listing its platforms in display order. */
+export const PLATFORM_GROUPS: { group: PlatformGroup; label: string; platforms: Platform[] }[] = [
+  { group: "professional", label: "Professional", platforms: ["linkedin", "handshake"] },
+  { group: "social", label: "Social", platforms: ["instagram", "facebook", "twitter"] },
+  { group: "dating", label: "Dating", platforms: ["hinge", "tinder"] },
+];
 
 export const RATING_GUIDE = `Rating scale (categorical only, never numeric):
 - not_evident: the text gives no evidence for this trait from this audience's point of view

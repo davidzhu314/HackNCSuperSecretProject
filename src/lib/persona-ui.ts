@@ -18,6 +18,7 @@ export const WARNING_LABEL: Record<GuardWarning["kind"], string> = {
   unsupported_claim: "Needs your review",
   unverified_segment: "Unknown source",
   ai_cliche: "AI cliché",
+  over_limit: "Over the character limit",
 };
 
 export const factTextSchema = z

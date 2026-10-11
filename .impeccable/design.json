@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-10T00:00:00Z",
+  "title": "Design System: Personify",
+  "extensions": {
+    "scope": {
+      "appliesTo": ["/"],
+      "rootClass": ".pf",
+      "source": "src/app/landing.css",
+      "excluded": [{ "route": "/studio", "system": "Aero (src/app/globals.css, shadcn tokens)", "status": "open migration decision" }]
+    },
+    "colorMeta": {
+      "apricot": { "role": "primary", "displayName": "Tour Apricot", "canonical": "#ffb36d", "tonalRamp": ["oklch(15% 0.04 65)", "oklch(25% 0.06 65)", "oklch(35% 0.08 65)", "oklch(45% 0.1 65)", "oklch(55% 0.12 65)", "oklch(65% 0.12 65)", "oklch(83% 0.12 65)", "oklch(95% 0.04 65)"] },
+      "apricot-deep": { "role": "primary", "displayName": "Burnt Apricot", "canonical": "#f39a4c", "tonalRamp": ["oklch(15% 0.04 60)", "oklch(25% 0.07 60)", "oklch(35% 0.09 60)", "oklch(45% 0.11 60)", "oklch(55% 0.13 60)", "oklch(65% 0.14 60)", "oklch(77% 0.14 60)", "oklch(95% 0.04 60)"] },
+      "slate": { "role": "secondary", "displayName": "Wipe Slate", "canonical": "#57617a", "tonalRamp": ["oklch(15% 0.03 268)", "oklch(25% 0.035 268)", "oklch(35% 0.04 268)", "oklch(49% 0.04 268)", "oklch(55% 0.04 268)", "oklch(65% 0.035 268)", "oklch(80% 0.025 268)", "oklch(95% 0.01 268)"] },
+      "navy": { "role": "neutral", "displayName": "Deep Navy", "canonical": "#2a354b", "tonalRamp": ["oklch(15% 0.03 265)", "oklch(25% 0.04 265)", "oklch(32% 0.045 265)", "oklch(45% 0.045 265)", "oklch(55% 0.04 265)", "oklch(65% 0.035 265)", "oklch(80% 0.02 265)", "oklch(95% 0.01 265)"] },
+      "black": { "role": "neutral", "displayName": "Close Black", "canonical": "#000000", "tonalRamp": ["oklch(0% 0 0)", "oklch(15% 0 0)", "oklch(25% 0 0)", "oklch(35% 0 0)", "oklch(45% 0 0)", "oklch(55% 0 0)", "oklch(65% 0 0)", "oklch(80% 0 0)"] },
+      "ink": { "role": "neutral", "displayName": "Ink", "canonical": "#1b1b1b", "tonalRamp": ["oklch(15% 0 0)", "oklch(21% 0 0)", "oklch(35% 0 0)", "oklch(45% 0 0)", "oklch(55% 0 0)", "oklch(65% 0 0)", "oklch(80% 0 0)", "oklch(95% 0 0)"] },
+      "white": { "role": "neutral", "displayName": "Paper White", "canonical": "#ffffff", "tonalRamp": ["oklch(65% 0 0)", "oklch(72% 0 0)", "oklch(80% 0 0)", "oklch(86% 0 0)", "oklch(90% 0 0)", "oklch(94% 0 0)", "oklch(97% 0 0)", "oklch(100% 0 0)"] },
+      "rule": { "role": "neutral", "displayName": "Hairline Grey", "canonical": "#e5e5e5", "tonalRamp": ["oklch(15% 0 0)", "oklch(25% 0 0)", "oklch(35% 0 0)", "oklch(45% 0 0)", "oklch(55% 0 0)", "oklch(65% 0 0)", "oklch(80% 0 0)", "oklch(92% 0 0)"] },
+      "mist": { "role": "neutral", "displayName": "Mist", "canonical": "rgba(255, 255, 255, 0.72)", "tonalRamp": ["rgba(255,255,255,0.14)", "rgba(255,255,255,0.16)", "rgba(255,255,255,0.3)", "rgba(255,255,255,0.45)", "rgba(255,255,255,0.6)", "rgba(255,255,255,0.72)", "rgba(255,255,255,0.86)", "rgba(255,255,255,0.92)"] }
+    },
+    "typographyMeta": {
+      "display-giant": { "displayName": "Display Giant", "purpose": "Closing 'Authentically you.' lockup only; outlined with a 2px white stroke, 'you.' wiped apricot." },
+      "display": { "displayName": "Display", "purpose": "Drenched apricot band headline." },
+      "headline": { "displayName": "Headline", "purpose": "Section headings on the white sheet." },
+      "panorama": { "displayName": "Panorama", "purpose": "Demo profile sentences in the hero; outlined at rest, apricot-filled when lit. 22px at 640px and below, drawn solid." },
+      "title": { "displayName": "Title", "purpose": "Hero h1 in the bottom-left info block; 40px at 1024px and below, 32px at 640px and below." },
+      "cta": { "displayName": "CTA", "purpose": "Button labels; 24px at 640px and below." },
+      "body": { "displayName": "Body", "purpose": "Explanatory paragraphs at normal width, max 62ch." },
+      "body-small": { "displayName": "Body Small", "purpose": "Captions, flag explanations, notes, hints." },
+      "label-condensed": { "displayName": "Label Condensed", "purpose": "Pill headers, flag kinds, rating words, switch options, more link; uppercase." },
+      "label-id": { "displayName": "Label ID", "purpose": "Segment and fact IDs; uppercase, tabular numerals, normal width." }
+    },
+    "condensedVoice": { "value": "font-stretch: 62%; font-variation-settings: \"wdth\" 62; text-transform: uppercase;", "purpose": "Applied to every naming, labelling, or command element." },
+    "outlineWipe": {
+      "outline": "color: transparent; -webkit-text-stroke: 1.5px rgba(255,255,255,0.92)",
+      "outlineGiant": "color: transparent; -webkit-text-stroke: 2px #ffffff (1.5px at 640px and below)",
+      "fill": "color: #ffb36d; -webkit-text-stroke: 1.5px #ffb36d (3px on the giant); clip-path: inset(0 100% 0 0) -> inset(0 0 0 0)",
+      "duration": "0.7s panorama, 1.1s with 0.15s delay on the giant"
+    },
+    "shadows": [],
+    "motion": [
+      { "name": "pf-ease", "value": "cubic-bezier(0.65, 0, 0.35, 1)", "purpose": "State changes: button wipe, switch knob, hotspot, ticks, clip-path wipes. Typically 0.5s; 0.7s for wipes." },
+      { "name": "pf-out", "value": "cubic-bezier(0.165, 0.84, 0.44, 1)", "purpose": "Entrances: panorama rows (0.7s, 60ms stagger), pill (0.5s), flag rows (0.7s, 90ms stagger), hotspot ring pulse (2.4s)." },
+      { "name": "reduced-motion", "value": "animation: none; transition-duration: 0.01ms", "purpose": "All of .pf under prefers-reduced-motion: reduce; the hotspot auto-tour and scroll reveals also stand down." }
+    ],
+    "breakpoints": [
+      { "name": "stack", "value": "1024px" },
+      { "name": "compact", "value": "640px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "CTA Button",
+      "kind": "button",
+      "refersTo": "button-cta",
+      "description": "Square apricot button with a slate wipe on hover; the primary action.",
+      "html": "<a class=\"ds-btn-cta\" href=\"#\">Open the studio <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg></a>",
+      "css": ".ds-btn-cta { display: inline-flex; align-items: center; justify-content: center; gap: 10px; font-family: Archivo, 'Arial Narrow', sans-serif; font-stretch: 62%; font-variation-settings: 'wdth' 62; text-transform: uppercase; font-weight: 650; font-size: 28px; line-height: 1; padding: 16px 40px 17px; color: #2a354b; text-decoration: none; background: linear-gradient(to right, #57617a 50%, #ffb36d 50%); background-size: 200% 100%; background-position: right bottom; transition: background-position 0.5s cubic-bezier(0.65,0,0.35,1), color 0.5s cubic-bezier(0.65,0,0.35,1); cursor: pointer; } .ds-btn-cta svg { width: 24px; height: 24px; } .ds-btn-cta:hover { background-position: left bottom; color: #ffffff; } .ds-btn-cta:active { transform: translateY(1px); } .ds-btn-cta:focus-visible { outline: 2px solid #ffb36d; outline-offset: 3px; }"
+    },
+    {
+      "name": "Square Button",
+      "kind": "button",
+      "refersTo": "button-square",
+      "description": "60px apricot square with an arrow; the bar's open-studio control.",
+      "html": "<a class=\"ds-btn-square\" href=\"#\" aria-label=\"Open the studio\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg></a>",
+      "css": ".ds-btn-square { display: inline-flex; align-items: center; justify-content: center; width: 60px; height: 60px; color: #2a354b; background: linear-gradient(to right, #57617a 50%, #ffb36d 50%); background-size: 200% 100%; background-position: right bottom; transition: background-position 0.5s cubic-bezier(0.65,0,0.35,1), color 0.5s cubic-bezier(0.65,0,0.35,1); } .ds-btn-square svg { width: 26px; height: 26px; } .ds-btn-square:hover { background-position: left bottom; color: #ffffff; } .ds-btn-square:focus-visible { outline: 2px solid #ffb36d; outline-offset: 3px; }"
+    },
+    {
+      "name": "Hotspot",
+      "kind": "custom",
+      "refersTo": "hotspot",
+      "description": "Round apricot hotspot pinned to a profile sentence; white with a pulsing ring when active.",
+      "html": "<div class=\"ds-hotspot-wrap\"><button class=\"ds-hotspot\" type=\"button\" aria-label=\"Feedback on s1\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg></button><button class=\"ds-hotspot ds-hotspot--active\" type=\"button\" aria-pressed=\"true\" aria-label=\"Feedback on s2\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" aria-hidden=\"true\"><path d=\"M18 6 6 18\"/><path d=\"m6 6 12 12\"/></svg></button></div>",
+      "css": ".ds-hotspot-wrap { display: flex; gap: 24px; padding: 24px; background: #2a354b; } .ds-hotspot { position: relative; width: 48px; height: 48px; border: 0; border-radius: 50%; display: grid; place-items: center; background: #ffb36d; color: #2a354b; cursor: pointer; transition: transform 0.5s cubic-bezier(0.65,0,0.35,1), background-color 0.5s cubic-bezier(0.65,0,0.35,1); } .ds-hotspot svg { width: 22px; height: 22px; } .ds-hotspot:hover { transform: scale(1.08); } .ds-hotspot:focus-visible { outline: 2px solid #ffb36d; outline-offset: 3px; } .ds-hotspot--active { background: #ffffff; } .ds-hotspot--active::after { content: ''; position: absolute; inset: -8px; border-radius: 50%; border: 1px solid #ffb36d; animation: ds-ring 2.4s cubic-bezier(0.165,0.84,0.44,1) infinite; } @keyframes ds-ring { from { transform: scale(0.8); opacity: 1; } to { transform: scale(1.5); opacity: 0; } }"
+    },
+    {
+      "name": "Critique Pill",
+      "kind": "card",
+      "refersTo": "critique-pill",
+      "description": "Solid white, square, apricot-edged note holding one simulated audience critique.",
+      "html": "<div class=\"ds-pill\" role=\"note\"><div class=\"ds-pill-head\"><span>Startup founder</span><span>S1</span></div><div class=\"ds-pill-rating\"><span class=\"ds-pill-trait\">Clarity</span><span class=\"ds-rating\"><span class=\"ds-rating-steps\" aria-hidden=\"true\"><span class=\"on\"></span><span class=\"on\"></span><span></span><span></span></span><span class=\"ds-rating-word\">Weak</span></span></div><p class=\"ds-pill-text\">The headline lists tools but never says what you build.</p><p class=\"ds-pill-try\"><strong>Try:</strong> Lead with the problem you work on.</p></div>",
+      "css": ".ds-pill { width: min(420px, 100%); background: #ffffff; border: 1px solid rgba(255,179,109,0.5); color: #57617a; padding: 16px 22px 18px; font-family: Archivo, 'Arial Narrow', sans-serif; } .ds-pill-head, .ds-pill-trait, .ds-rating-word { font-stretch: 62%; font-variation-settings: 'wdth' 62; text-transform: uppercase; } .ds-pill-head { display: flex; justify-content: space-between; gap: 12px; font-weight: 650; font-size: 16px; letter-spacing: 0.05em; } .ds-pill-head span:last-child { font-variant-numeric: tabular-nums; color: #2a354b; } .ds-pill-rating { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-top: 6px; } .ds-pill-trait { font-weight: 650; font-size: 30px; line-height: 1; color: #2a354b; } .ds-rating { display: inline-flex; align-items: center; gap: 10px; } .ds-rating-steps { display: inline-flex; gap: 3px; } .ds-rating-steps span { width: 14px; height: 6px; background: #e5e5e5; } .ds-rating-steps span.on { background: #f39a4c; } .ds-rating-word { font-weight: 650; font-size: 18px; letter-spacing: 0.04em; color: #2a354b; } .ds-pill-text { font-size: 17px; line-height: 1.4; margin: 10px 0 0; color: #1b1b1b; } .ds-pill-try { font-size: 15px; line-height: 1.45; margin: 8px 0 0; } .ds-pill-try strong { color: #2a354b; font-weight: 650; }"
+    },
+    {
+      "name": "Platform Switch",
+      "kind": "nav",
+      "refersTo": "switch-track",
+      "description": "Pill toggle with a sliding white knob; the only rounded rectangle in the system.",
+      "html": "<div class=\"ds-switch-bg\"><div class=\"ds-switch\" role=\"group\" aria-label=\"Example platform\"><span class=\"ds-switch-knob\" aria-hidden=\"true\"></span><button type=\"button\" class=\"ds-switch-option\" aria-pressed=\"true\">LinkedIn</button><button type=\"button\" class=\"ds-switch-option\" aria-pressed=\"false\">Hinge</button></div></div>",
+      "css": ".ds-switch-bg { padding: 24px; background: #2a354b; } .ds-switch { position: relative; display: inline-flex; background: rgba(255,255,255,0.14); border-radius: 80px; padding: 4px; } .ds-switch-knob { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); background: #ffffff; border-radius: 80px; transition: transform 0.5s cubic-bezier(0.65,0,0.35,1); } .ds-switch:has(.ds-switch-option:last-of-type[aria-pressed='true']) .ds-switch-knob { transform: translateX(100%); } .ds-switch-option { position: relative; z-index: 1; width: 104px; height: 36px; border: 0; border-radius: 80px; background: none; color: #ffffff; font-family: Archivo, 'Arial Narrow', sans-serif; font-stretch: 62%; font-variation-settings: 'wdth' 62; text-transform: uppercase; font-weight: 600; font-size: 18px; letter-spacing: 0.04em; cursor: pointer; transition: color 0.5s cubic-bezier(0.65,0,0.35,1); } .ds-switch-option[aria-pressed='true'] { color: #2a354b; } .ds-switch-option:focus-visible { outline: 2px solid #ffb36d; outline-offset: 3px; }"
+    },
+    {
+      "name": "Fact Tick Row",
+      "kind": "input",
+      "refersTo": "fact-tick",
+      "description": "Square navy checkbox toggle with an ID and the fact; unticked facts dim to slate.",
+      "html": "<ul class=\"ds-factlist\"><li><button type=\"button\" class=\"ds-tick\" aria-pressed=\"true\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg></button><span class=\"ds-fact-id\">F1</span><span>Builds data pipelines in Python</span></li><li class=\"off\"><button type=\"button\" class=\"ds-tick\" aria-pressed=\"false\"></button><span class=\"ds-fact-id\">F2</span><span>Led a team of four</span></li></ul>",
+      "css": ".ds-factlist { list-style: none; margin: 0; padding: 0; border-top: 1px solid #e5e5e5; font-family: Archivo, 'Arial Narrow', sans-serif; } .ds-factlist li { display: grid; grid-template-columns: 28px 30px minmax(0,1fr); min-height: 54px; align-items: center; gap: 12px; padding: 13px 0; border-bottom: 1px solid #e5e5e5; font-size: 18px; line-height: 1.35; color: #1b1b1b; } .ds-factlist li.off > span:last-child { color: #57617a; } .ds-tick { width: 28px; height: 28px; display: grid; place-items: center; padding: 0; border: 2px solid #2a354b; background: #2a354b; color: #ffb36d; cursor: pointer; transition: background-color 0.5s cubic-bezier(0.65,0,0.35,1); } .ds-tick[aria-pressed='false'] { background: #ffffff; } .ds-tick:hover { border-color: #f39a4c; } .ds-tick:focus-visible { outline: 2px solid #ffb36d; outline-offset: 3px; } .ds-tick svg { width: 16px; height: 16px; } .ds-fact-id { font-size: 14px; font-weight: 600; color: #57617a; font-variant-numeric: tabular-nums; text-transform: uppercase; }"
+    },
+    {
+      "name": "Verdict Chip",
+      "kind": "chip",
+      "refersTo": "verdict-chip",
+      "description": "Square navy block for the clean FactCheck result.",
+      "html": "<p class=\"ds-verdict\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg> No unsupported concrete claims detected</p>",
+      "css": ".ds-verdict { display: inline-flex; align-items: center; gap: 8px; margin: 0; background: #2a354b; color: #ffffff; font-family: Archivo, 'Arial Narrow', sans-serif; font-weight: 600; padding: 7px 14px 7px 10px; } .ds-verdict svg { width: 18px; height: 18px; color: #ffb36d; }"
+    },
+    {
+      "name": "More Link",
+      "kind": "nav",
+      "refersTo": "more-link",
+      "description": "Apricot condensed-caps link with an underline and a dropping arrow.",
+      "html": "<div class=\"ds-more-bg\"><a class=\"ds-more\" href=\"#\">See what it won't write <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 5v14\"/><path d=\"m19 12-7 7-7-7\"/></svg></a></div>",
+      "css": ".ds-more-bg { padding: 24px; background: #2a354b; } .ds-more { display: inline-flex; align-items: center; gap: 6px; font-family: Archivo, 'Arial Narrow', sans-serif; font-stretch: 62%; font-variation-settings: 'wdth' 62; text-transform: uppercase; font-weight: 650; font-size: 19px; letter-spacing: 0.03em; color: #ffb36d; text-decoration: none; border-bottom: 1px solid #ffb36d; padding-bottom: 1px; } .ds-more svg { width: 16px; height: 16px; transition: transform 0.5s cubic-bezier(0.65,0,0.35,1); } .ds-more:hover svg { transform: translateY(3px); } .ds-more:focus-visible { outline: 2px solid #ffb36d; outline-offset: 3px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Profile as Panorama",
+    "overview": "The landing world is borrowed, by the user's choice, from a resort virtual tour (the Avoriaz site recorded in `AVORIAZ_STYLE_GUIDE.md`; that file describes the external source, not this project). The source's grammar maps onto the product: the visitor's own profile sentences fill the screen the way a 360° panorama does, and simulated critiques pin to individual sentences as round apricot hotspots. Text is the imagery. There is no photography, and none is needed.\n\nThe material is flat, full-bleed planes of colour stacked as the page scrolls: a deep navy field, a drenched apricot band, a white sheet, then a black close. Type does almost all the expressive work: extra-condensed uppercase Archivo at poster sizes, sometimes outlined, with an apricot fill that wipes in from the left to mark what is being looked at. Motion is slow and deliberate (0.5s to 0.7s) rather than snappy.\n\n**Scope.** This world currently covers the landing page (`/`) only, scoped under the `.pf` root class in `src/app/landing.css`. The `/studio` route deliberately keeps its older \"Aero\" look (`src/app/globals.css` and the shadcn tokens). That split is known, and whether to migrate the studio is still an open decision. Nothing in this file describes the studio, and the Aero tokens are not the target.",
+    "keyCharacteristics": [
+      "One committed accent (apricot) on navy, black, and white grounds.",
+      "Extra-condensed uppercase display (Archivo, `wdth` 62) at poster scale.",
+      "Outlined lettering with an apricot clip-path wipe as the \"this one\" signal.",
+      "Square corners or full circles only (plus the pill-shaped platform switch). No shadows.",
+      "Navy text on apricot, never white, because white on apricot fails contrast."
+    ],
+    "rules": [
+      { "name": "The One Accent Rule", "body": "Apricot is the only hue. Any second colour is a neutral (navy, slate, ink, black, white, grey).", "section": "colors" },
+      { "name": "The Navy-on-Apricot Rule", "body": "Text and icons on an apricot fill are navy. This is a deliberate departure from the source's white-on-apricot, which fails WCAG contrast.", "section": "colors" },
+      { "name": "The Condensed Caps Rule", "body": "Anything that names, labels, or commands is set in condensed uppercase (`font-stretch: 62%` plus `font-variation-settings: \"wdth\" 62`). Anything meant to be read as a paragraph is set at normal width and in sentence case.", "section": "typography" },
+      { "name": "The Outline-and-Wipe Rule", "body": "Outlined lettering (transparent fill, white stroke) means \"not yet looked at\". An apricot copy revealed with a left-to-right `clip-path` wipe means \"this one\". Use it for the panorama's lit sentence and the closing \"you.\" only, not as decoration.", "section": "typography" },
+      { "name": "The Flat Plane Rule", "body": "Separate surfaces with a change of ground colour or a 1px hairline, never a shadow or a blur.", "section": "elevation" },
+      { "name": "The Square or Round Rule", "body": "A corner is either 0 or fully round. No intermediate radii (4px, 8px, 12px). The 80px switch pill is the only rounded rectangle, and it is reserved for toggles.", "section": "shapes" }
+    ],
+    "dos": [
+      "**Do** put navy text and icons on every apricot fill.",
+      "**Do** keep corners at 0 or 50%; reserve the 80px pill for the platform switch.",
+      "**Do** set names, labels, and controls in condensed caps (`wdth` 62), and reading text at normal width.",
+      "**Do** use the 0.5s `cubic-bezier(0.65, 0, 0.35, 1)` ease for state changes and the 0.7s `cubic-bezier(0.165, 0.84, 0.44, 1)` ease-out for entrances, and honour `prefers-reduced-motion`.",
+      "**Do** cite segment and fact IDs in tabular uppercase wherever a critique or flag points at text.",
+      "**Do** draw unlit panorama sentences solid (white at 86%) rather than outlined at 640px and below, where a 1.5px stroke at 22px closes the counters."
+    ],
+    "donts": [
+      "**Don't** use box-shadows, blurs, or glows to separate surfaces.",
+      "**Don't** introduce a second accent hue.",
+      "**Don't** put white text on apricot.",
+      "**Don't** use intermediate corner radii or rounded cards.",
+      "**Don't** show ratings as percentages, stars, or bare bars without the rating word.",
+      "**Don't** apply these tokens to `/studio` until the migration decision is made; it still runs the Aero system."
+    ]
+  }
+}

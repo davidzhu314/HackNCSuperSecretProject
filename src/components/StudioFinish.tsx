@@ -5,12 +5,15 @@ import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { Platform } from "@/lib/schemas";
+import { PLATFORM_CONFIGS } from "@/lib/rubrics";
 
 // The end of the studio: where to go next instead of a dead end. Copy the updated profile
 // (LinkedIn), see the result in the Identity Hub, or take the same confirmed facts to the
 // other platform.
 
-const NAME: Record<Platform, string> = { linkedin: "LinkedIn", hinge: "Hinge" };
+const NAME = Object.fromEntries(
+  Object.values(PLATFORM_CONFIGS).map((c) => [c.id, c.label]),
+) as Record<Platform, string>;
 
 export function StudioFinish(props: {
   platform: Platform;
