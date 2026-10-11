@@ -1,6 +1,6 @@
 # Personify (hackathon app)
 
-**Current goal: a full Tinder profile, split for two people. Start with [HANDOFF-TINDER.md](HANDOFF-TINDER.md) "Split for two people", then your part: [step 0](HANDOFF-TINDER-0-CONTRACT.md) (blocks both), [Person A](HANDOFF-TINDER-A.md) (data and AI), or [Person B](HANDOFF-TINDER-B.md) (UI).** Next after that: rewrite writing quality ([HANDOFF-WRITING.md](HANDOFF-WRITING.md)). Then [HANDOFF.md](HANDOFF.md) (team, deploy, gotchas; its state section is partly out of date), then the full spec: [SPEC.md](SPEC.md). Read [AGENTS.md](AGENTS.md) too: this Next.js version is newer than most training data. (The earlier SkinOS idea is archived in `archive/SKINOS-SPEC.md`; ignore it.)
+**Current goal: improve the rewrite writing quality. Start with [HANDOFF-WRITING.md](HANDOFF-WRITING.md).** The full Tinder profile is built (`feat/tinder-profile`; decisions and what's still open in [HANDOFF-TINDER-0-CONTRACT.md](HANDOFF-TINDER-0-CONTRACT.md)). Then [HANDOFF.md](HANDOFF.md) (team, deploy, gotchas; its state section is partly out of date), then the full spec: [SPEC.md](SPEC.md). Read [AGENTS.md](AGENTS.md) too: this Next.js version is newer than most training data. (The earlier SkinOS idea is archived in `archive/SKINOS-SPEC.md`; ignore it.)
 
 ## Idea
 **Personify** (earlier name: PERSONA) — "One identity. Every platform. Authentically you." Users enter a LinkedIn profile by sections (or import LinkedIn's PDF export) or Hinge answers, confirm a few true facts about themselves, pick simulated audiences, and get evidence-linked feedback plus rewrites grounded only in confirmed facts. A deterministic **FactCheck** layer flags invented numbers, entities, and inflated verbs. Principle: improve expression, not invent identity.
@@ -20,8 +20,9 @@
 
 ## Layout
 - `src/app/`: pages plus `api/facts/extract`, `api/evaluate`, `api/rewrite` (Hinge), `api/rewrite-section` (LinkedIn, one section per call), `api/compare` (stretch)
-- `src/components/`: `PersonaFlow` (the flow), `LinkedInEditor`, `ProfileClash`, `SectionRewrites` (LinkedIn), `ProfileInput`, `AudienceClash`, `RewriteComparison` (Hinge and bio platforms), `ExtraFacts` (add a true fact on the rewrite step), `AudienceSelection`
+- `src/components/`: `PersonaFlow` (the flow), `LinkedInEditor`, `TinderEditor` (About me, prompts, profile fields), `ProfileClash`, `SectionRewrites` (LinkedIn), `ProfileInput`, `AudienceClash`, `RewriteComparison` (Hinge and bio platforms), `ExtraFacts` (add a true fact on the rewrite step), `AudienceSelection`
 - `src/app/hub/` (`IdentityHub`): sources (LinkedIn PDF, photo) and real fact coverage; `src/app/studio/`: the flow (`?platform=hinge`). Home is the scenic destinations, one per platform group (professional, social, dating) listing all six platforms; the Hub is white and minimal and lists all six as sources; the studio shows the platform's photo with `TourStops` as the step rail (merged from the Lovable aero-persona-hub design)
+- `src/lib/tinder.ts`: Tinder prompts, field groups, LinkedIn carry-over (job title, company, school, languages), `segmentTinder` (About plus answers only), `tinderFieldFacts` (the only fields a rewrite gets; FactCheck counts them as the user's words). Location and the relationship, basics, and lifestyle picks are never sent. Option lists are unverified, and prompt limits are assumed (copied from Hinge)
 - `src/lib/identity-session.ts`: memory-only session shared by hub and studio (profiles, facts, photo); cleared on refresh, never sent or stored
 - `src/lib/fact-platforms.ts`: write once, show up everywhere. One fact pool; each fact is shared with chosen platforms (found facts default to where they were found, typed facts to all). The studio's `confirmedFacts` is filtered by platform, so an unshared fact can't support a claim there. "Start from my facts" seeds an empty Hinge or LinkedIn About with the user's own confirmed sentences
 - `src/lib/profile-edits.ts`: "Use this version" (write a section rewrite into the profile, undo), copy-all text, Hinge fact coverage. The studio keeps the pre-rewrite profile as `original` so FactCheck and rewrites still check against the user's own words
@@ -67,5 +68,6 @@
 - [x] Sections phase, UI side (#5, #6, #8, #14; Person 2: section editor and PDF upload, lens picker, Audience Clash redesign, per-section rewrite screen, consent once, demo hub)
 - [x] Sections build tested live and deployed
 - [x] Scenic UI merged from Lovable, Identity Hub with shared session, "Use this version", write once / per-platform facts (sample mode only; not yet deployed or run live)
+- [x] Full Tinder profile: About me, 42 prompts, profile fields, LinkedIn carry-over, PDF languages import (branch `feat/tinder-profile`; not yet merged or deployed)
 - [ ] Blind A/B (stretch)
 - [ ] Demo rehearsed and backup video recorded

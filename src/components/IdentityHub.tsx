@@ -13,8 +13,9 @@ import type { HingePair } from "@/lib/persona-ui";
 import { factCoverage, rewritableSections, segmentProfile } from "@/lib/profile";
 import { hingeFactIds } from "@/lib/profile-edits";
 import { cleanProfile, importProfileFile } from "@/lib/profile-import";
-import type { IdentityFact, LinkedInProfile, Platform } from "@/lib/schemas";
+import { LIMITS, type IdentityFact, type LinkedInProfile, type Platform } from "@/lib/schemas";
 import { PLATFORM_CONFIGS, PLATFORM_GROUPS } from "@/lib/rubrics";
+import { filledFieldCount } from "@/lib/tinder";
 
 // The Identity Hub: one pool of source material and confirmed facts for every platform.
 // Everything here lives in this tab's memory (identity-session.ts) and is read in the browser;
@@ -32,10 +33,14 @@ export function IdentityHub() {
   const linkedin = session.linkedin ? cleanProfile(session.linkedin) : null;
   const linkedinSections = linkedin ? rewritableSections(linkedin).length : 0;
   const hingeAnswers = session.hinge?.filter((p) => p.answer.trim()).length ?? 0;
+  // Tinder's About and answers count as its text (consistency); its profile fields aren't checked.
+  const tinderText = session.tinder ? [session.tinder.about, ...session.tinder.prompts.map((p) => p.answer)].filter((t) => t.trim()).join("\n") : "";
+  const tinderFields = session.tinder ? filledFieldCount(session.tinder.fields) : 0;
   const confirmed = session.facts.filter((f) => f.confirmed && f.text.trim());
   const added =
     (linkedin ? 1 : 0) +
     (hingeAnswers ? 1 : 0) +
+    (tinderText || tinderFields ? 1 : 0) +
     PLATFORMS.filter((p) => PLATFORM_CONFIGS[p].input === "bio" && session.bios[p]?.trim()).length;
   const own = !!linkedin && segmentProfile(linkedin).length > 0 && confirmed.length > 0;
   // Before any "Use this version" rewrites; the demo is recognized by its original text.
@@ -205,13 +210,14 @@ export function IdentityHub() {
                   </div>
                 </section>
                 );
+              if (platform === "tinder") return <TinderSource key="tinder" fields={tinderFields} />;
               return <BioSource key={platform} platform={platform} bio={session.bios[platform] ?? ""} />;
             })}
           </section>
         ))}
       </div>
 
-      <ConsistencyCard linkedin={linkedin} hinge={session.hinge} bios={session.bios} />
+      <ConsistencyCard linkedin={linkedin} hinge={session.hinge} bios={tinderText ? { ...session.bios, tinder: tinderText } : session.bios} />
 
       <FactsCard facts={confirmed} linkedin={linkedin} hinge={session.hinge} factPlatforms={session.factPlatforms} />
 
@@ -233,7 +239,41 @@ export function IdentityHub() {
   );
 }
 
-/** A bio platform (Handshake, Instagram, Facebook, Tinder): the bio's length against the platform's limit. */
+/** Tinder: About me against its limit, prompt answers, and how many profile fields are filled in. */
+function TinderSource({ fields }: { fields: number }) {
+  const session = useIdentitySession();
+  const about = session.tinder?.about.trim().length ?? 0;
+  const answers = session.tinder?.prompts.filter((p) => p.answer.trim()).length ?? 0;
+  const any = about > 0 || answers > 0 || fields > 0;
+  const parts = [
+    about ? `About me: ${about} of ${LIMITS.tinderAbout} characters` : "",
+    answers ? `${answers} prompt ${answers === 1 ? "answer" : "answers"}` : "",
+    fields ? `${fields} profile ${fields === 1 ? "field" : "fields"}` : "",
+  ].filter(Boolean);
+  return (
+    <section className="hub-card hub-source" data-platform="tinder" aria-labelledby="src-tinder">
+      <div className="hub-source-head">
+        <span className="platform-icon">
+          <BrandMark platform="tinder" />
+        </span>
+        <div>
+          <h3 id="src-tinder">Tinder</h3>
+          <p className="empty-note">
+            {any ? parts.join(" · ") : `Not added yet. About me (up to ${LIMITS.tinderAbout} characters), prompts, and profile fields.`}
+          </p>
+        </div>
+      </div>
+      <p className="empty-note">Job title, company, school, and languages can come from your LinkedIn.</p>
+      <div className="hub-actions">
+        <Button variant="aero" size="sm" nativeButton={false} render={<Link href="/studio?platform=tinder" />}>
+          {any ? "Review in studio" : "Open studio"} <ArrowUpRight />
+        </Button>
+      </div>
+    </section>
+  );
+}
+
+/** A bio platform (Handshake, Instagram, Facebook): the bio's length against the platform's limit. */
 function BioSource({ platform, bio }: { platform: Platform; bio: string }) {
   const { label, maxChars, fieldLabel } = PLATFORM_CONFIGS[platform];
   const length = bio.trim().length;

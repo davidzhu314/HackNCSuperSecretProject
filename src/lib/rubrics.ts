@@ -261,7 +261,8 @@ export const TINDER_CONFIG: PlatformConfig = {
   id: "tinder",
   label: "Tinder",
   group: "dating",
-  input: "bio",
+  // About me (maxChars), prompt answers (LIMITS.tinderAnswer), and profile fields: tinder.ts.
+  input: "tinder",
   fieldLabel: "About me",
   maxChars: 500,
   jobDescription: false,

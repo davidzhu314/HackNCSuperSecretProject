@@ -1,5 +1,7 @@
 # Handoff: Tinder, step 0 (questions and contract)
 
+> **Done (2026-10-11):** step 0, A, and B were built together on `feat/tinder-profile`. This file is kept for its decisions. What exists now is described in [CLAUDE.md](CLAUDE.md) and `src/lib/tinder.ts`.
+
 Written 2026-10-11. **This step blocks both halves of the Tinder work.** [HANDOFF-TINDER-A.md](HANDOFF-TINDER-A.md) (data and AI) and [HANDOFF-TINDER-B.md](HANDOFF-TINDER-B.md) (UI) start only after this PR is merged. Background and design rules: [HANDOFF-TINDER.md](HANDOFF-TINDER.md). Rules: [CLAUDE.md](CLAUDE.md). Next.js 16 notes: [AGENTS.md](AGENTS.md).
 
 Priority (user decision, 2026-10-11): the Tinder work comes before writing quality ([HANDOFF-WRITING.md](HANDOFF-WRITING.md)).
@@ -72,7 +74,18 @@ Show the user the contract and wait for their OK before writing it. Keep Hinge u
 
 ## Decisions
 
-_(Fill in from the user's answers.)_
+User answers, 2026-10-11:
+1. **Prompt wording:** ship the suggested fixes ("My biggest red flag is…", "A hill I'll die on is…", "I hype myself up by…", "On vacation I'm…", "Best first date in the city…"). Drop "One first time. We live…". Keep "Do you agree or disagree that…?". Every other prompt ships as given.
+2. **Fields:** "Open to" means Tinder's relationship goals. Add a "Going out" lifestyle field. Drop "Ad city" (no Hometown) and "We can give you the splits".
+3. **Options and limits:** the user re-sent their list without option sets or limits and asked to build it. So:
+   - Option lists come from Tinder's app as best known, marked unverified in the code and UI. Going out is a neutral list.
+   - Relationship type and pets allow several picks.
+   - Limits are assumed, copied from Hinge (3 prompts, 300 characters), and the UI says so. Replace them when the user sends the real ones (`TINDER_OPTIONS` in `schemas.ts`, `LIMITS.maxTinderPrompts`, `LIMITS.tinderAnswer`).
+4. **What reaches the AI:** the default.
+   - Rewrites get the About, prompt answers, job title, company, school, and languages.
+   - The evaluator gets the About and prompt answers only.
+   - Location and every relationship, basics, and lifestyle answer are never sent.
+5. **Languages from LinkedIn:** not answered; going with the default (add `languages`, strip proficiency text).
 
 ## Rules (all halves)
 

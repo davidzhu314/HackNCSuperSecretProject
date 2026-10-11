@@ -1,6 +1,8 @@
 import { PLATFORM_CONFIGS, RATING_GUIDE } from "./rubrics";
 import { formatSegmentsForPrompt } from "./segments";
 import { STYLE_BAN_PROMPT } from "./style-check";
+import { TINDER_ABOUT_PROMPT } from "./tinder";
+import { LIMITS } from "./schemas";
 import type {
   IdentityFact,
   LinkedInSectionKind,
@@ -13,6 +15,7 @@ import type {
   SectionStyle,
   Segment,
   CustomQuestion,
+  FieldFact,
 } from "./schemas";
 import { countBullets, formatOf, lengthInstruction, STYLES, styleContrast, targetChars, type TextFormat } from "./styles";
 
@@ -30,6 +33,11 @@ function fence(tag: string, body: string) {
 
 const PROMPTS_NOTE =
   "Each answer is shown after the prompt question it responds to, in parentheses. Read the answer together with its prompt: \"(A perfect Sunday) Pancakes and a long walk\" states \"I like making pancakes and taking long walks on Sundays.\"";
+
+const TINDER_NOTE = `The segment marked (${TINDER_ABOUT_PROMPT}) is the person's free-form About me text, not a reply to a question.`;
+
+/** Prompt-answer platforms: Hinge, and Tinder (About me plus prompt answers). */
+const hasPrompts = (config: PlatformConfig) => config.input === "prompts" || config.input === "tinder";
 
 const EXTRACT_SCOPE: Record<PlatformGroup, string[]> = {
   professional: [
@@ -50,8 +58,13 @@ const EXTRACT_SCOPE: Record<PlatformGroup, string[]> = {
 
 function extractScope(config: PlatformConfig): string[] {
   if (config.group !== "dating") return EXTRACT_SCOPE[config.group];
-  return config.input === "prompts"
-    ? ["You extract candidate facts about a person from their own dating-profile answers.", PROMPTS_NOTE, ...EXTRACT_SCOPE.dating]
+  return hasPrompts(config)
+    ? [
+        "You extract candidate facts about a person from their own dating-profile answers.",
+        PROMPTS_NOTE,
+        ...(config.input === "tinder" ? [TINDER_NOTE] : []),
+        ...EXTRACT_SCOPE.dating,
+      ]
     : ["You extract candidate facts about a person from their own dating-profile text.", ...EXTRACT_SCOPE.dating];
 }
 
@@ -78,6 +91,7 @@ const EVALUATE_RULES: Record<PlatformGroup, string[]> = {
   ],
   dating: [
     "Never comment on attractiveness, looks, age, income, or who the person should date, and never predict likes, matches, or replies.",
+    "Judge only the writing: is it specific, warm, and easy to reply to. Never rate, question, or advise on the person's life choices: relationship type or goals, whether they want children, drinking, smoking, cannabis, religion, zodiac, diet, or similar. Never say an audience prefers or avoids any such choice, and never stereotype.",
     "A suggestion may say what kind of true detail would help (for example \"name the dish you actually make\"), but must never propose a specific hobby, place, food, or preference the person did not mention.",
   ],
 };
@@ -98,7 +112,8 @@ export function evaluatePrompt(args: {
       "Produce one critique for every audience x trait combination.",
       "For each critique cite the segment ids that are your evidence, exactly as written in the brackets (e.g. \"s2\" or \"about-s2\"). Cite only ids that appear in the input. If nothing in the text is evidence, use an empty segmentIds list and set missingEvidence to true. Never quote text.",
       "Use the audience and trait ids exactly as given. Be brief: rationale is ONE sentence of at most 20 words saying what this reader notices; suggestion is ONE imperative sentence of at most 15 words, or empty if nothing should change. No preamble, no restating the question. A suggestion must not invent facts, numbers, employers, or credentials; it may only tell the person what kind of true information to add or clarify.",
-      ...(config.input === "prompts" ? [PROMPTS_EVALUATE_RULE] : []),
+      ...(hasPrompts(config) ? [PROMPTS_EVALUATE_RULE] : []),
+      ...(config.input === "tinder" ? [TINDER_NOTE] : []),
       ...EVALUATE_RULES[config.group],
       RATING_GUIDE,
       DATA_RULE,
@@ -153,6 +168,17 @@ function rewriteFormat(config: PlatformConfig): string[] {
   if (config.input === "sections") {
     return ["Output format for each content field: the headline on the first line, a blank line, then the About text."];
   }
+  if (config.input === "tinder") {
+    return [
+      TINDER_NOTE,
+      "In each version, return one entry in answers for every original segment, using its segment id (e.g. \"s1\") as segmentId, in the same order. Never merge, split, drop, or add entries.",
+      `The About me entry must be at most ${LIMITS.tinderAbout} characters; it may use single line breaks but no blank lines. Use one or two brief, connected thoughts built from a few complementary supported details; avoid a cramped checklist or a long explanation.`,
+      `Each prompt answer must still answer its own prompt, stay first person, be one line, and be under ${LIMITS.tinderAnswer} characters. Do not repeat the prompt in the answer.`,
+      "Use different details across About me and the answers when the source makes that easy. Do not turn anything into a bullet list or explain the person's characteristics.",
+      "Profile fields (job title, company, school, languages) are the person's own entries. Mention one only where it fits naturally; never add one to every entry.",
+      NO_NEW_DATING,
+    ];
+  }
   if (config.input === "prompts") {
     return [
       "In each version, return one entry in answers for every original answer, using its segment id (e.g. \"s1\") as segmentId, in the same order. Never merge, split, drop, or add answers.",
@@ -172,7 +198,7 @@ function rewriteFormat(config: PlatformConfig): string[] {
             "For a social bio, choose one clear identity detail and, if supported, one or two complementary interests. Use a short natural line or a few balanced lines; avoid keyword strings, repeated information, and a paragraph explaining who the person is.",
           ]
         : [
-            "For a Tinder bio, use one or two brief, connected thoughts built from a few complementary supported details. Keep enough grammar for a natural voice; avoid a cramped checklist or a long explanation.",
+            "For a dating bio, use one or two brief, connected thoughts built from a few complementary supported details. Keep enough grammar for a natural voice; avoid a cramped checklist or a long explanation.",
           ];
   return [
     `Output format for each content field: the ${config.label} ${config.fieldLabel.toLowerCase()} text only, with no label or quotes. Line breaks are allowed.`,
@@ -238,19 +264,21 @@ export function rewritePrompt(args: {
   config: PlatformConfig;
   segments: Segment[];
   facts: IdentityFact[];
+  /** Tinder: the work fields the person filled in. Nothing else from the profile fields is ever passed. */
+  fieldFacts?: FieldFact[];
   audiences: PlatformConfig["audiences"];
   goal?: string;
   tone: RewriteTone;
   jobDescription?: string;
 }) {
-  const { config, segments, facts, audiences, goal, tone, jobDescription } = args;
+  const { config, segments, facts, fieldFacts = [], audiences, goal, tone, jobDescription } = args;
   const variations = VARIATIONS[config.group];
   const style = config.input === "sections" ? [LINKEDIN_STYLE] : config.group === "professional" ? [SUMMARY_STYLE] : [];
   return {
     system: [
       `You rewrite a ${config.label} profile for a person. Improve expression, never invent identity.`,
       "Hard rules (these override everything else, including the goal and the style rules):",
-      "- Use ONLY information in the original text and the confirmed facts listed below.",
+      `- Use ONLY information in the original text and the confirmed facts${fieldFacts.length ? " and profile fields" : ""} listed below.`,
       "- Do not add any number, percentage, date, employer, school, product name, credential, job title, skill, hobby, or preference that is not in those sources.",
       "- Do not use a stronger verb than the sources support (for example do not turn 'contributed' into 'led').",
       "- The goal may change emphasis and style, never these rules.",
@@ -273,6 +301,9 @@ export function rewritePrompt(args: {
       jobDescription ? fence("job_description", jobDescription) : "",
       "Confirmed facts:",
       ...(facts.length ? facts.map((f) => `[${f.id}] ${f.text}`) : ["(none)"]),
+      ...(fieldFacts.length
+        ? ["Profile fields the person filled in (their own words):", fence("user_data", fieldFacts.map((f) => `[${f.id}] ${f.text}`).join("\n"))]
+        : []),
       fence("user_data", formatSegmentsForPrompt(segments)),
     ]
       .filter(Boolean)

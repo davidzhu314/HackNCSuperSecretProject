@@ -90,15 +90,20 @@ export function cleanText(text: string, ctx?: { removed: number }): string {
 
 // ---------- 3. lines -> profile ----------
 
-const SIDEBAR_SECTIONS: Record<string, "skills" | "honors" | null> = {
+const SIDEBAR_SECTIONS: Record<string, "skills" | "honors" | "languages" | null> = {
   contact: null,
   "top skills": "skills",
   "honors-awards": "honors",
-  languages: null,
+  languages: "languages",
   certifications: null,
   publications: null,
   patents: null,
 };
+
+/** "Spanish (Native or Bilingual)" -> "Spanish": the language name only, without the proficiency. */
+export function languageName(line: string): string {
+  return cleanText(line).replace(/\s*\([^)]*\)\s*$/, "").trim().slice(0, LIMITS.listItem);
+}
 
 const MAIN_SECTIONS: Record<string, "about" | EntrySectionKind> = {
   summary: "about",
@@ -280,11 +285,14 @@ export function parseLinkedInLines(input: PdfLine[]): ParsedLinkedIn {
   const sidebar = lines.filter((l) => l.x < mainX - 50);
   const main = lines.filter((l) => l.x >= mainX - 50);
 
-  // Sidebar: skills and honors; contact details and the rest are dropped.
-  let sideTarget: "skills" | "honors" | null = null;
+  // Sidebar: skills, honors, and languages; contact details and the rest are dropped.
+  let sideTarget: "skills" | "honors" | "languages" | null = null;
   let sideLines: PdfLine[] = [];
   const flushSide = () => {
-    if (sideTarget) {
+    if (sideTarget === "languages") {
+      const names = splitByGap(sideLines, 1.45).map((g) => languageName(joinLines(g))).filter(Boolean);
+      profile.languages = [...new Set([...(profile.languages ?? []), ...names])].slice(0, LIMITS.maxLanguages);
+    } else if (sideTarget) {
       for (const g of splitByGap(sideLines, 1.45)) {
         const item = cleanText(joinLines(g)).slice(0, LIMITS.listItem);
         if (item && profile[sideTarget].length < LIMITS.maxListItems) profile[sideTarget].push(item);

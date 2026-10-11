@@ -4,6 +4,8 @@ Written 2026-10-11 for a future Claude session (current as of `main` 4c7ef0f). *
 
 ## Split for two people (2026-10-11)
 
+> **Done:** all three parts were built in one branch, `feat/tinder-profile`. What's left: Tinder's real option lists and prompt limits (assumed for now; see the step 0 decisions), and Tinder sample results (Tinder always runs live).
+
 The user moved this ahead of [HANDOFF-WRITING.md](HANDOFF-WRITING.md). The work is split so two sessions can run at once:
 1. [HANDOFF-TINDER-0-CONTRACT.md](HANDOFF-TINDER-0-CONTRACT.md): the open questions and the shared contract. One small PR; **it blocks both halves**.
 2. In parallel after that: [HANDOFF-TINDER-A.md](HANDOFF-TINDER-A.md) (data and AI) and [HANDOFF-TINDER-B.md](HANDOFF-TINDER-B.md) (UI). Their files don't overlap.

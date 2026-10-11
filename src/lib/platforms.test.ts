@@ -82,11 +82,14 @@ describe("prompts", () => {
     expect(system).toContain("never predict followers");
   });
 
-  it("keeps dating rules for Tinder and the prompt note only for Hinge", () => {
+  it("gives the prompt note to the prompt platforms (Hinge, Tinder) and not to bio platforms", () => {
     const seg = segmentBio("Pancakes on weekends.");
     expect(extractPrompt("tinder", seg).system).toContain("dating-profile");
-    expect(extractPrompt("tinder", seg).system).not.toContain("prompt question");
+    expect(extractPrompt("tinder", seg).system).toContain("prompt question");
+    expect(extractPrompt("tinder", seg).system).toContain("About me");
     expect(extractPrompt("hinge", seg).system).toContain("prompt question");
+    expect(extractPrompt("hinge", seg).system).not.toContain("About me");
+    expect(extractPrompt("instagram", seg).system).not.toContain("prompt question");
   });
 });
 
