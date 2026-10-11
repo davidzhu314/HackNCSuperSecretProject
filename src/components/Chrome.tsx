@@ -1,7 +1,7 @@
 import Image, { type StaticImageData } from "next/image";
 import Link from "next/link";
 import aeroSky from "@/assets/aero-sky.jpg";
-import datingCafe from "@/assets/dating-cafe.jpg";
+import datingCouple from "@/assets/dating-couple.jpg";
 import linkedinSpeaker from "@/assets/linkedin-speaker.jpg";
 import personifyLogo from "@/assets/personify-logo-v3.png";
 import socialNightlife from "@/assets/social-nightlife.jpg";
@@ -9,52 +9,46 @@ import type { Platform } from "@/lib/schemas";
 
 // Page chrome shared by the home page, the hub, and the studio (from the Lovable designs: the Aero
 // sky, and the scenic "destinations"). Each platform uses its group's scene: professional the
-// speaker, social the nightlife, dating the cafe. The scene photos are from Unsplash (free license):
-// unsplash.com/photos/RfiBK6Y_upQ (speaker), /j4esZ9owgzA (nightlife), and /IRDPRsdozLI (cafe,
-// Ashkan Forouzani).
+// speaker, social the nightlife, dating the couple. The scene photos are from Unsplash (free license):
+// unsplash.com/photos/RfiBK6Y_upQ (speaker), /j4esZ9owgzA (nightlife), and /xM4wUnvbCKk (couple,
+// Priscilla Du Preez).
 
-type Scene = { image: StaticImageData; name: string; lens: string; caption: string; description: string };
+type Scene = { image: StaticImageData; name: string; caption: string; description: string };
 
 export const SCENES: Record<Platform, Scene> = {
   linkedin: {
     image: linkedinSpeaker,
     name: "LinkedIn",
-    lens: "RECRUITERS · HIRING LEADS",
     caption: "A world of opportunity.",
     description: "Your experience. Your ambitions. Your next chapter.",
   },
   handshake: {
     image: linkedinSpeaker,
     name: "Handshake",
-    lens: "CAMPUS RECRUITERS · HIRING MANAGERS",
     caption: "Your first big break.",
     description: "Your studies. Your projects. Your first role.",
   },
   instagram: {
     image: socialNightlife,
     name: "Instagram",
-    lens: "NEW VISITORS · SHARED INTERESTS",
     caption: "A first glance that's yours.",
     description: "Your interests. Your voice. In one short bio.",
   },
   facebook: {
     image: socialNightlife,
     name: "Facebook",
-    lens: "OLD FRIENDS · COMMUNITIES",
     caption: "What you're up to now.",
     description: "Your news. Your groups. Your people.",
   },
   hinge: {
-    image: datingCafe,
+    image: datingCouple,
     name: "Hinge",
-    lens: "POTENTIAL MATCHES · SHARED INTERESTS",
     caption: "Somewhere you belong.",
     description: "Your quirks. Your stories. Your kind of connection.",
   },
   tinder: {
-    image: datingCafe,
+    image: datingCouple,
     name: "Tinder",
-    lens: "POTENTIAL MATCHES · SHARED INTERESTS",
     caption: "A first line worth replying to.",
     description: "Your quirks. Your stories. Your kind of connection.",
   },

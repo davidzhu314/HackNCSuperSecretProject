@@ -465,7 +465,7 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .cited-link:hover { border-color: var(--primary); }
 
 /* ---------- Scenic "tour" chrome (merged from the Lovable aero-persona-hub design) ----------
-   Home: one destination per group (speaker, nightlife, cafe). Studio: the platform's photo behind the
+   Home: one destination per group (speaker, nightlife, couple). Studio: the platform's photo behind the
    page, hotspot pearls as the step rail, and the work itself in a wide light panel (not a
    drawer), so the section editor and annotated feedback keep their room. */
 :root {
@@ -487,16 +487,12 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .tour-header-home { position: absolute; top: 0; left: 0; right: 0; height: 112px; }
 .tour-wordmark { display: flex; align-items: center; gap: 10px; color: inherit; text-decoration: none; font-size: 27px; font-weight: 750; text-shadow: 0 1px 8px oklch(.15 .02 250 / .35); }
 .tour-wordmark .personify-logo { width: 36px; height: 36px; border-radius: 8px; }
-.tour-header-note { font-size: 10px; letter-spacing: 1.6px; padding-top: 14px; color: var(--tour-caption); }
 .tour-header-actions { justify-self: end; display: flex; align-items: center; gap: 12px; }
 .tour-link { color: var(--tour-white); text-decoration: none; font-size: 12px; border-bottom: 1px solid var(--tour-edge); padding: 6px 0; }
 .tour-link:hover { border-color: var(--tour-apricot); }
 .tour-button { background: var(--tour-translucent); border: 1px solid var(--tour-edge); color: var(--tour-white); border-radius: 0; font-size: 12px; font-weight: 500; min-height: 42px; padding: 10px 18px; backdrop-filter: blur(8px); transition: background .25s, border-color .25s; }
 .tour-button:hover { background: var(--tour-button-gradient); }
 .tour-button:focus-visible, .tour-hotspot:focus-visible, .tour-avatar:focus-visible, .tour-link:focus-visible { outline: 2px solid var(--tour-apricot); outline-offset: 2px; }
-.tour-kicker { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 10px; font-weight: 600; letter-spacing: 1.4px; color: var(--tour-caption); }
-.tour-kicker-dark { color: var(--primary); }
-.tour-line { display: inline-block; width: 30px; height: 1px; background: var(--tour-apricot); }
 .tour-privacy { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 7px; font-size: 11px; color: var(--tour-caption); }
 .destination-mark { display: inline-grid; place-items: center; width: 26px; height: 26px; border: 1px solid var(--tour-edge); background: var(--tour-translucent); color: var(--tour-white); }
 .destination-mark .brand-mark[data-platform=linkedin] { font-size: 13px; }
@@ -509,6 +505,7 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .destination:not(:last-child) { border-right: 1px solid var(--tour-edge); }
 .destination-photo { object-fit: cover; object-position: 40% center; transition: transform 1.4s ease; }
 .destination[data-destination=social] .destination-photo { object-position: 65% center; }
+.destination[data-destination=dating] .destination-photo { object-position: 55% center; }
 /* One column of equal-width buttons, as wide as the longest name. */
 .destination-platforms { list-style: none; margin: 0; padding: 0; display: grid; width: max-content; gap: 10px; }
 .destination-platforms .tour-button { gap: 10px; width: 100%; justify-content: flex-start; }
@@ -528,6 +525,8 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .tour-button[data-brand=tinder] { background: linear-gradient(45deg, #fd267a, #ff6036); }
 .destination:hover .destination-photo { transform: scale(1.045); }
 .destination-shade { position: absolute; inset: 0; background: var(--tour-split-gradient); }
+/* The couple photo is mostly a white table, so the text needs a darker shade there. */
+.destination[data-destination=dating] .destination-shade { background: linear-gradient(180deg, oklch(.16 .02 250 / .55), oklch(.16 .02 250 / .45) 45%, oklch(.12 .015 250 / .8)); }
 .destination-content { position: relative; z-index: 1; padding: 100px 10% 120px; width: 100%; }
 .destination-platform { display: flex; gap: 11px; align-items: center; font-size: 10px; letter-spacing: 1.4px; margin-bottom: 17px; color: var(--tour-caption); }
 .destination-content h2 { font-size: 56px; line-height: 1.1; color: inherit; margin: 0 0 14px; font-weight: 750; text-shadow: 0 2px 20px oklch(.15 .02 250 / .35); }
@@ -551,7 +550,10 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .scenic-backdrop { position: fixed; inset: 0; z-index: -1; overflow: hidden; background: var(--tour-ink); }
 .scenic-photo { object-fit: cover; animation: tour-arrival 1.2s ease-out; }
 .scenic-photo[data-platform=instagram], .scenic-photo[data-platform=facebook] { object-position: 55% center; }
+.scenic-photo[data-platform=hinge], .scenic-photo[data-platform=tinder] { object-position: center 55%; }
 .scenic-shade { position: absolute; inset: 0; background: var(--tour-photo-gradient); }
+/* The couple photo (Hinge, Tinder) is bright, so the intro text needs a darker shade. */
+.scenic-photo[data-platform=hinge] + .scenic-shade, .scenic-photo[data-platform=tinder] + .scenic-shade { background: linear-gradient(180deg, oklch(.16 .02 250 / .6), oklch(.16 .02 250 / .4) 55%, oklch(.12 .015 250 / .6)); }
 .tour-platform-switch { display: flex; }
 .tour-platform-switch .tour-button { gap: 8px; border-color: transparent; background: transparent; backdrop-filter: none; padding: 10px 14px; }
 .tour-platform-switch .tour-button:hover { background: var(--tour-translucent); }
@@ -592,35 +594,59 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .tour-progress > span:not(.tour-progress-label) { color: var(--tour-caption); font-size: 11px; font-weight: 400; }
 .tour-progress-label { font-size: 12px; font-weight: 500; color: var(--tour-caption); margin-right: 8px; }
 
-/* Hub */
-.hub-root { padding: 0; display: flex; flex-direction: column; min-height: 100svh; }
-.hub-root .aero-backdrop::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, oklch(.2 .025 250 / .25), transparent 30%); }
-.hub-main { width: calc(100% - 84px); max-width: 1180px; margin: 8px auto 36px; }
-.hub-layout { display: grid; gap: 18px; }
-.hub-card { background: var(--card); border: 1px solid var(--glass-edge); border-radius: 8px; box-shadow: 0 14px 40px var(--shadow-color); padding: 24px 26px; }
-.hub-layout .hub-persona { margin: 0; align-items: flex-start; }
-.hub-portrait { width: 112px; height: 112px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center; overflow: hidden; color: var(--primary); background: var(--logo-background); border: 2px dashed transparent; box-shadow: inset 0 1px 3px var(--glass-light), 0 6px 18px var(--shadow-color); }
-.hub-portrait[data-dragging=true] { border-color: var(--primary); }
+/* Hub: white and minimal, unlike the scenic home and studio. Everything is scoped to .hub-root. */
+.hub-root { --hub-ink: oklch(.22 .01 260); --hub-muted: oklch(.52 .01 260); --hub-line: oklch(.92 .004 260); --hub-wash: oklch(.975 .003 260);
+  padding: 0; display: flex; flex-direction: column; min-height: 100svh; background: #fff; color: var(--hub-ink); }
+.hub-root .tour-header { color: var(--hub-ink); background: #fff; border-bottom: 1px solid var(--hub-line); height: auto; padding: 18px 42px; align-items: center; }
+.hub-root .tour-wordmark { text-shadow: none; font-size: 24px; }
+.hub-root .tour-button { background: #fff; color: var(--hub-ink); border-color: var(--hub-line); backdrop-filter: none; border-radius: 8px; }
+.hub-root .tour-button:hover { background: var(--hub-wash); }
+.hub-root .tour-button:focus-visible { outline-color: var(--hub-ink); }
+.hub-main { width: calc(100% - 84px); max-width: 1080px; margin: 48px auto 64px; }
+.hub-layout { display: grid; gap: 40px; }
+.hub-card { background: #fff; border: 1px solid var(--hub-line); border-radius: 12px; box-shadow: none; padding: 24px; }
+.hub-root .empty-note, .hub-root .status-note { color: var(--hub-muted); }
+.hub-root .section-heading, .hub-root h1, .hub-root h2, .hub-root h3 { color: var(--hub-ink); }
+.hub-root .aero-btn { background: var(--hub-ink); border-color: var(--hub-ink); color: #fff; box-shadow: none; text-shadow: none; border-radius: 8px; }
+.hub-root .aero-btn:hover { filter: none; background: oklch(.32 .01 260); }
+.hub-root .glass-btn { background: #fff; border-color: var(--hub-line); color: var(--hub-ink); box-shadow: none; border-radius: 8px; }
+.hub-root .glass-btn:hover { background: var(--hub-wash); }
+.hub-layout .hub-persona { margin: 0; align-items: center; border: 0; padding: 0; background: none; }
+.hub-portrait { width: 96px; height: 96px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center; overflow: hidden; color: var(--hub-muted); background: var(--hub-wash); border: 1px dashed var(--hub-line); }
+.hub-portrait[data-dragging=true] { border-color: var(--hub-ink); }
 .hub-portrait img { width: 100%; height: 100%; object-fit: cover; }
 .hub-persona-text { min-width: 0; }
-.hub-persona-text h1 { font-size: 34px; margin: 6px 0 4px; }
+.hub-persona-text h1 { font-size: 32px; font-weight: 700; margin: 0 0 4px; letter-spacing: -.01em; }
+.hub-persona-text .empty-note { font-size: 13px; margin: 0; }
 .hub-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
 .hub-fine-print { margin: 10px 0 0; }
-.hub-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
-.hub-source { display: flex; flex-direction: column; gap: 10px; }
-.hub-source .hub-actions { margin-top: auto; padding-top: 6px; }
-.hub-source[data-platform=linkedin] { --platform: var(--linkedin); --platform-light: var(--linkedin-light); --platform-bright: var(--linkedin-bright); }
-.hub-source[data-platform=hinge] { --platform: var(--hinge); --platform-light: var(--hinge-light); --platform-bright: var(--hinge-bright); }
-.hub-source-head { display: flex; gap: 14px; align-items: center; }
-.hub-source-head h2 { margin: 0 0 2px; font-size: 18px; color: var(--deep-ocean); }
-.hub-source-head p { margin: 0; }
+.hub-groups { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: start; }
+.hub-group { display: grid; gap: 12px; }
+.hub-group-label { margin: 0 0 2px; font-size: 13px; font-weight: 600; color: var(--hub-muted); }
+.hub-source { display: flex; flex-direction: column; gap: 12px; padding: 20px; }
+.hub-source .hub-actions { margin-top: auto; padding-top: 4px; }
+.hub-source-head { display: flex; gap: 12px; align-items: center; }
+.hub-source-head h3 { margin: 0 0 2px; font-size: 16px; font-weight: 650; }
+.hub-source-head p { margin: 0; line-height: 1.5; }
+.hub-root .platform-icon { width: 36px; height: 36px; margin: 0; border-radius: 8px; border: 0; box-shadow: none; color: #fff; font-size: 13px; font-weight: 700; background: var(--hub-ink); }
+.hub-root [data-platform=linkedin] .platform-icon { background: #0a66c2; }
+.hub-root [data-platform=handshake] .platform-icon { background: #d3fb52; color: #0f2b1e; }
+.hub-root [data-platform=instagram] .platform-icon { background: linear-gradient(45deg, #f58529, #dd2a7b 45%, #8134af 75%, #515bd4); }
+.hub-root [data-platform=facebook] .platform-icon { background: #0866ff; }
+.hub-root [data-platform=hinge] .platform-icon { background: #111; }
+.hub-root [data-platform=tinder] .platform-icon { background: linear-gradient(45deg, #fd267a, #ff6036); }
 .hub-warnings { list-style: none; margin: 0; padding: 10px 12px; display: grid; gap: 6px; background: var(--warning-surface); color: var(--warning); border-radius: 6px; font-size: 11px; line-height: 1.6; }
 .hub-warnings li { display: flex; gap: 6px; }
 .hub-warnings svg { flex-shrink: 0; margin-top: 3px; }
-.hub-layout .hub-coverage { border-top: 1px solid var(--glass-edge); padding-top: 24px; }
+.hub-layout .hub-coverage { border-top: 1px solid var(--hub-line); padding-top: 24px; }
 .hub-coverage .status-note { margin-top: 0; }
+.hub-root .hub-fact { border-color: var(--hub-line); }
+.hub-root .hub-bar-track { background: var(--hub-wash); }
+.hub-root .hub-bar-fill { background: var(--hub-ink); }
 .hub-clear { display: flex; justify-content: flex-end; }
-.hub-clear .ghost, .hub-clear button { color: var(--tour-white); }
+.hub-clear .ghost, .hub-clear button { color: var(--hub-muted); }
+.hub-root .tour-footer { color: var(--hub-muted); background: #fff; border-top: 1px solid var(--hub-line); backdrop-filter: none; }
+.hub-root .tour-privacy { color: var(--hub-muted); }
 
 @keyframes tour-arrival { from { transform: scale(1.05); } to { transform: scale(1); } }
 @keyframes hotspot-pulse { 0%, 100% { transform: scale(1); opacity: .7; } 50% { transform: scale(1.18); opacity: 0; } }
@@ -629,7 +655,6 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 @media (min-width: 1600px) { .destination-content h2 { font-size: 68px; } }
 @media (max-width: 1000px) {
   .tour-header { padding: 20px 24px; }
-  .tour-header-note { display: none; }
   .tour-header-home { grid-template-columns: 1fr auto; }
   .tour-header-home .tour-wordmark { grid-column: 1; grid-row: 1; justify-self: start; }
   .destination-content { padding-left: 9%; padding-right: 9%; }
@@ -643,8 +668,6 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 @media (max-width: 760px) {
   .tour-header { height: auto; padding: 14px 16px; grid-template-columns: auto 1fr; gap: 10px; }
   .tour-header > :first-child { display: none; }
-  .tour-header-home > :first-child { display: inline; }
-  .tour-header-home .tour-header-note { display: none; }
   .tour-wordmark { font-size: 21px; gap: 7px; }
   .tour-wordmark .personify-logo { width: 29px; height: 29px; }
   .tour-header-actions { gap: 8px; }
@@ -675,7 +698,10 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
   .tour-privacy { font-size: 10px; }
   .tour-progress { font-size: 16px; }
   .tour-progress-label { font-size: 11px; margin-right: 4px; }
-  .hub-grid { grid-template-columns: minmax(0, 1fr); }
+  .hub-groups { grid-template-columns: minmax(0, 1fr); }
+  .hub-layout .hub-persona { align-items: flex-start; }
+  .hub-root .tour-header { padding: 14px 16px; }
+  .hub-main { margin-top: 28px; }
   .hub-card { padding: 20px 16px; }
   .hub-portrait { width: 84px; height: 84px; }
   .hub-persona-text h1 { font-size: 26px; }

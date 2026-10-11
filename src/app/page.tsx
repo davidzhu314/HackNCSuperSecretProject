@@ -7,7 +7,7 @@ import { PLATFORM_GROUPS } from "@/lib/rubrics";
 import type { PlatformGroup } from "@/lib/schemas";
 
 // Home: the Lovable "destinations", one per platform group (professional speaker, social nightlife,
-// dating cafe), each listing its platforms and opening the studio on the one picked, then how
+// dating couple), each listing its platforms and opening the studio on the one picked, then how
 // it works and the Identity Hub.
 
 const GROUP_CAPTION: Record<PlatformGroup, string> = {
@@ -20,7 +20,7 @@ export default function HomePage() {
   return (
     <div className="destination-home">
       <header className="tour-header tour-header-home">
-        <span className="tour-header-note">ONE IDENTITY. EVERY PLATFORM.</span>
+        <span aria-hidden="true" />
         <Wordmark className="tour-wordmark" />
         <nav className="tour-header-actions" aria-label="Main navigation">
           <Link href="/hub" className="tour-link">
@@ -78,9 +78,6 @@ export default function HomePage() {
 
         <section className="home-band" aria-labelledby="how">
           <div className="home-band-inner">
-            <span className="tour-kicker tour-kicker-dark">
-              IMPROVE EXPRESSION, NOT INVENT IDENTITY <span className="tour-line" aria-hidden="true" />
-            </span>
             <h2 id="how">How it works</h2>
             <div className="home-process">
               <div>
