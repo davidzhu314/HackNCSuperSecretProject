@@ -2,6 +2,7 @@ import { ArrowLeft, ArrowUpRight, ShieldCheck } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Wordmark } from "@/components/Chrome";
+import { HUB_THEME_SCRIPT, HubThemeToggle } from "@/components/HubThemeToggle";
 import { IdentityHub } from "@/components/IdentityHub";
 import { Button } from "@/components/ui/button";
 
@@ -13,6 +14,8 @@ export const metadata: Metadata = {
 export default function HubPage() {
   return (
     <div className="app-root hub-root" data-theme="linkedin">
+      {/* Applies the stored light/dark choice before paint. */}
+      <script dangerouslySetInnerHTML={{ __html: HUB_THEME_SCRIPT }} />
       <header className="tour-header">
         <Button variant="tour" nativeButton={false} render={<Link href="/" />}>
           <ArrowLeft />
@@ -20,6 +23,7 @@ export default function HubPage() {
         </Button>
         <Wordmark className="tour-wordmark" />
         <div className="tour-header-actions">
+          <HubThemeToggle />
           <Button variant="tour" nativeButton={false} render={<Link href="/studio" />}>
             Profile studio <ArrowUpRight />
           </Button>
