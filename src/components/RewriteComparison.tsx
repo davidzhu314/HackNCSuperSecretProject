@@ -497,7 +497,7 @@ export function VariationResult(props: {
           {use?.applied && inUse ? "Selected as your current draft." : "Review your words before sharing them."}
         </span>
         {scoreComparison && <span className="score-comparison-note" data-better={scoreComparison.improved} role="status">
-          {scoreComparison.delta === null ? "Rewrite scores could not be compared." : scoreComparison.improved ? `Selected audiences rated this rewrite ${scoreComparison.delta} points higher on average.` : scoreComparison.delta === 0 ? "The average audience rating was unchanged." : `Selected audiences rated this rewrite ${Math.abs(scoreComparison.delta)} points lower on average.`}
+          {scoreComparison.delta === null ? "Rewrite scores could not be compared." : scoreComparison.improved ? `In this AI check, selected audiences rated this rewrite ${scoreComparison.delta} points higher on average.` : scoreComparison.delta === 0 ? "In this AI check, the average audience rating was unchanged." : `In this AI check, selected audiences rated this rewrite ${Math.abs(scoreComparison.delta)} points lower on average.`}
         </span>}
         <div className="action-buttons">
           {props.onScore && <Button variant="glass" disabled={scoring || source === "sample"} title={source === "sample" ? "Sample mode does not send text for scoring" : undefined} onClick={async () => { setScoring(true); setScoreComparison(null); try { setScoreComparison(await props.onScore?.(text, props.qualityTargetKey) ?? null); } catch (error) { onError(error instanceof Error ? error.message : "Could not compare scores. Try again."); } finally { setScoring(false); } }}>

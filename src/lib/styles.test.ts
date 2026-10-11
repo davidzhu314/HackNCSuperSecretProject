@@ -24,11 +24,12 @@ describe("length targets", () => {
     expect(targetChars("about", 400, "longer")).toBeGreaterThan(targetChars("experience", 400, "longer"));
   });
 
-  it("measure a very short headline or About from a usual length, but an entry from itself", () => {
-    expect(targetChars("headline", 21, "same")).toBe(100);
-    expect(targetChars("headline", 21, "much_shorter")).toBe(50);
+  it("keeps same and shorter settings relative to actual text, while letting longer headline/About grow from a usual size", () => {
+    expect(targetChars("headline", 21, "same")).toBe(21);
+    expect(targetChars("headline", 21, "much_shorter")).toBe(20);
     expect(targetChars("headline", 21, "much_longer")).toBe(200);
-    expect(targetChars("about", 120, "same")).toBe(300);
+    expect(targetChars("about", 120, "same")).toBe(120);
+    expect(targetChars("about", 120, "shorter")).toBe(90);
     expect(targetChars("experience", 18, "much_shorter")).toBe(18);
     expect(targetChars("experience", 120, "same")).toBe(120);
   });

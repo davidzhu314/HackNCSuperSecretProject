@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Personify",
   description:
-    "Audience feedback and fact-checked rewrites for LinkedIn and Hinge profiles.",
+    "Platform-aware profile feedback and fact-checked rewrites for professional, social, and dating profiles.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

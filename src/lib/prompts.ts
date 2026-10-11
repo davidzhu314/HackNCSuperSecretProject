@@ -475,6 +475,7 @@ export function sectionRewritePrompt(args: {
       `Style: ${spec.label}. ${spec.rules}`,
       spec.format[format],
       styleContrast(style),
+      `Apply the selected length only to this ${SECTION_LABEL[section.kind]} (${section.label}); do not carry a length setting from another section into this rewrite.`,
       lengthInstruction({ original: section.text.length, target, step: length, format, bullets: countBullets(section.text) }),
       "Sound like a person, not a template. Never overstate the sources. Do not end with a question to the reader.",
       "Write only the profile copy in its required field format. Keep it specific and economical; do not append an explanation of the person's characteristics or of your edits.",
