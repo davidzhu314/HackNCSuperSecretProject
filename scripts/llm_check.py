@@ -1,4 +1,4 @@
-"""Check that GEMINI_API_KEY in .env.local works, and that GEMINI_MODEL returns valid JSON.
+"""Check that OPENROUTER_API_KEY in .env.local works, and that OPENROUTER_MODEL returns valid JSON.
 Never prints the key.
 
 Run: .venv/bin/python scripts/llm_check.py
@@ -12,12 +12,14 @@ from openai import OpenAI
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env.local")
 
-key = os.environ.get("GEMINI_API_KEY", "").strip()
-model = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash").strip()
+key = os.environ.get("OPENROUTER_API_KEY", "").strip()
+model = os.environ.get("OPENROUTER_MODEL", "").strip()
 if not key:
-    raise SystemExit("GEMINI_API_KEY is empty in .env.local")
+    raise SystemExit("OPENROUTER_API_KEY is empty in .env.local")
+if not model:
+    raise SystemExit("OPENROUTER_MODEL is empty in .env.local")
 
-client = OpenAI(api_key=key, base_url="https://generativelanguage.googleapis.com/v1beta/openai/")
+client = OpenAI(api_key=key, base_url="https://openrouter.ai/api/v1")
 schema = {
     "name": "check",
     "strict": True,

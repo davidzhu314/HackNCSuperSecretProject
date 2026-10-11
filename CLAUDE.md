@@ -8,7 +8,7 @@
 ## Stack
 - Next.js 16 (App Router, `src/app/`), React 19, TypeScript, Tailwind CSS
 - shadcn/ui, lucide-react, zod, `diff`
-- LLM via Google Gemini's OpenAI-compatible endpoint (`openai` SDK, baseURL `https://generativelanguage.googleapis.com/v1beta/openai/`), server-side only, JSON/structured output validated with zod (retry once on invalid JSON)
+- LLM via OpenRouter (`openai` SDK, baseURL `https://openrouter.ai/api/v1`), server-side only, low temperature, JSON/structured output validated with zod (retry once on invalid JSON)
 - No database or auth. React state plus localStorage (non-sensitive prefs only)
 - npm, deployed on Vercel
 
@@ -36,21 +36,21 @@
 - Only **confirmed** facts may support generated claims. Never invent credentials, numbers, employers, dates, hobbies, or preferences.
 - Evidence uses **segment IDs**, not free-text quotes: split input into numbered segments server-side, have the model cite IDs, resolve quotes on the server. Flag unknown IDs.
 - FactCheck is deterministic TypeScript and must have tests. Never trust model `usedFactIds`. Never say "verified true"; say "no unsupported concrete claims detected".
-- Consent before any text goes to Google through the Gemini API. Asked once per browser (a `localStorage` flag only, with a way to withdraw); every API request still sends `consent: true` and is rejected without it. Never log or persist profile text by default.
+- Consent before any text goes to the AI provider (OpenRouter plus the underlying model provider). Asked once per browser (a `localStorage` flag only, with a way to withdraw); every API request still sends `consent: true` and is rejected without it. Never log or persist profile text by default.
 - Never commit a real person's profile (the repo is public). Test with real exports locally only; commit synthetic fixtures.
 - Demo/cached outputs must be visibly labeled. Never disguise them as live runs. No silent fake results.
-- Never expose `GEMINI_API_KEY` to the browser. Read it from `process.env` in server code only.
+- Never expose `OPENROUTER_API_KEY` to the browser. Read it from `process.env` in server code only.
 - Secrets live in `.env.local` (gitignored). `.env.example` lists names only. Never commit `.env*` values or paste keys into chat.
-- Use current official Gemini API docs, not memory. Verify the chosen model actually returns valid structured JSON before relying on it.
+- Use current official OpenRouter docs, not memory. Verify the chosen model actually returns valid structured JSON before relying on it.
 - Define zod schemas first; build UI against mock JSON so work can run in parallel.
 - Make sure `npm run build` passes before saying something is done.
 - Don't run `npm audit fix --force`. The current audit warnings are in dev tooling and accepted.
 
 ## Environment variables
-- `GEMINI_API_KEY`: server-side Gemini API key
-- `GEMINI_MODEL`: model for extraction and evaluation (default `gemini-3.8-flash`)
-- `GEMINI_REWRITE_MODEL`: optional model for `/api/rewrite` and `/api/rewrite-section` (default `gemini-3.8-flash`)
-- `GEMINI_TEMPERATURE`: optional generation temperature; unset by default
+- `OPENROUTER_API_KEY`: server-side OpenRouter key
+- `OPENROUTER_REWRITE_MODEL`: optional model for `/api/rewrite` and `/api/rewrite-section` (default `anthropic/claude-sonnet-5.5`; picked after a one-sample comparison against haiku-5.5, gemini-3.1-flash-lite, gemini-3.8-flash). Extract and evaluate use `OPENROUTER_MODEL`.
+- `OPENROUTER_TEMPERATURE`: optional. Unset by default because `anthropic/claude-haiku-5.5` has no OpenRouter endpoint that accepts `temperature` (with `require_parameters` it 404s). Set only for models that support it.
+- `OPENROUTER_MODEL`: model id (default `anthropic/claude-haiku-5.5`, ~$0.10 in / $0.50 out per 1M tokens; must support structured output; fallback `google/gemini-3.1-flash-lite`)
 
 ## Status
 - [x] Next.js scaffold created and dev server verified
@@ -65,7 +65,7 @@
 - [x] FactCheck with tests (`fact-guard.ts`, vitest: `npm test`)
 - [x] LLM client, rubrics, prompts, and API routes `facts/extract`, `evaluate`, `rewrite` (verified live against OpenRouter with the demo persona)
 - [x] Hinge mode
-- [x] Live on Vercel (https://hackathon-app-nu.vercel.app); configure `GEMINI_API_KEY` in the deployment environment before deploying this Gemini integration
+- [x] Live on Vercel (https://hackathon-app-nu.vercel.app); `OPENROUTER_API_KEY` set for Production
 - [x] Sections phase, data/AI side: section schemas and `profile.ts` (#7), PDF import (#9), live `/api/rewrite-section` (#10), 8 lenses in 4 categories (#11), `factCoverage` per section
 - [x] Sections phase, UI side (#5, #6, #8, #14; Person 2: section editor and PDF upload, lens picker, Audience Clash redesign, per-section rewrite screen, consent once, demo hub)
 - [x] Sections build tested live and deployed

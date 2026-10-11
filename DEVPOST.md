@@ -25,7 +25,7 @@ The app also has quick local checks for character limits and repeated wording. L
 
 ## How we built it
 
-Personify is built with **Next.js 16, React 19, TypeScript, and Tailwind CSS**. Its server-side API routes call **Google Gemini 3.8 Flash** for profile analysis and rewrites through Google's OpenAI-compatible API, using the OpenAI SDK. **Zod** validates requests and structured model responses. **pdfjs-dist** parses LinkedIn PDF exports in the browser, and **Vitest** runs the automated test suite.
+Personify is built with **Next.js 16, React 19, TypeScript, and Tailwind CSS**. Its server-side API routes call **Anthropic Claude Haiku 5.5** for profile analysis and **Claude Sonnet 5.5** for rewrites through **OpenRouter**, using the OpenAI SDK. **Zod** validates requests and structured model responses. **pdfjs-dist** parses LinkedIn PDF exports in the browser, and **Vitest** runs the automated test suite.
 
 Each platform has its own input shape, audience lenses, writing guidance, and character limits. The rewrite prompts use the platform and section the user selected, while the app's deterministic checks look for unsupported numbers, names, credentials, stronger claims, and invalid source references. The AI suggests language; the checks and the user help keep that language grounded.
 
@@ -65,4 +65,4 @@ We also learned that AI works better as one part of a product than as the whole 
 
 ## Built with
 
-Next.js, React, TypeScript, Tailwind CSS, Google Gemini 3.8 Flash, Gemini API, OpenAI SDK, Zod, pdfjs-dist, Vitest
+Next.js, React, TypeScript, Tailwind CSS, OpenRouter, Claude Haiku 5.5, Claude Sonnet 5.5, OpenAI SDK, Zod, pdfjs-dist, Vitest

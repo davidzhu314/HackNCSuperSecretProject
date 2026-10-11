@@ -1205,8 +1205,8 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
         {help && (
           <p className="help-note" id="studio-help">
             Nothing is sent until you agree, once per browser (only that yes is remembered; withdraw it any time
-            from the bar below). After that, your profile text and confirmed facts go to Google through the Gemini API;
-            nothing else is stored by this app. Imported PDFs and photos stay in your
+            from the bar below). After that, your profile text and confirmed facts go to OpenRouter and the
+            underlying AI model provider; nothing else is stored by this app. Imported PDFs and photos stay in your
             browser, and entry locations are never sent. On Tinder, only your About me, prompt answers, and work
             fields (job title, company, school, languages) are sent; never where you live or your other profile fields. Feedback is written by an AI model, not real people.
             Rewrites may only use facts you confirm, and FactCheck flags numbers, names, and stronger verbs it

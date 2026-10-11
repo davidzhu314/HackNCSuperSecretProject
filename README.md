@@ -35,7 +35,7 @@ The app includes focused flows for section-based LinkedIn profiles and progressi
 ## Privacy and limitations
 
 - Personify asks for consent before sending profile text to an AI service.
-- AI requests are handled by server routes using a Gemini API key kept on the server. Never put that key in a client-side variable.
+- AI requests are handled by server routes using an OpenRouter API key kept on the server. Never put that key in a client-side variable.
 - Profile details are held in the browser app’s in-memory session while you work; refreshing clears that session. The app does not provide accounts or persistent cloud profile storage.
 - The audience perspectives are simulations, not interviews, user research, or measured platform outcomes.
 - Personify does not connect to platform accounts or automatically update profiles.
@@ -74,7 +74,7 @@ On macOS or Linux, use:
 cp .env.example .env.local
 ~~~
 
-Add your Gemini API key to .env.local, then start the development server:
+Add your OpenRouter key to .env.local, then start the development server:
 
 ~~~bash
 npm run dev
@@ -86,10 +86,10 @@ Open http://localhost:3000.
 
 | Variable | Purpose |
 | --- | --- |
-| GEMINI_API_KEY | Required for AI-powered feedback, extraction, and rewriting. Keep it private and server-side. |
-| GEMINI_MODEL | Gemini model used for analysis and evaluation. |
-| GEMINI_REWRITE_MODEL | Gemini model used for profile rewrites. |
-| GEMINI_TEMPERATURE | Optional generation setting; leave unset to use the model default. |
+| OPENROUTER_API_KEY | Required for AI-powered feedback, extraction, and rewriting. Keep it private and server-side. |
+| OPENROUTER_MODEL | Model used for analysis and evaluation. |
+| OPENROUTER_REWRITE_MODEL | Model used for profile rewrites. |
+| OPENROUTER_TEMPERATURE | Optional generation setting; leave unset if the selected model does not support it. |
 
 See .env.example for the defaults expected by this project. Local quick checks do not require an AI key.
 
@@ -110,7 +110,7 @@ npm test          # Run the Vitest suite
 - Tailwind CSS
 - Zod for validation
 - Vitest
-- Google Gemini API through its OpenAI-compatible endpoint and the OpenAI SDK
+- OpenRouter with the OpenAI SDK
 
 ## Project structure
 
