@@ -241,7 +241,7 @@ export function Landing() {
           <div className="pf-consent">
             <h2 className="pf-h2">Nothing leaves before you agree</h2>
             <p className="pf-body">
-              Your text and confirmed facts go to the AI provider (OpenRouter and the model behind it) only after you
+              Your text and confirmed facts go to Google through the Gemini API only after you
               say yes, and that includes suggesting facts. The server enforces it too. Personify never stores or logs
               your profile.
             </p>
