@@ -97,7 +97,7 @@ export default function HomePage() {
               <Fingerprint aria-hidden="true" />
               <span>
                 <strong>Identity Hub</strong>
-                <span>One set of confirmed facts for every platform. Add your LinkedIn PDF and photo once.</span>
+                <span>Write once, show up everywhere: confirm your facts once, choose where each one is used, and every platform’s rewrite is checked against them.</span>
               </span>
               <ArrowUpRight aria-hidden="true" />
             </Link>

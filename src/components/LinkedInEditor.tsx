@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, FileText, LoaderCircle, Plus, Sparkles, Trash2, TriangleAlert, Upload } from "lucide-react";
+import { ArrowRight, Fingerprint, FileText, LoaderCircle, Plus, Sparkles, Trash2, TriangleAlert, Upload } from "lucide-react";
 import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { nextEntryId, profileCharCount } from "@/lib/profile";
@@ -33,8 +33,12 @@ export function LinkedInEditor(props: {
   onLoadDemo: () => void;
   onSampleModeChange: (enabled: boolean) => void;
   onContinue: () => void;
+  /** Confirmed facts shared with LinkedIn, offered as a starting About when it's empty. */
+  seedFacts?: number;
+  onSeed?: () => void;
 }) {
-  const { profile, jobDescription, demo, imported, importing, canUseSample, sampleMode, canContinue } = props;
+  const { profile, jobDescription, demo, imported, importing, canUseSample, sampleMode, canContinue, seedFacts, onSeed } =
+    props;
   const { onChange, onJobDescription, onImportFile, onLoadDemo, onSampleModeChange, onContinue } = props;
   const fileInput = useRef<HTMLInputElement>(null);
   const chars = profileCharCount(profile);
@@ -84,6 +88,17 @@ export function LinkedInEditor(props: {
             <Sparkles />
             Load demo persona
           </Button>
+          {!!seedFacts && onSeed && !profile.about.trim() && (
+            <Button
+              variant="glass"
+              disabled={importing}
+              onClick={onSeed}
+              title="Fills About with your confirmed facts, word for word, as a first draft to edit"
+            >
+              <Fingerprint />
+              Start from my {seedFacts} {seedFacts === 1 ? "fact" : "facts"}
+            </Button>
+          )}
         </div>
       </div>
 

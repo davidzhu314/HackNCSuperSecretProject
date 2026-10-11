@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, FileText, LockKeyhole, Sparkles } from "lucide-react";
+import { ArrowRight, FileText, Fingerprint, LockKeyhole, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HINGE_PROMPTS, MAX_HINGE_ANSWER, type HingePair } from "@/lib/persona-ui";
 
@@ -13,8 +13,11 @@ export function ProfileInput(props: {
   onHingeChange: (pairs: HingePair[]) => void;
   onLoadDemo: () => void;
   onContinue: () => void;
+  /** Confirmed facts shared with Hinge, offered as first drafts for empty answers. */
+  seedFacts?: number;
+  onSeed?: () => void;
 }) {
-  const { hinge, demo, canContinue, onHingeChange, onLoadDemo, onContinue } = props;
+  const { hinge, demo, canContinue, onHingeChange, onLoadDemo, onContinue, seedFacts, onSeed } = props;
   const setPair = (index: number, patch: Partial<HingePair>) =>
     onHingeChange(hinge.map((pair, i) => (i === index ? { ...pair, ...patch } : pair)));
 
@@ -78,6 +81,22 @@ export function ProfileInput(props: {
             Load demo persona
           </Button>
           {demo && <p className="demo-note">Fictitious demo persona</p>}
+          {!!seedFacts && onSeed && hinge.some((p) => !p.answer.trim()) && (
+            <>
+              <h2 className="section-heading seed-heading">
+                <Fingerprint />
+                Start from your facts
+              </h2>
+              <p className="section-subtitle">
+                Fills empty answers with your confirmed facts, word for word, as a first draft. Pick prompts that fit and
+                make them sound like you.
+              </p>
+              <Button variant="glass" onClick={onSeed}>
+                <Fingerprint />
+                Use my {seedFacts} {seedFacts === 1 ? "fact" : "facts"}
+              </Button>
+            </>
+          )}
           <p className="flow-description">Pick a prompt and paste your answer for each one you use.</p>
         </div>
       </div>

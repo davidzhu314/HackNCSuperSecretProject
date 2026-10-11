@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import type { FactPlatforms } from "./fact-platforms";
 import type { HingePair } from "./persona-ui";
 import type { IdentityFact, LinkedInProfile } from "./schemas";
 
@@ -19,6 +20,8 @@ export type IdentitySession = {
   hinge: HingePair[] | null;
   /** Confirmed and user-typed facts carry across platforms; unconfirmed AI suggestions too, until replaced. */
   facts: IdentityFact[];
+  /** Which platforms each fact is shared with (fact-platforms.ts). Read by the studio directly. */
+  factPlatforms: FactPlatforms;
   /**
    * Bumped by edits made outside the studio (the hub's import, clearing the session). The studio
    * is keyed on it, so it starts over from the session instead of keeping a stale copy: Next keeps
@@ -35,6 +38,7 @@ const EMPTY_DATA: Omit<IdentitySession, "rev"> = {
   jobDescription: "",
   hinge: null,
   facts: [],
+  factPlatforms: {},
 };
 const EMPTY: IdentitySession = { ...EMPTY_DATA, rev: 0 };
 

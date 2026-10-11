@@ -19,6 +19,7 @@ import { TourStops } from "@/components/TourStops";
 import { Button } from "@/components/ui/button";
 import { errorMessage, evaluateProfile, extractFacts, rewriteProfile, rewriteSection } from "@/lib/api-client";
 import { saveConsent, useStoredConsent, withdrawConsent } from "@/lib/consent";
+import { factsFor, recordFoundOn, seedHinge, seedLinkedIn, togglePlatform } from "@/lib/fact-platforms";
 import { getSession, updateSession, useIdentitySession } from "@/lib/identity-session";
 import { DEMO_HINGE_FACTS, DEMO_HINGE_INPUT, DEMO_LINKEDIN_FACTS, DEMO_LINKEDIN_PROFILE } from "@/lib/demo-data";
 import { emptyHingePairs, HINGE_PROMPTS, mergeFacts, MAX_HINGE_ANSWER, MAX_HINGE_PROMPTS, type HingePair } from "@/lib/persona-ui";
@@ -127,9 +128,15 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
     if (imported !== prev.imported) patch.linkedinImport = imported;
     if (jobDescription !== prev.jobDescription) patch.jobDescription = jobDescription;
     if (hinge !== prev.hinge) patch.hinge = hinge.some((p) => p.answer.trim()) ? hinge : null;
-    if (facts !== prev.facts) patch.facts = facts;
+    if (facts !== prev.facts) {
+      patch.facts = facts;
+      // Newly suggested facts are used only on the platform they were found on, until shared.
+      const map = getSession().factPlatforms;
+      const recorded = recordFoundOn(map, facts, platform);
+      if (Object.keys(recorded).length !== Object.keys(map).length) patch.factPlatforms = recorded;
+    }
     if (Object.keys(patch).length) updateSession(patch);
-  }, [profile, original, imported, jobDescription, hinge, facts]);
+  }, [platform, profile, original, imported, jobDescription, hinge, facts]);
 
   const [audiences, setAudiences] = useState(() => defaultAudiences(initialPlatform));
   const [traits, setTraits] = useState(() => defaultTraits(initialPlatform));
@@ -164,7 +171,10 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
   const applied = useMemo(() => (original ? changedSections(cleanProfile(original), clean) : []), [original, clean]);
   const hingeOriginal = hinge.map((p) => p.answer.trim()).filter(Boolean).join("\n\n");
   const sourceKey = textKey(platform, segments);
-  const confirmedFacts = facts.filter((f) => f.confirmed && f.text.trim());
+  // Write once, show up everywhere: only confirmed facts shared with this platform can be used here.
+  const factPlatforms = session.factPlatforms;
+  const confirmedFacts = factsFor(platform, facts, factPlatforms);
+  const allConfirmed = facts.filter((f) => f.confirmed && f.text.trim()).length;
   const usingDemo = platform === "linkedin" ? JSON.stringify(baseClean) === DEMO_PROFILE_JSON : hingeDemo;
   const canUseSample = usingDemo && platform === "linkedin";
   const sample = canUseSample && sampleMode;
@@ -312,20 +322,33 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
     }
   }
 
+  /** Demo facts are used only on the demo's platform until shared, like facts found in your text. */
+  function addDemoFacts(demoFacts: IdentityFact[]) {
+    const merged = mergeFacts(facts, demoFacts);
+    setFacts(merged);
+    const added = merged.filter((f) => DEMO_FACT_TEXTS.has(f.text));
+    updateSession({ factPlatforms: recordFoundOn(getSession().factPlatforms, added, platform, true) });
+  }
+
+  function toggleFactPlatform(fact: IdentityFact, p: Platform) {
+    updateSession({ factPlatforms: togglePlatform(getSession().factPlatforms, fact, p) });
+    if (p === platform) clearRewrites(); // the facts this platform's rewrites may use changed
+  }
+
   function loadDemo() {
     resetResults();
     if (platform === "linkedin") {
       setProfile(structuredClone(DEMO_LINKEDIN_PROFILE));
       setOriginal(null);
       setImported(null);
-      setFacts((prev) => mergeFacts(prev, DEMO_LINKEDIN_FACTS));
+      addDemoFacts(DEMO_LINKEDIN_FACTS);
       // Demo facts are preloaded, so no extraction is needed for this text.
       extractedFor.current = textKey("linkedin", segmentProfile(DEMO_LINKEDIN_PROFILE));
     } else {
       const pairs = demoHingePairs();
       setHinge(pairs);
       setHingeDemo(true);
-      setFacts((prev) => mergeFacts(prev, DEMO_HINGE_FACTS));
+      addDemoFacts(DEMO_HINGE_FACTS);
       extractedFor.current = textKey("hinge", segmentHinge(pairs));
     }
     setStep(INPUT);
@@ -567,7 +590,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
             </span>
             <span className="tour-hub-label">
               Hub
-              {confirmedFacts.length > 0 && <span className="tour-hub-count">{confirmedFacts.length} facts</span>}
+              {allConfirmed > 0 && <span className="tour-hub-count">{allConfirmed} facts</span>}
             </span>
           </Link>
         </div>
@@ -631,6 +654,8 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
               onLoadDemo={loadDemo}
               onSampleModeChange={setSampleMode}
               onContinue={continueFromInput}
+              seedFacts={confirmedFacts.length}
+              onSeed={() => changeProfile(seedLinkedIn(profile, confirmedFacts))}
             />
           )}
           {step === INPUT && platform === "hinge" && (
@@ -641,6 +666,8 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
               onHingeChange={changeHinge}
               onLoadDemo={loadDemo}
               onContinue={continueFromInput}
+              seedFacts={confirmedFacts.length}
+              onSeed={() => changeHinge(seedHinge(hinge, confirmedFacts))}
             />
           )}
           {step === CONSENT && (
@@ -664,6 +691,9 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
                 clearRewrites();
               }}
               onContinue={() => go(AUDIENCES)}
+              platform={platform}
+              factPlatforms={factPlatforms}
+              onTogglePlatform={toggleFactPlatform}
             />
           )}
           {step === AUDIENCES && (
@@ -774,7 +804,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
             <StudioFinish
               platform={platform}
               used={platform === "linkedin" ? { count: applied.length, total: sections.length } : undefined}
-              confirmedFacts={confirmedFacts.length}
+              confirmedFacts={factsFor(otherPlatform, facts, factPlatforms).length}
               onCopyProfile={platform === "linkedin" ? copyProfile : undefined}
               onOtherPlatform={() => switchPlatform(otherPlatform)}
             />

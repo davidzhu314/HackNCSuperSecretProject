@@ -6,7 +6,8 @@ import { useRef, useState } from "react";
 import { BrandMark } from "@/components/Chrome";
 import { Button } from "@/components/ui/button";
 import { DEMO_LINKEDIN_FACTS, DEMO_LINKEDIN_PROFILE } from "@/lib/demo-data";
-import { clearSession, setPhotoFile, updateSession, useIdentitySession } from "@/lib/identity-session";
+import { PLATFORMS, platformsOf, togglePlatform, type FactPlatforms } from "@/lib/fact-platforms";
+import { clearSession, getSession, setPhotoFile, updateSession, useIdentitySession } from "@/lib/identity-session";
 import type { HingePair } from "@/lib/persona-ui";
 import { factCoverage, rewritableSections, segmentProfile } from "@/lib/profile";
 import { hingeFactIds } from "@/lib/profile-edits";
@@ -86,7 +87,7 @@ export function IdentityHub() {
         <div className="hub-persona-text">
           <span className="eyebrow">
             <Fingerprint size={13} />
-            One identity. Authentically you.
+            Write once, show up everywhere
           </span>
           <h1>Your Identity Hub</h1>
           <p className="empty-note">
@@ -198,7 +199,7 @@ export function IdentityHub() {
         </section>
       </div>
 
-      <FactsCard facts={confirmed} linkedin={linkedin} hinge={session.hinge} />
+      <FactsCard facts={confirmed} linkedin={linkedin} hinge={session.hinge} factPlatforms={session.factPlatforms} />
 
       {own && linkedin ? (
         <Coverage profile={linkedin} before={before} facts={confirmed} mode={loadedDemo ? "demo" : "own"} />
@@ -222,8 +223,13 @@ export function IdentityHub() {
  * Your facts: the one set of confirmed facts every platform draws on, and where each shows up.
  * LinkedIn by section, Hinge in the answers; both by the same deterministic word overlap.
  */
-function FactsCard(props: { facts: IdentityFact[]; linkedin: LinkedInProfile | null; hinge: HingePair[] | null }) {
-  const { facts, linkedin, hinge } = props;
+function FactsCard(props: {
+  facts: IdentityFact[];
+  linkedin: LinkedInProfile | null;
+  hinge: HingePair[] | null;
+  factPlatforms: FactPlatforms;
+}) {
+  const { facts, linkedin, hinge, factPlatforms } = props;
   const hasHinge = !!hinge?.some((p) => p.answer.trim());
   const linkedinCoverage = linkedin ? factCoverage(linkedin, facts) : null;
   const labelOf = new Map(linkedinCoverage?.bySection.map((s) => [s.sectionKey, s.label]));
@@ -236,34 +242,53 @@ function FactsCard(props: { facts: IdentityFact[]; linkedin: LinkedInProfile | n
           <Fingerprint />
           Your facts
         </h2>
-        <span className="empty-note">
-          {facts.length} confirmed · shared by LinkedIn and Hinge
-        </span>
+        <span className="empty-note">Write once, show up everywhere: {facts.length} confirmed</span>
       </div>
       {!facts.length ? (
         <p className="empty-note">
-          No confirmed facts yet. Confirm them in the studio (step 3, Identity DNA); they follow you to every platform,
-          and rewrites may only use these.
+          No confirmed facts yet. Confirm them in the studio (step 3, Identity DNA). You confirm each fact once, choose
+          which platforms may use it, and rewrites everywhere use only these.
         </p>
       ) : (
         <ul className="hub-facts">
           {facts.map((fact) => {
             const keys = linkedinCoverage?.perFact.find((f) => f.factId === fact.id)?.sectionKeys ?? [];
+            const shared = platformsOf(fact, factPlatforms);
             return (
               <li key={fact.id} className="hub-fact hub-fact-wide">
                 <Check size={15} aria-hidden="true" />
                 <div>
                   <p>{fact.text}</p>
+                  <span className="fact-share" role="group" aria-label="Platforms this fact is used on">
+                    Use on
+                    {PLATFORMS.map((p) => (
+                      <button
+                        type="button"
+                        key={p}
+                        className="share-chip"
+                        data-on={shared.includes(p)}
+                        aria-pressed={shared.includes(p)}
+                        onClick={() => updateSession({ factPlatforms: togglePlatform(getSession().factPlatforms, fact, p) })}
+                      >
+                        {p === "linkedin" ? "LinkedIn" : "Hinge"}
+                      </button>
+                    ))}
+                  </span>
                   <div className="fact-platforms">
                     {linkedin && (
-                      <span className="fact-platform" data-found={keys.length > 0}>
+                      <span className="fact-platform" data-found={keys.length > 0} data-shared={shared.includes("linkedin")}>
                         <strong>LinkedIn:</strong>{" "}
-                        {keys.length ? keys.map((k) => labelOf.get(k) ?? k).join(", ") : "not yet"}
+                        {!shared.includes("linkedin")
+                          ? "not shared"
+                          : keys.length
+                            ? keys.map((k) => labelOf.get(k) ?? k).join(", ")
+                            : "not yet"}
                       </span>
                     )}
                     {hasHinge && (
-                      <span className="fact-platform" data-found={onHinge.has(fact.id)}>
-                        <strong>Hinge:</strong> {onHinge.has(fact.id) ? "in your answers" : "not yet"}
+                      <span className="fact-platform" data-found={onHinge.has(fact.id)} data-shared={shared.includes("hinge")}>
+                        <strong>Hinge:</strong>{" "}
+                        {!shared.includes("hinge") ? "not shared" : onHinge.has(fact.id) ? "in your answers" : "not yet"}
                       </span>
                     )}
                     {!linkedin && !hasHinge && <span className="empty-note">Add a profile to see where it appears.</span>}

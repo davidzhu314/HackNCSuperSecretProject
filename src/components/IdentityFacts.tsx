@@ -3,8 +3,11 @@
 import { ArrowRight, Dna, LoaderCircle, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { PLATFORMS, platformsOf, type FactPlatforms } from "@/lib/fact-platforms";
 import { factTextSchema } from "@/lib/persona-ui";
-import { LIMITS, type IdentityFact } from "@/lib/schemas";
+import { LIMITS, type IdentityFact, type Platform } from "@/lib/schemas";
+
+const NAME: Record<Platform, string> = { linkedin: "LinkedIn", hinge: "Hinge" };
 
 export function IdentityFacts(props: {
   facts: IdentityFact[];
@@ -13,8 +16,13 @@ export function IdentityFacts(props: {
   loading: boolean;
   onChange: (facts: IdentityFact[]) => void;
   onContinue: () => void;
+  /** Write once, show up everywhere: which platforms each fact is shared with. */
+  platform: Platform;
+  factPlatforms: FactPlatforms;
+  onTogglePlatform: (fact: IdentityFact, platform: Platform) => void;
 }) {
-  const { facts, demoFactIds, loading, onChange, onContinue } = props;
+  const { facts, demoFactIds, loading, onChange, onContinue, platform, factPlatforms, onTogglePlatform } = props;
+  const usableHere = facts.filter((f) => f.confirmed && platformsOf(f, factPlatforms).includes(platform)).length;
   const [newFact, setNewFact] = useState("");
   const [error, setError] = useState("");
 
@@ -42,7 +50,8 @@ export function IdentityFacts(props: {
         <Dna /> Identity DNA
       </h2>
       <p className="flow-description">
-        Tick the facts that are true about you. Only ticked facts can be used in a rewrite.
+        Tick the facts that are true about you, and choose where each one may be used. Rewrites on {NAME[platform]} use
+        only the ticked facts shared with {NAME[platform]}. You confirm them once; they follow you to every platform.
       </p>
       {loading && (
         <div role="status" aria-live="polite">
@@ -85,13 +94,33 @@ export function IdentityFacts(props: {
                   )
                 }
               />
-              <span className="source-tag">
-                {demoFactIds.includes(fact.id)
-                  ? "Demo persona fact"
-                  : fact.source === "extracted"
-                    ? "Suggested by AI"
-                    : "Added by you"}
-              </span>
+              <div className="fact-meta">
+                <span className="source-tag">
+                  {demoFactIds.includes(fact.id)
+                    ? "Demo persona fact"
+                    : fact.source === "extracted"
+                      ? "Suggested by AI"
+                      : "Added by you"}
+                </span>
+                <span className="fact-share" role="group" aria-label={`Platforms for fact ${index + 1}`}>
+                  Use on
+                  {PLATFORMS.map((p) => {
+                    const on = platformsOf(fact, factPlatforms).includes(p);
+                    return (
+                      <button
+                        type="button"
+                        key={p}
+                        className="share-chip"
+                        data-on={on}
+                        aria-pressed={on}
+                        onClick={() => onTogglePlatform(fact, p)}
+                      >
+                        {NAME[p]}
+                      </button>
+                    );
+                  })}
+                </span>
+              </div>
             </div>
             <Button
               variant="ghost"
@@ -132,7 +161,8 @@ export function IdentityFacts(props: {
       )}
       <div className="action-band">
         <span className="empty-note">
-          {facts.filter((fact) => fact.confirmed).length} of {facts.length} facts confirmed
+          {facts.filter((fact) => fact.confirmed).length} of {facts.length} facts confirmed · {usableHere} usable on{" "}
+          {NAME[platform]}
         </span>
         <Button variant="aero" disabled={invalid || loading} onClick={onContinue}>
           Continue <ArrowRight />
