@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { DEMO_BIO, SAMPLE_BIO_ADVERSARIAL_CONTENT, type BioPlatform } from "./demo-data";
 import { checkRewrite } from "./fact-guard";
-import { buildVariations } from "./postprocess";
+import { buildOneVariation, buildVariations } from "./postprocess";
+import { textTarget, toneOptions } from "./styles";
 import { evaluatePrompt, extractPrompt, rewritePrompt } from "./prompts";
 import { PLATFORM_CONFIGS, PLATFORM_GROUPS } from "./rubrics";
 import { PlatformSchema } from "./schemas";
@@ -138,5 +139,49 @@ describe("bio demo personas", () => {
     });
     const kinds = new Set(w.map((x) => x.kind));
     expect(kinds.has("unsupported_number") || kinds.has("unsupported_entity")).toBe(true);
+  });
+});
+
+describe("tone and length (one version)", () => {
+  const seg = segmentBio("cs student who likes pancakes and long walks");
+
+  it("asks for one version with the chosen tone and a length target capped at the limit", () => {
+    const config = PLATFORM_CONFIGS.instagram;
+    const { system } = rewritePrompt({ config, segments: seg, facts: [], audiences: [], tone: "more_playful", single: true, length: "much_longer" });
+    expect(system).toContain("Write one version");
+    expect(system).not.toContain("Write two versions");
+    expect(system).toContain("Selected length: Much longer");
+    expect(system).toMatch(/Aim for about 79 characters/);
+    expect(system).toContain("lighter, more playful phrasing");
+  });
+
+  it("keeps two versions when single isn't asked for", () => {
+    const { system } = rewritePrompt({ config: PLATFORM_CONFIGS.github, segments: seg, facts: [], audiences: [], tone: "balanced" });
+    expect(system).toContain("Write two versions");
+  });
+
+  it("gives prompt platforms a target per answer, each under its own limit", () => {
+    const answers = [{ id: "s1", text: "a".repeat(200), prompt: "About me" }, { id: "s2", text: "b".repeat(250), prompt: "I go crazy for…" }];
+    const { system } = rewritePrompt({ config: PLATFORM_CONFIGS.tinder, segments: answers, facts: [], audiences: [], tone: "balanced", single: true, length: "much_longer" });
+    expect(system).toContain("[s1] about 360 characters (now 200)");
+    expect(system).toContain("[s2] about 300 characters (now 250)");
+  });
+
+  it("targets relative to the original and within the cap", () => {
+    expect(textTarget(100, "same", 150)).toBe(100);
+    expect(textTarget(100, "shorter", 150)).toBe(75);
+    expect(textTarget(100, "much_longer", 150)).toBe(150);
+    expect(textTarget(10, "much_shorter", 150)).toBe(10);
+  });
+
+  it("names the tones by group", () => {
+    expect(toneOptions("professional").map((t) => t.label)).toEqual(["Close to my words", "Balanced", "Warmer"]);
+    expect(toneOptions("dating").map((t) => t.id)).toEqual(["closer_to_my_words", "balanced", "more_playful"]);
+  });
+
+  it("builds one checked version", () => {
+    const [only, ...rest] = buildOneVariation({ content: "cs student. Pancakes at Google.", usedFactIds: [], changeSummary: [] }, "instagram", seg, []);
+    expect(rest).toEqual([]);
+    expect(only.warnings.some((w) => w.kind === "unsupported_entity")).toBe(true);
   });
 });

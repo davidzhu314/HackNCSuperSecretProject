@@ -3,6 +3,7 @@
 import { Check, CircleAlert, Clipboard, Download, FileCheck, LoaderCircle, PenLine, ShieldCheck, Sparkles, TriangleAlert, Undo2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ExtraFacts } from "@/components/ExtraFacts";
+import { LengthSlider } from "@/components/SectionRewrites";
 import type { LieCheck } from "@/components/FactCheckDetail";
 import { Button } from "@/components/ui/button";
 import { checkRewrite } from "@/lib/fact-guard";
@@ -19,6 +20,8 @@ import {
   type RewriteStyle,
   type RewriteVariation,
   type Segment,
+  type LengthStep,
+  type RewriteTone,
 } from "@/lib/schemas";
 import { PLATFORM_CONFIGS } from "@/lib/rubrics";
 import { checkLength, checkStyle } from "@/lib/style-check";
@@ -66,8 +69,15 @@ export function RewriteComparison(props: {
   qualityTargetKey?: string;
   use?: { current: string; applied: boolean; onUse: (text: string) => void; onUndo: () => void };
   onScore?: (text: string, key?: string) => Promise<ScoreComparison>;
+  /** Tone and length controls: one version per setting, like LinkedIn's style and length. */
+  tones: { id: RewriteTone; label: string; summary: string }[];
+  tone: RewriteTone;
+  length: LengthStep;
+  onTone: (tone: RewriteTone) => void;
+  /** `commit`: the slider was released (generate); otherwise it's only moving. */
+  onLength: (length: LengthStep, commit: boolean) => void;
 }) {
-  const { result, goal, loading, adversarial, confirmedFacts, onGoal, onGenerate, onAdversarial } = props;
+  const { result, goal, loading, adversarial, confirmedFacts, onGoal, onGenerate, onAdversarial, tones, tone, length, onTone, onLength } = props;
   const [style, setStyle] = useState<RewriteStyle>("direct");
   const variations = result?.variations ?? [];
   const shown = variations.find((v) => v.style === style) ?? variations[0];
@@ -87,16 +97,40 @@ export function RewriteComparison(props: {
           <label className="field-label" htmlFor="rewrite-goal">What should this version emphasize?</label>
           <input id="rewrite-goal" className="goal-input" maxLength={300} value={goal} onChange={(event) => onGoal(event.target.value)} placeholder="e.g. make my interests clearer" />
         </details>
+        <div>
+          <label className="field-label" htmlFor="rewrite-tone">
+            Tone
+          </label>
+          <select id="rewrite-tone" className="audience-select" value={tone} disabled={loading} onChange={(event) => onTone(event.target.value as RewriteTone)}>
+            {tones.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+          <p className="style-summary">{tones.find((t) => t.id === tone)?.summary}</p>
+        </div>
+        <div>
+          <span className="field-label">Length</span>
+          <LengthSlider
+            id="rewrite-length"
+            label="Length"
+            value={length}
+            disabled={loading}
+            onChange={(next) => onLength(next, false)}
+            onCommit={(next) => onLength(next, true)}
+          />
+        </div>
         <Button variant="aero" disabled={loading} onClick={onGenerate}>
           {loading ? <LoaderCircle className="animate-spin" /> : <Sparkles />}
-          {loading ? "Writing two versions..." : result ? "Rewrite again" : "Generate rewrites"}
+          {loading ? "Rewriting…" : result ? "Rewrite again" : "Generate rewrite"}
         </Button>
       </div>
-      <ProgressBar active={loading} label="Writing two versions and running FactCheck…" expectedMs={EXPECTED_MS.rewrite} />
+      <ProgressBar active={loading} label="Writing your rewrite and running FactCheck…" expectedMs={EXPECTED_MS.rewrite} />
       <ExtraFacts facts={confirmedFacts} what={props.textName} onAdd={props.onAddFact} onRemove={props.onRemoveFact} lieCheck={props.lieCheck} />
       <p className="empty-note">
-        You’ll get two versions, a direct one and a narrative one, built only from your own words and any facts you add.
-        Neither may add anything else.
+        Pick a tone and a length. The rewrite uses only your own words and any facts you add; each setting you try is kept,
+        so you can switch back.
       </p>
       {result && shown && (
         <>
