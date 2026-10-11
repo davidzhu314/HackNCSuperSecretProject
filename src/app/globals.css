@@ -1192,3 +1192,21 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .hub-name-input:hover { border-bottom-color: var(--border); }
 .hub-name-input:focus { border-bottom-color: var(--primary); }
 .hub-name-input:focus::placeholder { opacity: .35; }
+
+/* Hub: "Your digital identity" progress (parts done, counted by code) */
+.hub-progress-total { display: flex; align-items: baseline; gap: 10px; margin: 6px 0 18px; flex-wrap: wrap; }
+.hub-progress-total strong { font-size: 40px; font-weight: 700; letter-spacing: -.02em; line-height: 1; }
+.hub-progress-total span { color: var(--hub-muted); font-size: 13px; }
+.hub-progress-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.hub-progress-rows li { display: grid; grid-template-columns: 150px minmax(0, 1fr) 42px; grid-template-areas: "name bar count" ". next next"; align-items: center; column-gap: 14px; row-gap: 3px; }
+.hub-progress-name { grid-area: name; display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; color: var(--hub-ink); text-decoration: none; }
+.hub-progress-name:hover { text-decoration: underline; text-underline-offset: 3px; }
+.hub-progress-name .platform-icon { width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0; }
+.hub-progress-name .platform-icon svg { width: 13px; height: 13px; }
+.hub-progress-bar { grid-area: bar; height: 8px; border-radius: 999px; background: var(--hub-wash); overflow: hidden; border: 1px solid var(--hub-line); }
+.hub-progress-bar > span { display: block; height: 100%; border-radius: inherit; background: var(--hub-ink); transition: width .3s ease; }
+.hub-progress-count { grid-area: count; text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; color: var(--hub-ink); }
+.hub-progress-next { grid-area: next; font-size: 11px; color: var(--hub-muted); display: inline-flex; align-items: center; gap: 4px; }
+@media (max-width: 560px) {
+  .hub-progress-rows li { grid-template-columns: minmax(0, 1fr) 42px; grid-template-areas: "name count" "bar bar" "next next"; }
+}
