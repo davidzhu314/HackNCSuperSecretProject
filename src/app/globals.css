@@ -588,22 +588,29 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .tour-progress > span:not(.tour-progress-label) { color: var(--tour-caption); font-size: 11px; font-weight: 400; }
 .tour-progress-label { font-size: 12px; font-weight: 500; color: var(--tour-caption); margin-right: 8px; }
 
-/* Hub: white and minimal, unlike the scenic home and studio. Everything is scoped to .hub-root. */
-.hub-root { --hub-ink: oklch(.22 .01 260); --hub-muted: oklch(.52 .01 260); --hub-line: oklch(.92 .004 260); --hub-wash: oklch(.975 .003 260);
-  padding: 0; display: flex; flex-direction: column; min-height: 100svh; background: #fff; color: var(--hub-ink); }
-.hub-root .tour-header { color: var(--hub-ink); background: #fff; border-bottom: 1px solid var(--hub-line); height: auto; padding: 18px 42px; align-items: center; }
+/* Hub: minimal (white, or dark via the toggle), unlike the scenic home and studio. Everything is scoped to .hub-root. */
+.hub-root { --hub-bg: #fff; --hub-surface: #fff; --hub-ink: oklch(.22 .01 260); --hub-muted: oklch(.52 .01 260); --hub-line: oklch(.92 .004 260); --hub-wash: oklch(.975 .003 260); --hub-on-ink: #fff;
+  padding: 0; display: flex; flex-direction: column; min-height: 100svh; background: var(--hub-bg); color: var(--hub-ink); }
+/* Dark Hub (HubThemeToggle sets data-hub-theme on <html>). Also remaps the shared theme colors the
+   Hub's cards, chips, and notes use, only inside the Hub. */
+:root[data-hub-theme=dark] .hub-root { color-scheme: dark;
+  --hub-bg: oklch(.17 .006 260); --hub-surface: oklch(.21 .007 260); --hub-ink: oklch(.95 .004 260); --hub-muted: oklch(.7 .008 260); --hub-line: oklch(.31 .008 260); --hub-wash: oklch(.26 .008 260); --hub-on-ink: oklch(.17 .006 260);
+  --card: var(--hub-surface); --foreground: var(--hub-ink); --muted-foreground: var(--hub-muted); --border: var(--hub-line); --secondary: var(--hub-wash);
+  --primary: oklch(.74 .12 245); --accent: oklch(.3 .05 245); --success: oklch(.78 .14 150); --warning: oklch(.82 .13 80); --warning-surface: oklch(.3 .05 80); --destructive: oklch(.7 .18 25); --danger-surface: oklch(.28 .06 25); }
+:root[data-hub-theme=dark] .hub-root [data-platform=hinge] .platform-icon { box-shadow: inset 0 0 0 1px var(--hub-line); }
+.hub-root .tour-header { color: var(--hub-ink); background: var(--hub-bg); border-bottom: 1px solid var(--hub-line); height: auto; padding: 18px 42px; align-items: center; }
 .hub-root .tour-wordmark { text-shadow: none; font-size: 24px; }
-.hub-root .tour-button { background: #fff; color: var(--hub-ink); border-color: var(--hub-line); backdrop-filter: none; border-radius: 8px; }
+.hub-root .tour-button { background: var(--hub-surface); color: var(--hub-ink); border-color: var(--hub-line); backdrop-filter: none; border-radius: 8px; }
 .hub-root .tour-button:hover { background: var(--hub-wash); }
 .hub-root .tour-button:focus-visible { outline-color: var(--hub-ink); }
 .hub-main { width: calc(100% - 84px); max-width: 1080px; margin: 48px auto 64px; }
 .hub-layout { display: grid; gap: 40px; }
-.hub-card { background: #fff; border: 1px solid var(--hub-line); border-radius: 12px; box-shadow: none; padding: 24px; }
+.hub-card { background: var(--hub-surface); border: 1px solid var(--hub-line); border-radius: 12px; box-shadow: none; padding: 24px; }
 .hub-root .empty-note, .hub-root .status-note { color: var(--hub-muted); }
 .hub-root .section-heading, .hub-root h1, .hub-root h2, .hub-root h3 { color: var(--hub-ink); }
-.hub-root .aero-btn { background: var(--hub-ink); border-color: var(--hub-ink); color: #fff; box-shadow: none; text-shadow: none; border-radius: 8px; }
-.hub-root .aero-btn:hover { filter: none; background: oklch(.32 .01 260); }
-.hub-root .glass-btn { background: #fff; border-color: var(--hub-line); color: var(--hub-ink); box-shadow: none; border-radius: 8px; }
+.hub-root .aero-btn { background: var(--hub-ink); border-color: var(--hub-ink); color: var(--hub-on-ink); box-shadow: none; text-shadow: none; border-radius: 8px; }
+.hub-root .aero-btn:hover { filter: none; opacity: .88; }
+.hub-root .glass-btn { background: var(--hub-surface); border-color: var(--hub-line); color: var(--hub-ink); box-shadow: none; border-radius: 8px; }
 .hub-root .glass-btn:hover { background: var(--hub-wash); }
 .hub-layout .hub-persona { margin: 0; align-items: center; border: 0; padding: 0; background: none; }
 .hub-portrait { width: 96px; height: 96px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center; overflow: hidden; color: var(--hub-muted); background: var(--hub-wash); border: 1px dashed var(--hub-line); }
@@ -640,7 +647,7 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .hub-root .hub-bar-fill { background: var(--hub-ink); }
 .hub-clear { display: flex; justify-content: flex-end; }
 .hub-clear .ghost, .hub-clear button { color: var(--hub-muted); }
-.hub-root .tour-footer { color: var(--hub-muted); background: #fff; border-top: 1px solid var(--hub-line); backdrop-filter: none; }
+.hub-root .tour-footer { color: var(--hub-muted); background: var(--hub-bg); border-top: 1px solid var(--hub-line); backdrop-filter: none; }
 .hub-root .tour-privacy { color: var(--hub-muted); }
 
 @keyframes tour-arrival { from { transform: scale(1.05); } to { transform: scale(1); } }
