@@ -957,6 +957,7 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .trait-scorecard-head h2 { margin: 0; font-size: 18px; }
 .trait-scorecard-head p, .trait-scorecard-note { margin: 5px 0 0; color: var(--muted-foreground); font-size: 12px; }
 .trait-score-list { display: grid; gap: 12px; }
+.trait-score-legend { display: flex; justify-content: space-between; margin: 2px 8px 0 0; color: var(--muted-foreground); font-size: 11px; }
 .trait-score-row { display: grid; gap: 6px; }
 .trait-score-title { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; }
 .trait-score-title span { color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
@@ -1105,6 +1106,11 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .tinder-prompt-head .field-label { margin-bottom: 0; }
 .tinder-assumed { margin-top: 10px; }
 .tinder-group { margin-top: 14px; }
+.tinder-extra-details { margin-top: 18px; }
+.tinder-extra-details > summary { cursor: pointer; color: var(--primary); font-size: 13px; font-weight: 650; }
+.tinder-extra-details > .tinder-assumed { margin: 12px 0; }
+.tinder-linkedin-fill { display: grid; justify-items: start; gap: 8px; margin-top: 14px; }
+.tinder-subhead .optional { font-weight: 400; }
 .tinder-group summary .optional { font-weight: 400; color: var(--muted-foreground); }
 .tinder-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; margin-top: 14px; }
 .tinder-field-wide { grid-column: 1 / -1; }

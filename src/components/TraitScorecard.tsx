@@ -25,7 +25,8 @@ export function TraitScorecard(props: {
         </div>
       </div>
       {sampleMode && <p className="trait-scorecard-note">Sample mode does not send text to the AI, so draft scoring is unavailable. Turn off sample mode to score your rewrite.</p>}
-      {!sampleMode && !improved && <p className="trait-scorecard-note">Choose “Compare scores” on a rewrite above to see its bars here.</p>}
+      {!sampleMode && !improved && <p className="trait-scorecard-note">Generate a rewrite to compare audience ratings.</p>}
+      {improved && <div className="trait-score-legend"><span>Original</span><span>Rewrite</span></div>}
       <div className="trait-score-list">
         {traits.map((trait) => {
           const oldScore = before[trait];

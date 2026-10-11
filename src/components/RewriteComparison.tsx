@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, CircleAlert, Clipboard, Download, FileCheck, LoaderCircle, PenLine, ShieldCheck, Sparkles, TriangleAlert, Undo2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ExtraFacts } from "@/components/ExtraFacts";
 import type { LieCheck } from "@/components/FactCheckDetail";
 import { Button } from "@/components/ui/button";
@@ -127,6 +127,7 @@ export function RewriteComparison(props: {
             <div key={`${result.source}|${v.style}|${v.rewrite.content}`} hidden={v.style !== shown.style}>
               <VariationResult
                 {...props}
+                autoScore={v.style === shown.style}
                 confirmedFacts={[...confirmedFacts, ...(props.fieldFacts ?? [])]}
                 variation={v}
                 source={result.source}
@@ -163,6 +164,7 @@ export function VariationResult(props: {
   variation: Omit<RewriteVariation, "style">;
   source: ResultSource;
   onError: (message: string) => void;
+  autoScore?: boolean;
   /**
    * LinkedIn sections: put this version (as edited) into the profile. `current` is the section's
    * profile text now; `applied` says whether it is an accepted rewrite.
@@ -182,6 +184,25 @@ export function VariationResult(props: {
   const [history, setHistory] = useState<string[]>([]);
   const [scoring, setScoring] = useState(false);
   const [scoreComparison, setScoreComparison] = useState<ScoreComparison | null>(null);
+  const autoScored = useRef<typeof rewrite | null>(null);
+  const autoScoreRef = useRef(props.autoScore);
+  const scoreRef = useRef(props.onScore);
+  const errorRef = useRef(props.onError);
+  scoreRef.current = props.onScore;
+  errorRef.current = props.onError;
+  autoScoreRef.current = props.autoScore;
+
+  useEffect(() => {
+    if (!autoScoreRef.current || source === "sample" || !scoreRef.current) return;
+    if (autoScored.current === rewrite) return;
+    autoScored.current = rewrite;
+    setScoring(true);
+    setScoreComparison(null);
+    void scoreRef.current(rewrite.content, props.qualityTargetKey)
+      .then(setScoreComparison)
+      .catch((error) => errorRef.current(error instanceof Error ? error.message : "Could not compare rewrite scores."))
+      .finally(() => setScoring(false));
+  }, [props.autoScore, props.qualityTargetKey, rewrite, source]);
 
   // Unedited: the server's checks. Edited: the same deterministic checks, re-run locally.
   const edited = text !== rewrite.content;
@@ -435,11 +456,9 @@ export function VariationResult(props: {
         </section>
       </div>
       <section className="readiness-panel" aria-label="Profile readiness checks">
-        <div className="readiness-head"><strong>Profile readiness</strong><span>{qualityFields.filter((f) => !f.limit || f.text.length <= f.limit).length}/{qualityFields.length} fields within limits</span></div>
-        <div className="readiness-fields">
-          {qualityFields.map((field) => <div key={field.key} data-over={Boolean(field.limit && field.text.length > field.limit)}><span>{field.label}</span><span>{field.text.length}{field.limit ? ` / ${field.limit}` : " characters"}</span></div>)}
-        </div>
-        {repeated.length > 0 ? <p className="readiness-warning">Possible repeated wording: {repeated.slice(0, 3).map((item) => `“${item.phrase}” (${item.fields.join(", ")})`).join("; ")}</p> : <p className="readiness-note">No repeated phrases of five or more words across these fields.</p>}
+        <div className="readiness-head"><strong>Ready to use?</strong><span>{qualityFields.every((f) => !f.limit || f.text.length <= f.limit) ? "Fits platform limits" : "Check flagged limits"}</span></div>
+        {qualityFields.some((field) => field.limit && field.text.length > field.limit) && <p className="readiness-warning">Over limit: {qualityFields.filter((field) => field.limit && field.text.length > field.limit).map((field) => field.label).join(", ")}</p>}
+        {repeated.length > 0 && <p className="readiness-warning">Repeated wording: {repeated.slice(0, 2).map((item) => `“${item.phrase}”`).join("; ")}</p>}
       </section>
       {showChecks && (warnings.length > 0 || styleWarnings.length > 0 || edited) && (
         <section className="checks-pop" aria-live="polite">
@@ -471,14 +490,7 @@ export function VariationResult(props: {
         </p>
       )}
       <Scorecard card={scorecard} />
-      <div className="rewrite-key-points">
-        <strong>Key changes</strong>
-        <ul className="change-list">
-          {rewrite.changeSummary.slice(0, 3).map((change, index) => (
-            <li key={index}>{change}</li>
-          ))}
-        </ul>
-      </div>
+      <details className="change-details"><summary>Key improvements</summary><ul className="change-list">{rewrite.changeSummary.slice(0, 3).map((change, index) => <li key={index}>{change}</li>)}</ul></details>
       {usedFactIds.length > 0 && <details className="change-details"><summary>Confirmed facts used</summary><p className="empty-note">{usedFactIds.map((id) => factText.get(id) ?? `${id} (not a confirmed fact)`).join("; ")}</p></details>}
       <div className="action-band">
         <span className="empty-note">
@@ -527,7 +539,6 @@ function Scorecard({ card }: { card: RewriteScorecard }) {
   const items = [
     { label: "Buzzwords", before: card.buzzwordsBefore, after: card.buzzwordsAfter, better: card.buzzwordsAfter < card.buzzwordsBefore },
     { label: "Specifics", before: card.specificsBefore, after: card.specificsAfter, better: card.specificsAfter > card.specificsBefore },
-    { label: "Characters", before: card.charsBefore, after: card.charsAfter, better: false },
   ];
   return (
     <div className="scorecard" aria-label="Before and after, counted by code">

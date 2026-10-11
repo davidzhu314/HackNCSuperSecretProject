@@ -6,6 +6,7 @@ import { QuickCheck } from "@/components/QuickCheck";
 import { Button } from "@/components/ui/button";
 import { LIMITS, type TinderChoiceField, type TinderFields, type TinderProfile } from "@/lib/schemas";
 import {
+  filledFieldCount,
   segmentTinder,
   TINDER_FIELD_GROUPS,
   TINDER_PROMPTS,
@@ -36,6 +37,11 @@ export function TinderEditor(props: {
   const { tinder, fromLinkedIn, demo, canContinue, onChange, onLoadDemo, onContinue, linkedInFill, onFillFromLinkedIn, seedFacts, onSeed } =
     props;
   const segments = useMemo(() => segmentTinder(tinder), [tinder]);
+  const [visiblePromptCount, setVisiblePromptCount] = useState(1);
+  const [profileDetailsOpen, setProfileDetailsOpen] = useState(false);
+  const lastAnswered = tinder.prompts.reduce((last, prompt, index) => prompt.answer.trim() ? index + 1 : last, 0);
+  const activePromptCount = Math.min(tinder.prompts.length, Math.max(visiblePromptCount, lastAnswered));
+  const savedFieldCount = filledFieldCount(tinder.fields);
   const aboutLength = [...tinder.about].length;
   const aboutOver = aboutLength > LIMITS.tinderAbout;
 
@@ -78,9 +84,10 @@ export function TinderEditor(props: {
               </span>
             </div>
 
-            <h3 className="tinder-subhead">Prompts</h3>
+            <p className="profile-input-hint">Start with your About me or one prompt. Add more only if you want.</p>
+            <h3 className="tinder-subhead">Prompts <span className="optional">(optional)</span></h3>
             <div className="hinge-prompts">
-              {tinder.prompts.map((pair, index) => (
+              {tinder.prompts.slice(0, activePromptCount).map((pair, index) => (
                 <div className="hinge-prompt" key={index}>
                   <div className="tinder-prompt-head">
                     <label className="field-label" htmlFor={`tinder-prompt-${index}`}>
@@ -120,29 +127,45 @@ export function TinderEditor(props: {
                 </div>
               ))}
             </div>
-            {tinder.prompts.length < LIMITS.maxTinderPrompts && (
+            {activePromptCount < LIMITS.maxTinderPrompts && (
               <Button
                 variant="glass"
                 size="sm"
                 className="mt-4"
-                onClick={() => onChange({ ...tinder, prompts: [...tinder.prompts, { prompt: unused[0], answer: "" }] })}
+                onClick={() => {
+                  if (activePromptCount === tinder.prompts.length) {
+                    onChange({ ...tinder, prompts: [...tinder.prompts, { prompt: unused[0], answer: "" }] });
+                  }
+                  setVisiblePromptCount(activePromptCount + 1);
+                }}
               >
                 <Plus />
-                Add a prompt
+                Add another prompt
               </Button>
             )}
-            <p className="empty-note tinder-assumed">
-              Up to {LIMITS.maxTinderPrompts} prompts of {LIMITS.tinderAnswer} characters each: assumed limits (copied from
-              Hinge); Tinder&apos;s own may differ.
-            </p>
+            <QuickCheck segments={segments} group="dating" fitText={tinder.about} compact />
 
-            <h3 className="tinder-subhead">Profile fields</h3>
-            <p className="empty-note">
-              You pick these; the AI never fills or guesses them. Leave any blank. Option lists follow Tinder&apos;s app as
-              best we know; check them there.
-            </p>
+            <details
+              className="job-details tinder-extra-details"
+              open={profileDetailsOpen}
+              onToggle={(event) => setProfileDetailsOpen(event.currentTarget.open)}
+            >
+              <summary>
+                Optional profile details{savedFieldCount ? ` · ${savedFieldCount} added` : ""}
+                {fromLinkedIn.length > 0 && <span className="optional"> · {fromLinkedIn.length} from LinkedIn</span>}
+              </summary>
+              {linkedInFill > 0 && (
+                <div className="tinder-linkedin-fill">
+                  <span className="empty-note">Reuse work and education details already in this session.</span>
+                  <Button variant="glass" size="sm" onClick={() => { onFillFromLinkedIn(); setProfileDetailsOpen(true); }}>
+                    <Briefcase />
+                    Fill {linkedInFill} {linkedInFill === 1 ? "field" : "fields"} from LinkedIn
+                  </Button>
+                </div>
+              )}
+              <p className="empty-note tinder-assumed">These fields are optional. Personal and lifestyle picks are never sent to the AI.</p>
             {TINDER_FIELD_GROUPS.map((group) => (
-              <details className="job-details tinder-group" key={group.id} open={group.id === "work"}>
+              <details className="job-details tinder-group" key={group.id}>
                 <summary>
                   {group.label} <span className="optional">· {group.note}</span>
                 </summary>
@@ -219,6 +242,7 @@ export function TinderEditor(props: {
                 </div>
               </details>
             ))}
+            </details>
           </div>
         </div>
         <div className="perspective-panel">
@@ -232,22 +256,6 @@ export function TinderEditor(props: {
             Load demo persona
           </Button>
           {demo && <p className="demo-note">Fictitious demo persona</p>}
-          {linkedInFill > 0 && (
-            <>
-              <h2 className="section-heading seed-heading">
-                <Briefcase />
-                From your LinkedIn
-              </h2>
-              <p className="section-subtitle">
-                Fills blank job title, company, school, and languages from the LinkedIn profile in this session. Fields you
-                typed stay as they are; edit or clear any of them.
-              </p>
-              <Button variant="glass" onClick={onFillFromLinkedIn}>
-                <Briefcase />
-                Fill {linkedInFill} {linkedInFill === 1 ? "field" : "fields"}
-              </Button>
-            </>
-          )}
           {!!seedFacts && onSeed && !tinder.about.trim() && (
             <>
               <h2 className="section-heading seed-heading">
@@ -264,7 +272,6 @@ export function TinderEditor(props: {
               </Button>
             </>
           )}
-          <QuickCheck segments={segments} group="dating" fitText={tinder.about} />
           <p className="flow-description">
             The AI sees your About me, your prompt answers, and your job title, company, school, and languages. Never where
             you live or your relationship, basics, or lifestyle picks.

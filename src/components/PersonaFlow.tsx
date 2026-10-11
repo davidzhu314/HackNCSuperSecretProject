@@ -625,7 +625,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
   }
 
   /** LinkedIn: rewrite one section in one style and length. Errors stay on that section's card. */
-  async function runSection(key: string, style: SectionStyle, length: LengthStep) {
+  async function runSection(key: string, style: SectionStyle, length: LengthStep, autoScore = true) {
     if (!allowed) {
       go(CONSENT);
       return;
@@ -659,7 +659,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
         const cur = prev[key] ?? emptySection(style, length);
         return {
           ...prev,
-          [key]: { ...cur, results: { ...cur.results, [resultKey(style, length)]: res }, loading: null, error: null },
+          [key]: { ...cur, results: { ...cur.results, [resultKey(style, length)]: res }, loading: null, error: null, autoScoreKey: autoScore ? resultKey(style, length) : null },
         };
       });
     } catch (err) {
@@ -708,7 +708,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
     // Cached sections switch instantly; the rest run at most PARALLEL_REWRITES at a time.
     for (const s of sections) patchSection(s.key, { style: allStyle, length: allLength });
     const todo = sections.filter((s) => !sectionStates[s.key]?.results[resultKey(allStyle, allLength)]);
-    await runLimited(todo, PARALLEL_REWRITES, (s) => runSection(s.key, allStyle, allLength));
+    await runLimited(todo, PARALLEL_REWRITES, (s) => runSection(s.key, allStyle, allLength, false));
     if (gen === sectionGen.current) setRewritingAll(false);
   }
 
