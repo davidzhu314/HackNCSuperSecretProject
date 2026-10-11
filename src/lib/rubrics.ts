@@ -257,6 +257,34 @@ export const FACEBOOK_CONFIG: PlatformConfig = {
   traits: SOCIAL_TRAITS,
 };
 
+export const TWITTER_CONFIG: PlatformConfig = {
+  id: "twitter",
+  label: "X (Twitter)",
+  group: "social",
+  input: "bio",
+  fieldLabel: "Bio",
+  maxChars: 160,
+  jobDescription: false,
+  audiences: [
+    {
+      id: "potential_follower",
+      label: "Potential follower",
+      description: "Reads the bio to work out what you post about.",
+    },
+    {
+      id: "field_peer",
+      label: "Peer in your field",
+      description: "Looks for specific, credible topics rather than broad labels.",
+    },
+    {
+      id: "casual_browser",
+      label: "Casual browser",
+      description: "Notices voice and personality more than credentials.",
+    },
+  ],
+  traits: SOCIAL_TRAITS,
+};
+
 export const TINDER_CONFIG: PlatformConfig = {
   id: "tinder",
   label: "Tinder",
@@ -275,6 +303,7 @@ export const PLATFORM_CONFIGS: Record<Platform, PlatformConfig> = {
   handshake: HANDSHAKE_CONFIG,
   instagram: INSTAGRAM_CONFIG,
   facebook: FACEBOOK_CONFIG,
+  twitter: TWITTER_CONFIG,
   hinge: HINGE_CONFIG,
   tinder: TINDER_CONFIG,
 };
@@ -282,7 +311,7 @@ export const PLATFORM_CONFIGS: Record<Platform, PlatformConfig> = {
 /** The three groups, in display order, each listing its platforms in display order. */
 export const PLATFORM_GROUPS: { group: PlatformGroup; label: string; platforms: Platform[] }[] = [
   { group: "professional", label: "Professional", platforms: ["linkedin", "handshake"] },
-  { group: "social", label: "Social", platforms: ["instagram", "facebook"] },
+  { group: "social", label: "Social", platforms: ["instagram", "facebook", "twitter"] },
   { group: "dating", label: "Dating", platforms: ["hinge", "tinder"] },
 ];
 

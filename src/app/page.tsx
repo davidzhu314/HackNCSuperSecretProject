@@ -1,26 +1,17 @@
-import { ArrowUpRight, Eye, Fingerprint, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowDown, ArrowUpRight, Eye, Fingerprint, ShieldCheck, Sparkles } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { BrandMark, SCENES, Wordmark } from "@/components/Chrome";
 import { Button } from "@/components/ui/button";
-import { PLATFORM_GROUPS } from "@/lib/rubrics";
-import type { PlatformGroup } from "@/lib/schemas";
 
-// Home: the Lovable "destinations", one per platform group (professional speaker, social nightlife,
-// dating couple), each listing its platforms and opening the studio on the one picked, then how
-// it works and the Identity Hub.
-
-const GROUP_CAPTION: Record<PlatformGroup, string> = {
-  professional: "A world of opportunity.",
-  social: "A first glance that’s yours.",
-  dating: "Somewhere you belong.",
-};
+// Home: the Lovable "destinations" (LinkedIn speaker, Hinge nightlife), each opening the studio on
+// that platform, then how it works and the Identity Hub.
 
 export default function HomePage() {
   return (
     <div className="destination-home">
       <header className="tour-header tour-header-home">
-        <span aria-hidden="true" />
+        <span className="tour-header-note">ONE IDENTITY. EVERY PLATFORM.</span>
         <Wordmark className="tour-wordmark" />
         <nav className="tour-header-actions" aria-label="Main navigation">
           <Link href="/hub" className="tour-link">
@@ -33,43 +24,46 @@ export default function HomePage() {
       </header>
 
       <main>
-        <h1 className="sr-only">Personify: feedback and fact-checked rewrites for six platforms</h1>
+        <h1 className="sr-only">Personify: feedback and fact-checked rewrites for LinkedIn and Hinge</h1>
         <div className="destination-split" aria-label="Choose a platform">
-          {PLATFORM_GROUPS.map(({ group, label, platforms }) => {
-            const scene = SCENES[platforms[0]];
+          {(["linkedin", "hinge"] as const).map((id, index) => {
+            const scene = SCENES[id];
             return (
-              <section className="destination" data-destination={group} key={group} aria-labelledby={`dest-${group}`}>
+              <section className="destination" data-destination={id} key={id} aria-labelledby={`dest-${id}`}>
                 <Image
                   src={scene.image}
                   alt=""
                   fill
                   preload
                   placeholder="blur"
-                  sizes="(max-width: 760px) 100vw, 34vw"
+                  sizes="(max-width: 760px) 100vw, 50vw"
                   className="destination-photo"
                 />
                 <div className="destination-shade" />
                 <div className="destination-content">
-                  <h2 id={`dest-${group}`}>{label}</h2>
-                  <p className="destination-caption">{GROUP_CAPTION[group]}</p>
-                  <ul className="destination-platforms">
-                    {platforms.map((id) => (
-                      <li key={id}>
-                        <Button
-                          variant="tour"
-                          nativeButton={false}
-                          render={<Link href={`/studio?platform=${id}`} />}
-                          data-brand={id}
-                        >
-                          <span className="destination-mark">
-                            <BrandMark platform={id} />
-                          </span>
-                          {SCENES[id].name}
-                          <ArrowUpRight />
-                        </Button>
-                      </li>
-                    ))}
-                  </ul>
+                  <span className="destination-index">
+                    0{index + 1} <span aria-hidden="true" /> {scene.lens}
+                  </span>
+                  <span className="destination-platform">
+                    <span className="destination-mark">
+                      <BrandMark platform={id} />
+                    </span>
+                    THROUGH THEIR EYES
+                  </span>
+                  <h2 id={`dest-${id}`}>{scene.name}</h2>
+                  <p className="destination-caption">{scene.caption}</p>
+                  <Button variant="tour" nativeButton={false} render={<Link href={`/studio?platform=${id}`} />}>
+                    <ArrowUpRight />
+                    Open {scene.name}
+                  </Button>
+                </div>
+                <div className="destination-bottom">
+                  <p>
+                    {id === "linkedin"
+                      ? "Your profile by section, or import LinkedIn’s PDF. Feedback from up to 3 of 8 audiences."
+                      : "Up to three prompt answers. Edits keep your own words and add nothing new."}
+                  </p>
+                  <ArrowDown size={16} aria-hidden="true" />
                 </div>
               </section>
             );
@@ -78,6 +72,9 @@ export default function HomePage() {
 
         <section className="home-band" aria-labelledby="how">
           <div className="home-band-inner">
+            <span className="tour-kicker tour-kicker-dark">
+              IMPROVE EXPRESSION, NOT INVENT IDENTITY <span className="tour-line" aria-hidden="true" />
+            </span>
             <h2 id="how">How it works</h2>
             <div className="home-process">
               <div>

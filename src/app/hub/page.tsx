@@ -1,7 +1,7 @@
 import { ArrowLeft, ArrowUpRight, ShieldCheck } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Wordmark } from "@/components/Chrome";
+import { Backdrop, Wordmark } from "@/components/Chrome";
 import { IdentityHub } from "@/components/IdentityHub";
 import { Button } from "@/components/ui/button";
 
@@ -13,6 +13,7 @@ export const metadata: Metadata = {
 export default function HubPage() {
   return (
     <div className="app-root hub-root" data-theme="linkedin">
+      <Backdrop />
       <header className="tour-header">
         <Button variant="tour" nativeButton={false} render={<Link href="/" />}>
           <ArrowLeft />
