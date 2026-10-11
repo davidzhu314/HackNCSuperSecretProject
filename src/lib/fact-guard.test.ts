@@ -236,3 +236,49 @@ describe("verb support from base forms and synonyms", () => {
     expect(run("Contributed to the launch and authored the team's report.", "- Contributed to the launch and wrote the team's report")).toEqual([]);
   });
 });
+
+describe("durations are checked with their unit", () => {
+  const src = [{ id: "s1", text: "Teaching Assistant, January 2025 - Present (1 year 10 months). Intern for 3 months." }];
+  const check = (content: string) => checkRewrite({ rewrite: { content, usedFactIds: [] }, segments: src, facts: [] });
+
+  it("flags a duration whose number appears only with another unit", () => {
+    const w = check("Teaching assistant with 10 years of experience.");
+    expect(w.some((x) => x.kind === "unsupported_number" && x.text === "10 years")).toBe(true);
+    expect(check("Intern for 3 years.").some((x) => x.kind === "unsupported_number")).toBe(true);
+  });
+
+  it("passes the same duration, in digits or words, and plain numbers as before", () => {
+    expect(check("Teaching assistant for 1 year 10 months.").filter((x) => x.kind === "unsupported_number")).toEqual([]);
+    expect(check("A three-month internship.").filter((x) => x.kind === "unsupported_number")).toEqual([]);
+    expect(check("Teaching assistant since 2025.").filter((x) => x.kind === "unsupported_number")).toEqual([]);
+  });
+
+  it("reads the unit after a plus sign or abbreviation", () => {
+    expect(extractNumbers("10+ years")[0]).toMatchObject({ key: "10", unit: "year" });
+    expect(extractNumbers("6 mos")[0]).toMatchObject({ key: "6", unit: "month" });
+    expect(extractNumbers("ten weeks")[0]).toMatchObject({ key: "10", unit: "week" });
+    expect(extractNumbers("2025")[0].unit).toBeUndefined();
+  });
+});
+
+describe("status and title words", () => {
+  const check = (source: string, content: string) =>
+    checkRewrite({ rewrite: { content, usedFactIds: [] }, segments: [{ id: "s1", text: source }], facts: [] }).filter(
+      (w) => w.kind === "inflated_verb",
+    );
+
+  it("flags rank or standing the sources never state", () => {
+    const source = "Software engineering intern. Wrote data cleaning scripts in Python.";
+    expect(check(source, "Senior software engineer writing Python.").map((w) => w.text)).toEqual(["Senior"]);
+    expect(check(source, "Head of data cleaning in Python.").map((w) => w.text)).toEqual(["Head"]);
+    expect(check(source, "Python expert who wrote data cleaning scripts.").map((w) => w.text)).toEqual(["expert"]);
+    expect(check(source, "Award-winning intern writing Python.").map((w) => w.text)).toEqual(["Award-winning"]);
+  });
+
+  it("passes the same words when the sources use them", () => {
+    expect(check("I am a senior studying computer science.", "Computer science senior.")).toEqual([]);
+    expect(check("I led the robotics club.", "Lead of the robotics club.")).toEqual([]);
+    expect(check("Always looking for the best food truck.", "Finding the best food truck.")).toEqual([]);
+    expect(check("Co-founder of a study group.", "Founder of a study group.")).toEqual([]);
+  });
+});
