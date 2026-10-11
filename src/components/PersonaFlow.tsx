@@ -40,11 +40,12 @@ import { emptyHingePairs, factTextSchema, HINGE_PROMPTS, mergeFacts, MAX_HINGE_A
 import { emptyLinkedInProfile, factCheckSegments, findSection, profileCharCount, rewritableSections, segmentProfile } from "@/lib/profile";
 import { changedSections, profileAsText, sectionText, withSectionText } from "@/lib/profile-edits";
 import { cleanProfile, importProfileFile } from "@/lib/profile-import";
-import { DEFAULT_LINKEDIN_AUDIENCES, PLATFORM_CONFIGS, PLATFORM_GROUPS } from "@/lib/rubrics";
+import { PLATFORM_CONFIGS, PLATFORM_GROUPS } from "@/lib/rubrics";
+import { toneOptions } from "@/lib/styles";
 import { PARALLEL_REWRITES, runLimited } from "@/lib/run-limited";
 import { EXPECTED_MS } from "@/lib/progress";
 import { ProgressBar } from "@/components/ProgressBar";
-import { compareOverallTraitScores } from "@/lib/trait-scores";
+import { compareAnswered } from "@/lib/answered";
 import {
   LIMITS,
   LinkedInProfileSchema,
@@ -59,6 +60,7 @@ import {
   type Segment,
   type TinderFields,
   type TinderProfile,
+  type RewriteTone,
 } from "@/lib/schemas";
 import { segmentBio, segmentHinge } from "@/lib/segments";
 import { checkFactClaims, factCheckView, type FactCheckView } from "@/lib/fact-claims";
@@ -79,7 +81,7 @@ import {
 // as a flag), only confirmed facts reach a rewrite, and sample mode, which sends nothing and so
 // needs no consent, is only offered for the LinkedIn demo persona (the only one with cached results).
 // LinkedIn works on a sectioned profile; Hinge keeps its prompt answers and single rewrite; the bio
-// platforms (Handshake, Instagram, Facebook, X) follow Hinge's steps with one bio field; Tinder adds
+// platforms (Handshake, Instagram, GitHub) follow Hinge's steps with one bio field; Tinder adds
 // About me and profile fields to prompt answers (only About, answers, and work fields reach the AI).
 
 const STEPS = ["Your profile", "Consent", "Audience lenses", "Audience Clash", "Rewrite + FactCheck"];
@@ -115,7 +117,7 @@ const isDemoTinder = (t: TinderProfile) => JSON.stringify(t) === JSON.stringify(
 const DEMO_PROFILE_JSON = JSON.stringify(DEMO_LINKEDIN_PROFILE);
 
 const defaultAudiences = (p: Platform): string[] =>
-  p === "linkedin" ? [...DEFAULT_LINKEDIN_AUDIENCES] : PLATFORM_CONFIGS[p].audiences.map((a) => a.id);
+  PLATFORM_CONFIGS[p].defaultAudiences ?? PLATFORM_CONFIGS[p].audiences.map((a) => a.id);
 const defaultTraits = (p: Platform) => PLATFORM_CONFIGS[p].traits.slice(0, 3).map((t) => t.id);
 
 /** What the extracted facts were found in, so extraction reruns only when the text changes. */
@@ -201,14 +203,18 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
   const [customQuestions, setCustomQuestions] = useState<CustomQuestion[]>([]);
   const [evaluating, setEvaluating] = useState(false);
   const [evaluation, setEvaluation] = useState<EvaluateResponse | null>(null);
-  const [improvedEvaluation, setImprovedEvaluation] = useState<EvaluateResponse | null>(null);
+  // The selected rewrite as the same lenses read it, with its segments (so a lens's cited lines can be quoted).
+  const [improvedEvaluation, setImprovedEvaluation] = useState<{ evaluation: EvaluateResponse; segments: Segment[] } | null>(null);
   // The text the feedback was given on, so Audience Clash stays consistent after rewrites are used.
   const [evaluatedOn, setEvaluatedOn] = useState<{ profile: LinkedInProfile; segments: Segment[] } | null>(null);
 
   const [goal, setGoal] = useState("");
-  // Hinge: one rewrite of all answers.
+  // Every platform but LinkedIn: one rewrite per tone and length, cached so switching back is instant.
   const [rewriting, setRewriting] = useState(false);
-  const [rewrite, setRewrite] = useState<RewriteResponse | null>(null);
+  const [tone, setTone] = useState<RewriteTone>("balanced");
+  const [length, setLength] = useState<LengthStep>("same");
+  const [singleResults, setSingleResults] = useState<Record<string, RewriteResponse>>({});
+  const rewrite = singleResults[`${tone}|${length}`] ?? null;
   const [singleApplied, setSingleApplied] = useState<string | null>(null);
   const [singlePrevious, setSinglePrevious] = useState<string | null>(null);
   const [adversarial, setAdversarial] = useState<RewriteResponse | null>(null);
@@ -317,7 +323,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
     cachedSection.current.clear();
     sectionInFlight.current.clear();
     setRewritingAll(false);
-    setRewrite(null);
+    setSingleResults({});
     setAdversarial(null);
   }
 
@@ -608,8 +614,8 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
     }
   }
 
-  /** Hinge and bio rewrites, and the FactCheck demo on every platform. */
-  async function runRewrite(mode: "normal" | "adversarial" = "normal") {
+  /** Hinge, Tinder, and bio rewrites (one tone, one length), and the FactCheck demo on every platform. */
+  async function runRewrite(mode: "normal" | "adversarial" = "normal", at: { tone: RewriteTone; length: LengthStep } = { tone, length }) {
     if (!allowed) {
       go(CONSENT);
       return;
@@ -628,7 +634,9 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
           ...(fieldFacts.length ? { fieldFacts } : {}),
           audiences,
           goal: goal.trim() || undefined,
-          tone: "balanced", // the two rewrite versions (direct, narrative) replace a tone control
+          tone: at.tone,
+          length: at.length,
+          single: true,
           jobDescription: targetJob,
         },
         { sample, adversarial: mode === "adversarial" },
@@ -636,15 +644,24 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
       if (id !== requestId.current) return;
       if (mode === "adversarial") setAdversarial(res);
       else {
-        setRewrite(res);
+        setSingleResults((prev) => ({ ...prev, [`${at.tone}|${at.length}`]: res }));
         setAdversarial(null);
       }
     } catch (err) {
       if (id !== requestId.current) return;
-      setError({ message: errorMessage(err), retry: () => void runRewrite(mode) });
+      setError({ message: errorMessage(err), retry: () => void runRewrite(mode, at) });
     } finally {
       if (id === requestId.current) setRewriting(false);
     }
+  }
+
+  /** A new tone or length shows its cached rewrite, or generates it once rewrites have started. */
+  function chooseRewriteSetting(next: { tone: RewriteTone; length: LengthStep }) {
+    setTone(next.tone);
+    setLength(next.length);
+    setAdversarial(null);
+    const started = Object.keys(singleResults).length > 0;
+    if (started && !singleResults[`${next.tone}|${next.length}`]) void runRewrite("normal", next);
   }
 
   async function scoreDraft(text: string, sectionKey?: string) {
@@ -670,8 +687,8 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
       ...(customQuestions.length ? { customQuestions } : {}),
       jobDescription: targetJob,
     });
-    setImprovedEvaluation(result);
-    return compareOverallTraitScores(evaluation, result, audiences, evalTraits);
+    setImprovedEvaluation({ evaluation: result, segments: candidateSegments });
+    return compareAnswered(evaluation, result, audiences, evalTraits);
   }
 
   function patchSection(key: string, patch: Partial<SectionRewriteState>) {
@@ -844,8 +861,8 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
   // Labels for the platforms (and facts) this one can be filled from.
   const autofillFrom = PLATFORM_GROUPS.flatMap((g) => g.platforms)
     .filter((p) => p !== platform && hasProfile(p, autofillSources))
-    .map((p) => PLATFORM_CONFIGS[p].label);
-  if (confirmedFacts.length) autofillFrom.push(`${confirmedFacts.length} confirmed ${confirmedFacts.length === 1 ? "fact" : "facts"}`);
+    .map((p) => `your ${PLATFORM_CONFIGS[p].label}`);
+  if (confirmedFacts.length) autofillFrom.push(`your ${confirmedFacts.length} confirmed ${confirmedFacts.length === 1 ? "fact" : "facts"}`);
   const autofillPanel = (
     <AutofillPanel
       sources={autofillFrom}
@@ -1127,6 +1144,11 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
               adversarial={adversarial !== null}
               onGoal={setGoal}
               onGenerate={() => void runRewrite()}
+              tones={toneOptions(config.group)}
+              tone={tone}
+              length={length}
+              onTone={(next) => chooseRewriteSetting({ tone: next, length })}
+              onLength={(next, commit) => (commit ? chooseRewriteSetting({ tone, length: next }) : setLength(next))}
               onAdversarial={(enabled) => (enabled ? void runRewrite("adversarial") : setAdversarial(null))}
               onError={(message) => setError({ message })}
               textName={platform === "hinge" ? "answers" : platform === "tinder" ? "About me and answers" : config.fieldLabel.toLowerCase()}
@@ -1145,6 +1167,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
           {step === REWRITE && evaluation && (
             <TraitScorecard
               baseline={evaluation}
+              baselineSegments={evaluatedOn?.segments ?? segments}
               improved={improvedEvaluation}
               config={evalConfig}
               audiences={audiences}

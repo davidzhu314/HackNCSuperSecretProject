@@ -209,7 +209,7 @@ export function Landing() {
               One identity. Every platform.
             </h1>
             <p className="pf-info-text">
-              Paste a profile from LinkedIn, Handshake, Instagram, Facebook, X, Hinge or Tinder. Simulated
+              Paste a profile from LinkedIn, Handshake, Instagram, GitHub, Hinge or Tinder. Simulated
               audiences critique it sentence by sentence,
               and the rewrite uses only facts you confirm.
             </p>

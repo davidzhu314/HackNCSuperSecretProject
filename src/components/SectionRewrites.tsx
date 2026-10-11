@@ -16,8 +16,7 @@ import type {
   Segment,
 } from "@/lib/schemas";
 import { LENGTH_STEPS, STYLE_ORDER, STYLES, targetChars } from "@/lib/styles";
-import type { compareOverallTraitScores } from "@/lib/trait-scores";
-type ScoreComparison = ReturnType<typeof compareOverallTraitScores>;
+import type { AnsweredComparison as ScoreComparison } from "@/lib/answered";
 import { ProgressBar } from "@/components/ProgressBar";
 import { EXPECTED_MS, expectedBatchMs } from "@/lib/progress";
 import { PARALLEL_REWRITES } from "@/lib/run-limited";
@@ -45,7 +44,7 @@ const lengthIndex = (length: LengthStep) => LENGTH_STEPS.findIndex((l) => l.id =
 const lengthLabel = (length: LengthStep) => LENGTH_STEPS[lengthIndex(length)].label;
 
 /** A 5-stop length slider. Dragging only moves it; letting go (or a key press) commits. */
-function LengthSlider(props: {
+export function LengthSlider(props: {
   id: string;
   value: LengthStep;
   disabled?: boolean;

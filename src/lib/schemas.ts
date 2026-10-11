@@ -37,7 +37,7 @@ export const LIMITS = {
   maxLanguages: 10,
 } as const;
 
-export const PlatformSchema = z.enum(["linkedin", "handshake", "instagram", "facebook", "hinge", "tinder"]);
+export const PlatformSchema = z.enum(["linkedin", "handshake", "instagram", "github", "hinge", "tinder"]);
 export type Platform = z.infer<typeof PlatformSchema>;
 
 /** The three groups platforms are shown in. The group drives prompt rules and theming. */
@@ -46,7 +46,7 @@ export type PlatformGroup = z.infer<typeof PlatformGroupSchema>;
 
 /**
  * How the profile is entered: sections = LinkedIn's sectioned profile; prompts = prompt question +
- * answer pairs (Hinge); bio = one short text field (Handshake, Instagram, Facebook); tinder = About
+ * answer pairs (Hinge); bio = one short text field (Handshake, Instagram, GitHub); tinder = About
  * me, prompt answers, and profile fields (TinderProfile).
  */
 export type InputShape = "sections" | "prompts" | "bio" | "tinder";
@@ -374,6 +374,10 @@ export type EvaluateResponse = z.infer<typeof EvaluateResponseSchema>;
 // ---------- API: POST /api/rewrite ----------
 
 export const RewriteToneSchema = z.enum(["closer_to_my_words", "balanced", "more_playful"]);
+
+/** Length slider stops, relative to the original text (see LENGTH_STEPS in styles.ts). */
+export const LengthStepSchema = z.enum(["much_shorter", "shorter", "same", "longer", "much_longer"]);
+export type LengthStep = z.infer<typeof LengthStepSchema>;
 export type RewriteTone = z.infer<typeof RewriteToneSchema>;
 
 export const RewriteRequestSchema = z.object({
@@ -388,6 +392,12 @@ export const RewriteRequestSchema = z.object({
   goal: z.string().max(300).optional(),
   tone: RewriteToneSchema.default("balanced"),
   jobDescription: z.string().max(LIMITS.jobDescription).optional(),
+  /**
+   * One version in the chosen tone and length (the studio's tone and length controls). Without it,
+   * two versions (direct and narrative) come back, as before.
+   */
+  single: z.boolean().optional(),
+  length: LengthStepSchema.optional(),
 });
 export type RewriteRequest = z.infer<typeof RewriteRequestSchema>;
 
@@ -458,9 +468,6 @@ export type DraftResponse = z.infer<typeof DraftResponseSchema>;
 export const SectionStyleSchema = z.enum(["direct", "narrative", "professional"]);
 export type SectionStyle = z.infer<typeof SectionStyleSchema>;
 
-/** Length slider stops, relative to the original section (see LENGTH_STEPS in styles.ts). */
-export const LengthStepSchema = z.enum(["much_shorter", "shorter", "same", "longer", "much_longer"]);
-export type LengthStep = z.infer<typeof LengthStepSchema>;
 
 export const RewriteSectionRequestSchema = z.object({
   consent: z.literal(true),
@@ -527,10 +534,12 @@ export type PlatformConfig = {
   maxChars?: number;
   /** Professional platforms accept an optional job description to target. */
   jobDescription: boolean;
-  /** LinkedIn only: lens categories, in display order. */
+  /** Lens categories, in display order (every platform has 8 lenses in 4). */
   categories?: { id: string; label: string }[];
+  /** The lenses selected by default: one from each of three categories, so the feedback differs. */
+  defaultAudiences?: string[];
   /**
-   * `category` is a categories[].id (LinkedIn only). `description` is the full lens definition the
+   * `category` is a categories[].id. `description` is the full lens definition the
    * model reads; `summary` is a one-line version for the picker (falls back to `description`).
    */
   audiences: { id: string; label: string; description: string; summary?: string; category?: string }[];
@@ -574,6 +583,9 @@ const ModelRewriteVariantSchema = z.object({
 });
 
 /** Fixed keys (not an array) so strict JSON-schema mode guarantees exactly one of each. */
+/** One version (single mode). */
+export const ModelRewriteOneSchema = ModelRewriteVariantSchema;
+
 export const ModelRewriteSchema = z.object({
   direct: ModelRewriteVariantSchema,
   narrative: ModelRewriteVariantSchema,
@@ -592,6 +604,9 @@ const ModelHingeRewriteVariantSchema = z.object({
 export const ModelDraftSchema = z.object({
   drafts: z.array(z.object({ slotId: z.string(), text: z.string() })),
 });
+
+/** One version of every answer (single mode). */
+export const ModelHingeRewriteOneSchema = ModelHingeRewriteVariantSchema;
 
 export const ModelHingeRewriteSchema = z.object({
   direct: ModelHingeRewriteVariantSchema,

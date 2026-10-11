@@ -47,7 +47,7 @@ describe("findContradictions", () => {
     const p: ProfileTexts = {
       linkedin: null,
       hinge: null,
-      bios: { instagram: "3 years of experience shipping apps.", facebook: "5+ years experience in design." },
+      bios: { instagram: "3 years of experience shipping apps.", github: "5+ years experience in design." },
     };
     const c = findContradictions(p);
     expect(c.map((x) => x.topic)).toEqual(["experience"]);
@@ -69,7 +69,7 @@ describe("findContradictions", () => {
   });
 
   it("lists platforms with text", () => {
-    expect(platformsWithText({ linkedin: linkedin(), hinge: null, bios: { tinder: "Hi there.", facebook: " " } })).toEqual([
+    expect(platformsWithText({ linkedin: linkedin(), hinge: null, bios: { tinder: "Hi there.", github: " " } })).toEqual([
       "linkedin",
       "tinder",
     ]);

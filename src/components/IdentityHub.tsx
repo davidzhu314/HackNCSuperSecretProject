@@ -6,7 +6,7 @@ import { useRef, useState } from "react";
 import { BrandMark } from "@/components/Chrome";
 import { findContradictions, platformsWithText, type ProfileTexts } from "@/lib/consistency";
 import { Button } from "@/components/ui/button";
-import { DEMO_LINKEDIN_FACTS, DEMO_LINKEDIN_PROFILE } from "@/lib/demo-data";
+import { DEMO_LINKEDIN_PROFILE } from "@/lib/demo-data";
 import { PLATFORMS, platformsOf, togglePlatform, type FactPlatforms } from "@/lib/fact-platforms";
 import { clearSession, getSession, setPhotoFile, updateSession, useIdentitySession } from "@/lib/identity-session";
 import type { HingePair } from "@/lib/persona-ui";
@@ -15,6 +15,7 @@ import { hingeFactIds } from "@/lib/profile-edits";
 import { cleanProfile, importProfileFile } from "@/lib/profile-import";
 import { LIMITS, type IdentityFact, type LinkedInProfile, type Platform } from "@/lib/schemas";
 import { PLATFORM_CONFIGS, PLATFORM_GROUPS } from "@/lib/rubrics";
+import { identityProgress, missingSummary } from "@/lib/progress-checklist";
 import { filledFieldCount } from "@/lib/tinder";
 
 // The Identity Hub: one pool of source material and confirmed facts for every platform.
@@ -96,7 +97,21 @@ export function IdentityHub() {
           )}
         </div>
         <div className="hub-persona-text">
-          <h1>Your Identity Hub</h1>
+          <h1>
+            <label className="sr-only" htmlFor="hub-name">
+              Your name
+            </label>
+            <input
+              id="hub-name"
+              className="hub-name-input"
+              value={session.name}
+              maxLength={60}
+              placeholder="Your Identity Hub"
+              autoComplete="name"
+              spellCheck={false}
+              onChange={(e) => updateSession({ name: e.target.value })}
+            />
+          </h1>
           <p className="empty-note">
             {added} of {PLATFORMS.length} platforms added · {confirmed.length} confirmed{" "}
             {confirmed.length === 1 ? "fact" : "facts"}
@@ -120,10 +135,6 @@ export function IdentityHub() {
               </Button>
             )}
           </div>
-          <p className="empty-note hub-fine-print">
-            Your photo stays on this device and is never sent to the AI. This page keeps everything in this tab only;
-            refreshing clears it.
-          </p>
         </div>
       </section>
 
@@ -214,15 +225,13 @@ export function IdentityHub() {
         ))}
       </div>
 
+      <ProgressCard />
+
       <ConsistencyCard linkedin={linkedin} hinge={session.hinge} bios={tinderText ? { ...session.bios, tinder: tinderText } : session.bios} />
 
       <FactsCard facts={confirmed} linkedin={linkedin} hinge={session.hinge} factPlatforms={session.factPlatforms} />
 
-      {own && linkedin ? (
-        <Coverage profile={linkedin} before={before} facts={confirmed} mode={loadedDemo ? "demo" : "own"} />
-      ) : (
-        <Coverage profile={DEMO_LINKEDIN_PROFILE} facts={DEMO_LINKEDIN_FACTS.filter((f) => f.confirmed)} mode="example" />
-      )}
+      {own && linkedin && <Coverage profile={linkedin} before={before} facts={confirmed} mode={loadedDemo ? "demo" : "own"} />}
 
       {(added > 0 || session.facts.length > 0 || session.photo) && (
         <div className="hub-clear">
@@ -233,6 +242,69 @@ export function IdentityHub() {
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * "Your digital identity": what's filled in on each platform, as a checklist counted by code. The
+ * percentage is parts done of all parts, never a quality score; each row says what's next.
+ */
+function ProgressCard() {
+  const session = useIdentitySession();
+  const progress = identityProgress(session);
+  const percent = progress.total ? Math.round((progress.done / progress.total) * 100) : 0;
+  return (
+    <section className="hub-card hub-progress" aria-labelledby="progress-h">
+      <div className="results-heading">
+        <h2 id="progress-h" className="section-heading">
+          Your digital identity
+        </h2>
+        <span className="empty-note">Counted by code, not AI</span>
+      </div>
+      <p className="hub-progress-total">
+        <strong>{percent}%</strong>
+        <span>
+          filled in · {progress.done} of {progress.total} parts across {progress.platforms.length} platforms
+        </span>
+      </p>
+      <ul className="hub-progress-rows">
+        {progress.platforms.map((p) => {
+          const missing = missingSummary(p.items);
+          return (
+            <li key={p.platform} data-platform={p.platform}>
+              <Link href={`/studio?platform=${p.platform}`} className="hub-progress-name">
+                <span className="platform-icon">
+                  <BrandMark platform={p.platform} />
+                </span>
+                {PLATFORM_CONFIGS[p.platform].label}
+              </Link>
+              <span
+                className="hub-progress-bar"
+                role="progressbar"
+                aria-label={`${PLATFORM_CONFIGS[p.platform].label}: ${p.done} of ${p.total} parts done`}
+                aria-valuemin={0}
+                aria-valuemax={p.total}
+                aria-valuenow={p.done}
+              >
+                <span style={{ width: `${(p.done / p.total) * 100}%` }} />
+              </span>
+              <span className="hub-progress-count">
+                {p.done}/{p.total}
+              </span>
+              <span className="hub-progress-next">
+                {missing ? (
+                  <>Next: {missing}</>
+                ) : (
+                  <>
+                    <Check size={12} aria-hidden="true" /> All parts done
+                  </>
+                )}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 
@@ -269,7 +341,7 @@ function TinderSource({ fields }: { fields: number }) {
   );
 }
 
-/** A bio platform (Handshake, Instagram, Facebook): the bio's length against the platform's limit. */
+/** A bio platform (Handshake, Instagram, GitHub): the bio's length against the platform's limit. */
 function BioSource({ platform, bio }: { platform: Platform; bio: string }) {
   const { label, maxChars, fieldLabel } = PLATFORM_CONFIGS[platform];
   const length = bio.trim().length;

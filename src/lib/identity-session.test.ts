@@ -38,4 +38,11 @@ describe("identity session", () => {
     expect(setPhotoFile(new File(["x"], "me.png", { type: "image/png" }))).toBeNull();
     expect(getSession().photo?.name).toBe("me.png");
   });
+
+  it("keeps the name typed on the Hub until the session is cleared", () => {
+    updateSession({ name: "Priya" });
+    expect(getSession().name).toBe("Priya");
+    clearSession();
+    expect(getSession().name).toBe("");
+  });
 });

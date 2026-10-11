@@ -139,7 +139,7 @@ export function TinderEditor(props: {
                 Add another prompt
               </Button>
             )}
-            <QuickCheck segments={segments} group="dating" fitText={tinder.about} compact />
+            <QuickCheck segments={segments} group="dating" fitText={tinder.about} />
 
             <details
               className="job-details tinder-extra-details"

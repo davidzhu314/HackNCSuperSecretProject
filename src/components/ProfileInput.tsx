@@ -76,7 +76,7 @@ export function ProfileInput(props: {
                 Only here, only for this session.
               </span>
             </div>
-            <QuickCheck segments={segments} group="dating" compact />
+            <QuickCheck segments={segments} group="dating" />
           </div>
         </div>
         <div className="perspective-panel">

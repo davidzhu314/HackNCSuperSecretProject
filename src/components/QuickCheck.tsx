@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Ruler, ScanSearch } from "lucide-react";
+import { Ruler, ScanSearch } from "lucide-react";
 import { useMemo, useState } from "react";
 import { BrandMark } from "@/components/Chrome";
 import { fitAcross } from "@/lib/fit";
@@ -19,35 +19,23 @@ export function QuickCheck(props: {
   headlineId?: string;
   /** Text to measure against every platform's limit (a bio, or LinkedIn's About). Omit to hide. */
   fitText?: string;
-  /** Show a short live status with the detailed findings expandable. */
-  compact?: boolean;
 }) {
-  const { segments, group, headlineId, fitText, compact = false } = props;
+  const { segments, group, headlineId, fitText } = props;
   const [all, setAll] = useState(false);
   const issues = useMemo(() => lintSegments(segments, group, headlineId), [segments, group, headlineId]);
   const fits = useMemo(() => (fitText?.trim() ? fitAcross(fitText) : []), [fitText]);
   const hasText = segments.some((s) => s.text.trim());
-  const fittingCount = fits.filter((fit) => fit.fits).length;
-  const status = !hasText
-    ? "Local checks run as you type"
-    : `${issues.length ? `${issues.length} wording ${issues.length === 1 ? "suggestion" : "suggestions"}` : "No wording issues"}${fits.length ? ` · fits ${fittingCount}/${fits.length} platform fields` : ""}`;
-  const Container = compact ? "details" : "div";
 
   return (
-    <Container className={`quick-check${compact ? " quick-check-compact" : ""}`}>
-      {compact && <summary className="quick-check-summary"><ScanSearch size={15} /><span>{status}</span><span className="quick-check-tag">local · no AI</span></summary>}
-      <div className={compact ? "quick-check-expanded" : undefined}>
+    <div className="quick-check">
       <h2 className="section-heading seed-heading">
         <ScanSearch />
-        Quick check <span className="quick-check-tag">no AI</span>
+        Quick check
       </h2>
       {!hasText ? (
         <p className="section-subtitle">Checks your wording as you type: buzzwords, missing specifics, repeats.</p>
       ) : !issues.length ? (
-        <p className="quick-check-clean">
-          <Check size={14} aria-hidden="true" />
-          No wording issues found.
-        </p>
+        <p className="quick-check-clean">Nothing flagged: no buzzwords, missing specifics, or repeats.</p>
       ) : (
         <>
           <ul className="quick-check-list">
@@ -73,6 +61,7 @@ export function QuickCheck(props: {
             <Ruler />
             Where it fits
           </h3>
+          <p className="section-subtitle">Your text&apos;s length against each platform&apos;s character limit.</p>
           <ul className="fit-list">
             {fits.map((f) => (
               <li key={f.platform} data-fits={f.fits}>
@@ -84,6 +73,9 @@ export function QuickCheck(props: {
                 </span>
                 <span className="fit-count">
                   {f.length.toLocaleString()} / {f.limit.toLocaleString()}
+                  <span className="fit-status">
+                    {f.fits ? "fits" : `${(f.length - f.limit).toLocaleString()} over`}
+                  </span>
                 </span>
                 {!f.fits && f.cut && (
                   <span className="fit-cut">
@@ -95,7 +87,6 @@ export function QuickCheck(props: {
           </ul>
         </>
       )}
-      </div>
-    </Container>
+    </div>
   );
 }

@@ -8,7 +8,7 @@ import { PLATFORM_CONFIGS } from "@/lib/rubrics";
 import { LIMITS, type Platform } from "@/lib/schemas";
 import { segmentBio } from "@/lib/segments";
 
-// Bio platforms (Handshake, Instagram, Facebook, X, Tinder): one text field, counted against the
+// Bio platforms (Handshake, Instagram, GitHub): one text field, counted against the
 // platform's own limit. (LinkedIn uses LinkedInEditor; Hinge uses ProfileInput.)
 
 export function BioInput(props: {
@@ -33,7 +33,7 @@ export function BioInput(props: {
   const starterHint: Partial<Record<Platform, string>> = {
     handshake: "Start with your field of study, one relevant project, and the kind of role you want.",
     instagram: "Choose one identity anchor and one or two interests people should notice first.",
-    facebook: "Say what you’re up to and add one interest or community connection.",
+    github: "Say what you build or study, and the languages or projects you work with.",
     tinder: "Share one real interest and one specific detail that feels like you.",
   };
   // A draft may run over while you write; the rewrite is held to the limit.
@@ -91,7 +91,7 @@ export function BioInput(props: {
                 />
               </details>
             )}
-            <QuickCheck segments={segments} group={config.group} fitText={bio} compact />
+            <QuickCheck segments={segments} group={config.group} fitText={bio} />
           </div>
         </div>
         <div className="perspective-panel">
