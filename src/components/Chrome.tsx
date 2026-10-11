@@ -3,7 +3,7 @@ import Link from "next/link";
 import aeroSky from "@/assets/aero-sky.jpg";
 import datingCouple from "@/assets/dating-couple.jpg";
 import linkedinSpeaker from "@/assets/linkedin-speaker.jpg";
-import personifyLogo from "@/assets/personify-logo-v3.png";
+import personifyLogo from "@/assets/personify-logo-v4.png";
 import socialNightlife from "@/assets/social-nightlife.jpg";
 import type { Platform } from "@/lib/schemas";
 
@@ -87,7 +87,7 @@ export function PersonifyLogo() {
     <span className="personify-logo">
       <Image
         src={personifyLogo}
-        alt="Personify logo: faceless silhouette diagonally split between suit and sweater"
+        alt="Personify logo: overlapping glass triangles forming a P"
         width={44}
         height={44}
       />
