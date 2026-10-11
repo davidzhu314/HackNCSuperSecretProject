@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, FileText, Fingerprint, LockKeyhole, Sparkles } from "lucide-react";
+import { ArrowRight, FileText, LockKeyhole, Sparkles } from "lucide-react";
 import { useMemo } from "react";
 import { QuickCheck } from "@/components/QuickCheck";
 import { Button } from "@/components/ui/button";
@@ -22,11 +22,10 @@ export function BioInput(props: {
   onJobDescription?: (text: string) => void;
   onLoadDemo: () => void;
   onContinue: () => void;
-  /** Confirmed facts shared with this platform, offered as a first draft for an empty bio. */
-  seedFacts?: number;
-  onSeed?: () => void;
+  /** "Fill from your other profiles" (AutofillPanel), shown under the demo button. */
+  autofill?: React.ReactNode;
 }) {
-  const { platform, bio, demo, canContinue, onBioChange, jobDescription, onJobDescription, onLoadDemo, onContinue, seedFacts, onSeed } =
+  const { platform, bio, demo, canContinue, onBioChange, jobDescription, onJobDescription, onLoadDemo, onContinue, autofill } =
     props;
   const config = PLATFORM_CONFIGS[platform];
   const field = config.fieldLabel.toLowerCase();
@@ -96,6 +95,7 @@ export function BioInput(props: {
           </div>
         </div>
         <div className="perspective-panel">
+          {autofill}
           <details className="profile-tools">
             <summary>Optional tools and examples</summary>
             <div className="profile-tools-content">
@@ -109,22 +109,6 @@ export function BioInput(props: {
             Load demo persona
           </Button>
           {demo && <p className="demo-note">Fictitious demo persona</p>}
-          {!!seedFacts && onSeed && !bio.trim() && (
-            <>
-              <h2 className="section-heading seed-heading">
-                <Fingerprint />
-                Start from your facts
-              </h2>
-              <p className="section-subtitle">
-                Fills your {field} with your confirmed facts, word for word, as many as fit {config.label}&apos;s limit.
-                Edit them into your own voice.
-              </p>
-              <Button variant="glass" onClick={onSeed}>
-                <Fingerprint />
-                Use my {seedFacts} {seedFacts === 1 ? "fact" : "facts"}
-              </Button>
-            </>
-          )}
           <p className="flow-description">
             {config.maxChars
               ? `${config.label} allows ${config.maxChars} characters here. Paste what you have; the rewrite will fit it.`

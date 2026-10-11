@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Briefcase, FileText, Fingerprint, LockKeyhole, Plus, Sparkles, X } from "lucide-react";
+import { ArrowRight, FileText, LockKeyhole, Plus, Sparkles, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { QuickCheck } from "@/components/QuickCheck";
 import { Button } from "@/components/ui/button";
@@ -27,14 +27,10 @@ export function TinderEditor(props: {
   onChange: (next: TinderProfile, edited?: keyof TinderFields) => void;
   onLoadDemo: () => void;
   onContinue: () => void;
-  /** Blank work fields LinkedIn could fill; 0 hides the button. */
-  linkedInFill: number;
-  onFillFromLinkedIn: () => void;
-  /** Confirmed facts shared with Tinder, offered as a first draft for an empty About. */
-  seedFacts?: number;
-  onSeed?: () => void;
+  /** "Fill from your other profiles" (AutofillPanel), shown under the demo button. */
+  autofill?: React.ReactNode;
 }) {
-  const { tinder, fromLinkedIn, demo, canContinue, onChange, onLoadDemo, onContinue, linkedInFill, onFillFromLinkedIn, seedFacts, onSeed } =
+  const { tinder, fromLinkedIn, demo, canContinue, onChange, onLoadDemo, onContinue, autofill } =
     props;
   const segments = useMemo(() => segmentTinder(tinder), [tinder]);
   const [visiblePromptCount, setVisiblePromptCount] = useState(1);
@@ -154,15 +150,6 @@ export function TinderEditor(props: {
                 Optional profile details{savedFieldCount ? ` · ${savedFieldCount} added` : ""}
                 {fromLinkedIn.length > 0 && <span className="optional"> · {fromLinkedIn.length} from LinkedIn</span>}
               </summary>
-              {linkedInFill > 0 && (
-                <div className="tinder-linkedin-fill">
-                  <span className="empty-note">Reuse work and education details already in this session.</span>
-                  <Button variant="glass" size="sm" onClick={() => { onFillFromLinkedIn(); setProfileDetailsOpen(true); }}>
-                    <Briefcase />
-                    Fill {linkedInFill} {linkedInFill === 1 ? "field" : "fields"} from LinkedIn
-                  </Button>
-                </div>
-              )}
               <p className="empty-note tinder-assumed">These fields are optional. Personal and lifestyle picks are never sent to the AI.</p>
             {TINDER_FIELD_GROUPS.map((group) => (
               <details className="job-details tinder-group" key={group.id}>
@@ -246,6 +233,7 @@ export function TinderEditor(props: {
           </div>
         </div>
         <div className="perspective-panel">
+          {autofill}
           <h2 className="section-heading">
             <Sparkles />
             Try it with a demo
@@ -256,25 +244,8 @@ export function TinderEditor(props: {
             Load demo persona
           </Button>
           {demo && <p className="demo-note">Fictitious demo persona</p>}
-          {!!seedFacts && onSeed && !tinder.about.trim() && (
-            <>
-              <h2 className="section-heading seed-heading">
-                <Fingerprint />
-                Start from your facts
-              </h2>
-              <p className="section-subtitle">
-                Fills your About me with your confirmed facts, word for word, as many as fit Tinder&apos;s 500 characters.
-                Edit them into your own voice.
-              </p>
-              <Button variant="glass" onClick={onSeed}>
-                <Fingerprint />
-                Use my {seedFacts} {seedFacts === 1 ? "fact" : "facts"}
-              </Button>
-            </>
-          )}
           <p className="flow-description">
-            The AI sees your About me, your prompt answers, and your job title, company, school, and languages. Never where
-            you live or your relationship, basics, or lifestyle picks.
+            Only your About me, prompt answers, and work or education details are sent for a rewrite.
           </p>
         </div>
       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Fingerprint, FileText, LoaderCircle, Plus, Sparkles, Trash2, TriangleAlert, Upload } from "lucide-react";
+import { ArrowRight, FileText, LoaderCircle, Plus, Sparkles, Trash2, TriangleAlert, Upload } from "lucide-react";
 import { useMemo, useRef } from "react";
 import { QuickCheck } from "@/components/QuickCheck";
 import { Button } from "@/components/ui/button";
@@ -34,11 +34,10 @@ export function LinkedInEditor(props: {
   onLoadDemo: () => void;
   onSampleModeChange: (enabled: boolean) => void;
   onContinue: () => void;
-  /** Confirmed facts shared with LinkedIn, offered as a starting About when it's empty. */
-  seedFacts?: number;
-  onSeed?: () => void;
+  /** "Fill from your other profiles" (AutofillPanel), shown under the demo button. */
+  autofill?: React.ReactNode;
 }) {
-  const { profile, jobDescription, demo, imported, importing, canUseSample, sampleMode, canContinue, seedFacts, onSeed } =
+  const { profile, jobDescription, demo, imported, importing, canUseSample, sampleMode, canContinue, autofill } =
     props;
   const { onChange, onJobDescription, onImportFile, onLoadDemo, onSampleModeChange, onContinue } = props;
   const fileInput = useRef<HTMLInputElement>(null);
@@ -226,6 +225,7 @@ export function LinkedInEditor(props: {
           </div>
         </div>
         <div className="perspective-panel linkedin-side">
+          {autofill}
           <h2 className="section-heading">
             <Upload />
             Import from LinkedIn
@@ -269,21 +269,6 @@ export function LinkedInEditor(props: {
                 </label>
               )}
             </div>
-          )}
-          {!!seedFacts && onSeed && !profile.about.trim() && (
-            <>
-              <h2 className="section-heading seed-heading">
-                <Fingerprint />
-                Start from your facts
-              </h2>
-              <p className="section-subtitle">
-                Fills About with your confirmed facts, word for word, as a first draft. Edit them into your own voice.
-              </p>
-              <Button variant="glass" disabled={importing} onClick={onSeed}>
-                <Fingerprint />
-                Use my {seedFacts} {seedFacts === 1 ? "fact" : "facts"}
-              </Button>
-            </>
           )}
           <QuickCheck segments={segments} group="professional" headlineId="headline-s1" fitText={profile.about} />
           <p className="flow-description">

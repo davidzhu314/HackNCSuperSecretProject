@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AudienceClash } from "@/components/AudienceClash";
+import { AutofillPanel, type AutofillResult } from "@/components/AutofillPanel";
 import { AudienceSelection } from "@/components/AudienceSelection";
 import { BioInput } from "@/components/BioInput";
 import { SCENES, ScenicBackdrop, Wordmark } from "@/components/Chrome";
@@ -20,9 +21,10 @@ import { TinderEditor } from "@/components/TinderEditor";
 import { TourStops } from "@/components/TourStops";
 import { TraitScorecard } from "@/components/TraitScorecard";
 import { Button } from "@/components/ui/button";
-import { errorMessage, evaluateProfile, rewriteProfile, rewriteSection } from "@/lib/api-client";
+import { draftProfile, errorMessage, evaluateProfile, rewriteProfile, rewriteSection } from "@/lib/api-client";
+import { applyDrafts, canFill, draftFieldFacts, draftSlots, draftSources, fillTarget, hasProfile, type TargetState } from "@/lib/autofill";
 import { saveConsent, useStoredConsent, withdrawConsent } from "@/lib/consent";
-import { factsFor, recordFoundOn, seedBio, seedHinge, seedLinkedIn } from "@/lib/fact-platforms";
+import { factsFor, recordFoundOn } from "@/lib/fact-platforms";
 import { getSession, updateSession, useIdentitySession } from "@/lib/identity-session";
 import {
   DEMO_BIO,
@@ -38,7 +40,7 @@ import { emptyHingePairs, factTextSchema, HINGE_PROMPTS, mergeFacts, MAX_HINGE_A
 import { emptyLinkedInProfile, factCheckSegments, findSection, profileCharCount, rewritableSections, segmentProfile } from "@/lib/profile";
 import { changedSections, profileAsText, sectionText, withSectionText } from "@/lib/profile-edits";
 import { cleanProfile, importProfileFile } from "@/lib/profile-import";
-import { DEFAULT_LINKEDIN_AUDIENCES, PLATFORM_CONFIGS } from "@/lib/rubrics";
+import { DEFAULT_LINKEDIN_AUDIENCES, PLATFORM_CONFIGS, PLATFORM_GROUPS } from "@/lib/rubrics";
 import { PARALLEL_REWRITES, runLimited } from "@/lib/run-limited";
 import { EXPECTED_MS } from "@/lib/progress";
 import { ProgressBar } from "@/components/ProgressBar";
@@ -63,7 +65,6 @@ import { checkFactClaims, factCheckView, type FactCheckView } from "@/lib/fact-c
 import { useFactChecks } from "@/lib/use-fact-checks";
 import type { LieCheck } from "@/components/FactCheckDetail";
 import {
-  carryOverFromLinkedIn,
   emptyTinderProfile,
   fieldFactsAsFacts,
   piecesOntoSegments,
@@ -110,16 +111,6 @@ const DEMO_FACT_TEXTS = new Set(
   ),
 );
 
-/** A new Tinder profile starts with the work fields LinkedIn can fill (tagged "from your LinkedIn"). */
-function initialTinder(): { tinder: TinderProfile; fromLinkedIn: TinderAiField[] } {
-  const { tinder, linkedin } = getSession();
-  if (tinder) return { tinder, fromLinkedIn: [] };
-  const empty = emptyTinderProfile();
-  if (!linkedin) return { tinder: empty, fromLinkedIn: [] };
-  const { fields, filled } = carryOverFromLinkedIn(empty.fields, linkedin);
-  return { tinder: { ...empty, fields }, fromLinkedIn: filled };
-}
-
 const isDemoTinder = (t: TinderProfile) => JSON.stringify(t) === JSON.stringify(DEMO_TINDER);
 const DEMO_PROFILE_JSON = JSON.stringify(DEMO_LINKEDIN_PROFILE);
 
@@ -165,9 +156,13 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
   // Bio platforms: this platform's bio. Each platform keeps its own in the session.
   const [bio, setBio] = useState(() => getSession().bios[platform] ?? "");
   // Tinder: About me, prompt answers, and profile fields; which work fields came from LinkedIn.
-  const [tinderInit] = useState(initialTinder);
-  const [tinder, setTinder] = useState<TinderProfile>(tinderInit.tinder);
-  const [fromLinkedIn, setFromLinkedIn] = useState<TinderAiField[]>(tinderInit.fromLinkedIn);
+  const [tinder, setTinder] = useState<TinderProfile>(() => getSession().tinder ?? emptyTinderProfile());
+  const [fromLinkedIn, setFromLinkedIn] = useState<TinderAiField[]>([]);
+  // "Fill from your other profiles": the last fill or draft, and whether a draft is running.
+  const [autofillResult, setAutofillResult] = useState<AutofillResult | null>(null);
+  const [drafting, setDrafting] = useState(false);
+  // Where the consent screen returns to: the profile step when it was opened by "Draft with AI".
+  const [draftAfterConsent, setDraftAfterConsent] = useState(false);
   const [sampleMode, setSampleMode] = useState(false);
   const consent = useStoredConsent();
   const session = useIdentitySession();
@@ -433,13 +428,72 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
     }
   }
 
-  function fillFromLinkedIn() {
-    if (!session.linkedin) return;
-    const { fields, filled } = carryOverFromLinkedIn(tinder.fields, session.linkedin);
-    if (!filled.length) return;
-    setTinder({ ...tinder, fields });
-    setFromLinkedIn((prev) => [...new Set([...prev, ...filled])]);
-    clearRewrites();
+  /** This platform's profile, in the shape autofill.ts works on. */
+  function currentTarget(): TargetState {
+    if (config.input === "sections") return { kind: "linkedin", value: profile };
+    if (config.input === "bio") return { kind: "bio", platform, value: bio };
+    if (config.input === "tinder") return { kind: "tinder", value: tinder };
+    return { kind: "hinge", value: hinge };
+  }
+  // Drafts finish after the user may have typed: apply them to the latest profile, not a stale copy.
+  const targetRef = useRef<TargetState | null>(null);
+  useEffect(() => {
+    targetRef.current = currentTarget();
+  });
+
+  function setTarget(next: TargetState, fromLinkedInFields: TinderAiField[] = []) {
+    if (next.kind === "linkedin") changeProfile(next.value);
+    else if (next.kind === "bio") changeBio(next.value);
+    else if (next.kind === "tinder") {
+      changeTinder(next.value);
+      if (fromLinkedInFields.length) setFromLinkedIn((prev) => [...new Set([...prev, ...fromLinkedInFields])]);
+    } else changeHinge(next.value);
+  }
+
+  /** The other platforms as material: the session, with this platform's live state in it. */
+  const autofillSources = { linkedin: session.linkedin, hinge: session.hinge, tinder: session.tinder, bios: session.bios };
+
+  /** "Fill empty spots": the user's own sentences and fields, no AI. */
+  function runFill() {
+    const r = fillTarget(currentTarget(), autofillSources, confirmedFacts);
+    if (r.notes.length) setTarget(r.state, r.fromLinkedIn);
+    setAutofillResult({ kind: "fill", notes: r.notes, dropped: [] });
+  }
+
+  /** "Draft with AI": new wording from the user's own text and facts; untraceable sentences removed. */
+  async function runDraft(agreed = false) {
+    if (!consent && !agreed) {
+      setDraftAfterConsent(true);
+      go(CONSENT);
+      return;
+    }
+    const slots = draftSlots(currentTarget());
+    const sources = draftSources(autofillSources);
+    if (!slots.length || !sources.length) return;
+    const fieldFacts = draftFieldFacts(autofillSources);
+    setDrafting(true);
+    setError(null);
+    try {
+      const res = await draftProfile({
+        consent: true,
+        platform,
+        sources,
+        facts: confirmedFacts.map((f) => ({ ...f, confirmed: true as const })),
+        ...(fieldFacts.length ? { fieldFacts } : {}),
+        slots,
+      });
+      const drafted = res.drafts.filter((d) => d.text.trim());
+      if (drafted.length && targetRef.current) setTarget(applyDrafts(targetRef.current, drafted));
+      setAutofillResult({
+        kind: "draft",
+        notes: drafted.map((d) => `${slots.find((s) => s.id === d.slotId)?.label ?? d.slotId}: drafted`),
+        dropped: res.drafts.flatMap((d) => d.dropped),
+      });
+    } catch (err) {
+      setError({ message: errorMessage(err), retry: () => void runDraft(true) });
+    } finally {
+      setDrafting(false);
+    }
   }
 
   function changeHinge(next: HingePair[]) {
@@ -787,6 +841,24 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
   const otherPlatform: Platform = platform === "linkedin" ? "hinge" : "linkedin";
   const feedbackStale = !!evaluatedOn && textKey(platform, evaluatedOn.segments) !== sourceKey;
 
+  // Labels for the platforms (and facts) this one can be filled from.
+  const autofillFrom = PLATFORM_GROUPS.flatMap((g) => g.platforms)
+    .filter((p) => p !== platform && hasProfile(p, autofillSources))
+    .map((p) => PLATFORM_CONFIGS[p].label);
+  if (confirmedFacts.length) autofillFrom.push(`${confirmedFacts.length} confirmed ${confirmedFacts.length === 1 ? "fact" : "facts"}`);
+  const autofillPanel = (
+    <AutofillPanel
+      sources={autofillFrom}
+      canFill={canFill(platform, autofillSources, confirmedFacts)}
+      canDraft={autofillFrom.length > 0 && draftSlots(currentTarget()).length > 0}
+      drafting={drafting}
+      draftDisabledReason={sample ? "Sample mode sends nothing. Turn it off to draft with AI." : undefined}
+      result={autofillResult}
+      onFill={runFill}
+      onDraft={() => void runDraft()}
+    />
+  );
+
   const scene = SCENES[platform];
   const status = sample
     ? "Sample mode · nothing sent or stored"
@@ -881,8 +953,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
               onLoadDemo={loadDemo}
               onSampleModeChange={setSampleMode}
               onContinue={continueFromInput}
-              seedFacts={confirmedFacts.length}
-              onSeed={() => changeProfile(seedLinkedIn(profile, confirmedFacts))}
+              autofill={autofillPanel}
             />
           )}
           {step === INPUT && config.input === "bio" && (
@@ -896,8 +967,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
               onJobDescription={changeJobDescription}
               onLoadDemo={loadDemo}
               onContinue={continueFromInput}
-              seedFacts={confirmedFacts.length}
-              onSeed={() => changeBio(seedBio(bio, confirmedFacts, config.maxChars))}
+              autofill={autofillPanel}
             />
           )}
           {step === INPUT && config.input === "tinder" && (
@@ -909,10 +979,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
               onChange={changeTinder}
               onLoadDemo={loadDemo}
               onContinue={continueFromInput}
-              linkedInFill={session.linkedin ? carryOverFromLinkedIn(tinder.fields, session.linkedin).filled.length : 0}
-              onFillFromLinkedIn={fillFromLinkedIn}
-              seedFacts={confirmedFacts.length}
-              onSeed={() => changeTinder({ ...tinder, about: seedBio(tinder.about, confirmedFacts, LIMITS.tinderAbout) })}
+              autofill={autofillPanel}
             />
           )}
           {step === INPUT && config.input === "prompts" && (
@@ -923,8 +990,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
               onHingeChange={changeHinge}
               onLoadDemo={loadDemo}
               onContinue={continueFromInput}
-              seedFacts={confirmedFacts.length}
-              onSeed={() => changeHinge(seedHinge(hinge, confirmedFacts))}
+              autofill={autofillPanel}
             />
           )}
           {step === CONSENT && (
@@ -932,10 +998,17 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
               alreadyAgreed={consent}
               onAgree={() => {
                 saveConsent();
-                go(AUDIENCES);
+                if (draftAfterConsent) {
+                  setDraftAfterConsent(false);
+                  go(INPUT);
+                  void runDraft(true);
+                } else go(AUDIENCES);
               }}
               onWithdraw={withdraw}
-              onBack={() => go(INPUT)}
+              onBack={() => {
+                setDraftAfterConsent(false);
+                go(INPUT);
+              }}
             />
           )}
           {step === AUDIENCES && (

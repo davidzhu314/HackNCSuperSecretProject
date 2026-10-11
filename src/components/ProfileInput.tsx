@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, FileText, Fingerprint, LockKeyhole, Sparkles } from "lucide-react";
+import { ArrowRight, FileText, LockKeyhole, Sparkles } from "lucide-react";
 import { useMemo, useState } from "react";
 import { QuickCheck } from "@/components/QuickCheck";
 import { Button } from "@/components/ui/button";
@@ -16,11 +16,10 @@ export function ProfileInput(props: {
   onHingeChange: (pairs: HingePair[]) => void;
   onLoadDemo: () => void;
   onContinue: () => void;
-  /** Confirmed facts shared with Hinge, offered as first drafts for empty answers. */
-  seedFacts?: number;
-  onSeed?: () => void;
+  /** "Fill from your other profiles" (AutofillPanel), shown under the demo button. */
+  autofill?: React.ReactNode;
 }) {
-  const { hinge, demo, canContinue, onHingeChange, onLoadDemo, onContinue, seedFacts, onSeed } = props;
+  const { hinge, demo, canContinue, onHingeChange, onLoadDemo, onContinue, autofill } = props;
   const [visibleCount, setVisibleCount] = useState(1);
   const segments = useMemo(() => segmentHinge(hinge), [hinge]);
   const lastAnswered = hinge.reduce((last, pair, index) => pair.answer.trim() ? index + 1 : last, 0);
@@ -81,6 +80,7 @@ export function ProfileInput(props: {
           </div>
         </div>
         <div className="perspective-panel">
+          {autofill}
           <details className="profile-tools">
             <summary>Optional tools and examples</summary>
             <div className="profile-tools-content">
@@ -94,22 +94,6 @@ export function ProfileInput(props: {
             Load demo persona
           </Button>
           {demo && <p className="demo-note">Fictitious demo persona</p>}
-          {!!seedFacts && onSeed && hinge.some((p) => !p.answer.trim()) && (
-            <>
-              <h2 className="section-heading seed-heading">
-                <Fingerprint />
-                Start from your facts
-              </h2>
-              <p className="section-subtitle">
-                Fills empty answers with your confirmed facts, word for word, as a first draft. Pick prompts that fit and
-                make them sound like you.
-              </p>
-              <Button variant="glass" onClick={onSeed}>
-                <Fingerprint />
-                Use my {seedFacts} {seedFacts === 1 ? "fact" : "facts"}
-              </Button>
-            </>
-          )}
           <p className="flow-description">Pick a prompt and paste your answer for each one you use.</p>
             </div>
           </details>
