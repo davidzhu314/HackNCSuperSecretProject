@@ -950,6 +950,20 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .version-history { align-self: center; font-size: 12px; }
 .version-history summary { cursor: pointer; }
 .version-history button { display: block; padding: 5px 0; color: var(--muted-foreground); text-align: left; }
+.trait-scorecard { margin: 22px 0; padding: 18px; border: 1px solid var(--border); border-radius: 14px; background: var(--card); }
+.trait-scorecard-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+.trait-scorecard-head h2 { margin: 0; font-size: 18px; }
+.trait-scorecard-head p, .trait-scorecard-note { margin: 5px 0 0; color: var(--muted-foreground); font-size: 12px; }
+.trait-score-list { display: grid; gap: 12px; }
+.trait-score-row { display: grid; gap: 6px; }
+.trait-score-title { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; }
+.trait-score-title span { color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+.trait-score-track { position: relative; height: 24px; overflow: hidden; border-radius: 6px; background: var(--secondary); }
+.trait-score-fill { display: block; height: 100%; min-width: 0; background: color-mix(in oklab, var(--primary) 55%, transparent); transition: width .35s ease; }
+.trait-score-track.improved .trait-score-fill { background: var(--primary); }
+.trait-score-number { position: absolute; inset: 0 8px; display: flex; align-items: center; font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.trait-scorecard-error { color: var(--destructive); font-size: 13px; }
+@media (max-width: 600px) { .trait-scorecard-head { align-items: flex-start; flex-direction: column; } }
 @media (max-width: 680px) {
   .tour-platform-picker > span { display: none; }
   .tour-platform-select { min-height: 36px; padding: 6px 10px; }
