@@ -165,6 +165,8 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
   // Hinge: one rewrite of all answers.
   const [rewriting, setRewriting] = useState(false);
   const [rewrite, setRewrite] = useState<RewriteResponse | null>(null);
+  const [singleApplied, setSingleApplied] = useState<string | null>(null);
+  const [singlePrevious, setSinglePrevious] = useState<string | null>(null);
   const [adversarial, setAdversarial] = useState<RewriteResponse | null>(null);
   // LinkedIn: one rewrite per section per style, cached.
   const [sectionStates, setSectionStates] = useState<Record<string, SectionRewriteState>>({});
@@ -258,6 +260,8 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
     setFurthest(INPUT);
     setEvaluation(null);
     setEvaluatedOn(null);
+    setSingleApplied(null);
+    setSinglePrevious(null);
     setFocusSection(null);
     clearRewrites();
   }
@@ -858,6 +862,12 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
               textName={platform === "hinge" ? "answers" : config.fieldLabel.toLowerCase()}
               onAddFact={addExtraFact}
               onRemoveFact={removeExtraFact}
+              use={{
+                current: singleApplied ?? textOriginal,
+                applied: singleApplied !== null,
+                onUse: (text) => { setSinglePrevious(singleApplied); setSingleApplied(text); },
+                onUndo: () => { setSingleApplied(singlePrevious); setSinglePrevious(null); },
+              }}
             />
           )}
           {step === REWRITE && (

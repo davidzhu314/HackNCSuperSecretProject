@@ -9,7 +9,9 @@ Picks which OpenRouter model handles each task (`extract`, `evaluate`, `rewrite`
 | `schema.ts` | `EvalCaseSchema`: a profile plus gold facts, traps, audiences, and traits |
 | `cases/linkedin/li-001..010.json` | 10 synthetic LinkedIn cases, **status: draft** |
 | `cases/hinge/hg-001..010.json` | 10 synthetic Hinge cases, **status: draft** |
-| `cases.test.ts` | Runs with `npm test`. Validates every case, checks FactCheck catches every non-semantic trap, and checks gold facts don't trip FactCheck |
+| `cases.test.ts` | Validates every case, checks FactCheck catches every non-semantic trap, and checks gold facts don't trip FactCheck |
+| `scorecard.ts` | Offline length and FactCheck scoring plus a validated human review form for concision, naturalness, platform fit, and critique usefulness |
+| `scorecard.test.ts` | Exercises the offline scorecard without API keys or model calls |
 | `fp-sweep.test.ts` | Live false-positive sweep: every case through the real `/api/rewrite` with honest input, counting FactCheck flags. Skipped unless `LIVE_SWEEP=1` (needs `npm run dev` with a key) |
 | `candidates.ts` | The 3 models to compare plus the judge, with OpenRouter ids and prices |
 
@@ -30,10 +32,14 @@ Each case has 3-4 **traps**: plausible things a rewrite must not claim. Each tra
 4. Set `"status": "reviewed"`.
 5. Run `npm test`. If a trap fails, either the trap is badly written or you found a real FactCheck gap.
 
+## Scorecard use
+
+`scoreRewrite(caseData, output, limit)` reports character-limit failure, FactCheck warning counts, unsupported-claim counts, and word count. Reviewers separately rate concision, naturalness, platform fit, and critique usefulness from 1 to 5. Keep these judgments human-rated: they are subjective and should not be implied by a deterministic metric. A full model runner and saved result aggregation are still future work.
+
 ## Not built yet
 
 - **Runner** (`evals/run.ts`): needs `src/lib/llm.ts` and the real prompts, so it calls exactly what production calls. It will run each candidate over every case, save raw outputs to `evals/runs/` (gitignored), and record parse failures as results.
-- **Scorer**: Zod parse rate, FactCheck warnings by kind, trap hits, citation validity, extraction recall against `goldFacts`, plus the pairwise judge for voice.
-- **Rubric anchors** for voice fit and critique usefulness.
+- **Runner and aggregation**: Zod parse rate, trap hits, citation validity, extraction recall against `goldFacts`, and summaries across models/runs.
+- **Rubric anchors** with examples for human ratings of voice fit and critique usefulness.
 
 Rough cost of one full run (20 cases x 3 models x 3 tasks, rewrite run twice): well under $1 for the small models, a few dollars with Sonnet and the judge.

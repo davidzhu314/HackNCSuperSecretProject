@@ -290,6 +290,8 @@ export function SectionRewrites(props: {
                   variation={{ rewrite: result.rewrite, warnings: result.warnings, styleWarnings: result.styleWarnings }}
                   source={result.source}
                   onError={onError}
+                  qualityFields={sections.map((item) => ({ key: item.key, label: item.label, text: item.key === section.key ? currentText(section.key) : currentText(item.key), limit: item.kind === "headline" ? 220 : item.kind === "about" ? 2600 : 2000 }))}
+                  qualityTargetKey={section.key}
                   use={{
                     current: currentText(section.key),
                     applied: isApplied,
