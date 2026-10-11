@@ -57,7 +57,7 @@ describe("cleanText", () => {
 });
 
 describe("parseLinkedInLines (synthetic export)", () => {
-  const { profile, warnings } = parseLinkedInLines(SYNTHETIC_LINKEDIN_LINES);
+  const { profile, warnings, notes } = parseLinkedInLines(SYNTHETIC_LINKEDIN_LINES);
 
   it("produces a schema-valid profile", () => {
     expect(LinkedInProfileSchema.safeParse(profile).success).toBe(true);
@@ -73,7 +73,7 @@ describe("parseLinkedInLines (synthetic export)", () => {
   it("never keeps contact details anywhere", () => {
     const all = JSON.stringify(profile);
     for (const s of ["@example.com", "linkedin.com", "example.dev", "555", "Reach me"]) expect(all).not.toContain(s);
-    expect(warnings).toContain("Removed 1 sentence containing an email, link, or phone number.");
+    expect(notes).toContain("Removed 1 sentence containing an email, link, or phone number.");
   });
 
   it("splits About into paragraphs and repairs glued sentences", () => {
@@ -86,7 +86,7 @@ describe("parseLinkedInLines (synthetic export)", () => {
     expect(profile.skills).toEqual(["Robot Operating System (ROS)", "C++", "Finite Element Analysis"]);
     expect(profile.honors).toEqual(["Regional Robotics Challenge Finalist", "Dean's List"]);
     expect(JSON.stringify(profile)).not.toContain("Spanish");
-    expect(warnings).toContain('"Languages" isn\'t imported.');
+    expect(notes).toContain('"Languages" isn\'t imported.');
   });
 
   it("parses an entry with a bullet list that continues across a page break", () => {
@@ -139,10 +139,12 @@ describe("parseLinkedInLines (synthetic export)", () => {
 
   it("skips unknown main sections with a warning and returns empty Projects/Volunteering", () => {
     expect(JSON.stringify(profile)).not.toContain("Certified Example Professional");
-    expect(warnings).toContain('Skipped the "Licenses & Certifications" section; add anything important by hand.');
+    expect(notes).toContain('Skipped the "Licenses & Certifications" section; add anything important by hand.');
     expect(profile.projects).toEqual([]);
     expect(profile.volunteering).toEqual([]);
-    expect(warnings.some((w) => w.startsWith("No Projects or Volunteering"))).toBe(true);
+    expect(notes.some((w) => w.startsWith("No Projects or Volunteering"))).toBe(true);
+    // Only the multi-role entry needs the user's attention.
+    expect(warnings).toEqual([expect.stringContaining('"Kestrel Labs" seems to list several roles')]);
   });
 
   it("feeds straight into sections and segments, with no location in any segment", () => {

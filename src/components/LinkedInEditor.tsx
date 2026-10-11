@@ -102,22 +102,17 @@ export function LinkedInEditor(props: {
         </div>
       </div>
 
-      {imported && (
+      {/* Only warnings that need the user's attention; routine import notes aren't shown. */}
+      {imported && imported.warnings.length > 0 && (
         <div className="import-review" role="status">
-          <p>
-            <strong>Imported {imported.fileName}.</strong> The file was read in your browser; nothing has been sent.
-            Check each section below and fix anything that came out wrong.
-          </p>
-          {imported.warnings.length > 0 && (
-            <ul>
-              {imported.warnings.map((w, i) => (
-                <li key={i}>
-                  <TriangleAlert size={13} aria-hidden="true" />
-                  {w}
-                </li>
-              ))}
-            </ul>
-          )}
+          <ul>
+            {imported.warnings.map((w, i) => (
+              <li key={i}>
+                <TriangleAlert size={13} aria-hidden="true" />
+                {w}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
       {demo && (

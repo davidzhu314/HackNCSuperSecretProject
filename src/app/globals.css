@@ -721,3 +721,77 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .length-slider input[type="range"]:disabled { cursor: not-allowed; opacity: 0.5; }
 .length-ticks { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted-foreground); }
 .length-result { margin: 6px 0 0; font-size: 12px; color: var(--muted-foreground); }
+
+/* Up to 8 audience lenses: distinct hues that also differ in lightness. */
+:root { --aud-3: oklch(.55 .13 160); --aud-4: oklch(.5 .17 20); --aud-5: oklch(.6 .12 95); --aud-6: oklch(.45 .1 210); --aud-7: oklch(.58 .14 340); }
+.aud-dot[data-tone="3"] { background: var(--aud-3); }
+.aud-dot[data-tone="4"] { background: var(--aud-4); }
+.aud-dot[data-tone="5"] { background: var(--aud-5); }
+.aud-dot[data-tone="6"] { background: var(--aud-6); }
+.aud-dot[data-tone="7"] { background: var(--aud-7); }
+
+/* Lens screen: the user's own questions. */
+.custom-questions { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 6px; }
+.custom-questions li { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 4px 4px 4px 10px; border: 1px solid var(--primary); border-radius: 8px; color: var(--primary); background: var(--accent); }
+.custom-questions li span { flex: 1; }
+.custom-question-row { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
+.custom-question-row .goal-input { flex: 1; min-width: 0; }
+
+/* Audience Clash: rating grid, then one line per audience per section. */
+.rating-grid-wrap { overflow-x: auto; margin: 4px 0 22px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); }
+.rating-grid { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.rating-grid th, .rating-grid td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.rating-grid thead th { font-weight: 600; white-space: nowrap; font-size: 12px; }
+.rating-grid thead th .aud-dot { margin-right: 6px; vertical-align: middle; }
+.rating-grid tbody th { font-weight: 500; color: var(--foreground); min-width: 180px; }
+.rating-grid tbody tr:last-child th, .rating-grid tbody tr:last-child td { border-bottom: 0; }
+.rating-grid .rating-pill { cursor: pointer; border: 0; }
+.clash-sections { display: grid; gap: 14px; }
+.clash-section { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; background: var(--card); scroll-margin-top: 90px; }
+.reaction-rows { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; }
+.reaction-row { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 7px 8px; border-radius: 6px; background: transparent; border: 0; color: var(--foreground); font-size: 13px; cursor: pointer; }
+.reaction-row:hover, .reaction-rows li[data-open=true] .reaction-row { background: var(--muted); }
+.reaction-who { font-weight: 600; white-space: nowrap; }
+.reaction-line { flex: 1; min-width: 0; color: var(--muted-foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.reaction-rows li[data-open=true] .reaction-line { white-space: normal; color: var(--foreground); }
+.reaction-chevron { flex-shrink: 0; color: var(--muted-foreground); transition: transform .15s; }
+.reaction-rows li[data-open=true] .reaction-chevron { transform: rotate(180deg); }
+.reaction-detail { margin: 2px 0 8px 26px; display: grid; gap: 10px; font-size: 12.5px; line-height: 1.6; }
+.reaction-item { display: grid; gap: 4px; }
+.reaction-item + .reaction-item { border-top: 1px solid var(--border); padding-top: 8px; }
+.reaction-more { font-size: 11.5px; color: var(--muted-foreground); white-space: nowrap; }
+.reaction-detail p { margin: 0; }
+.reaction-detail .reaction-question { font-weight: 600; }
+.reaction-detail q { display: block; color: var(--muted-foreground); }
+.section-text { margin-top: 8px; font-size: 12px; color: var(--muted-foreground); }
+.section-text summary { cursor: pointer; }
+.section-text p { margin: 6px 0 0; line-height: 1.6; }
+@media (max-width: 640px) {
+  .reaction-row { flex-wrap: wrap; }
+  .reaction-line { flex-basis: 100%; white-space: normal; }
+}
+
+/* Rewrite card: FactCheck as an icon, receipts on click (like Grammarly underlines). */
+.panel-tools { display: inline-flex; align-items: center; gap: 6px; }
+.check-badge { display: inline-flex; align-items: center; gap: 4px; height: 26px; min-width: 26px; padding: 0 7px; border-radius: 13px; border: 1px solid var(--border); background: var(--card); font-size: 12px; font-weight: 600; cursor: pointer; }
+.check-badge svg { width: 15px; height: 15px; }
+.check-badge[data-state=clean] { color: oklch(.55 .15 150); border-color: oklch(.55 .15 150 / .4); }
+.check-badge[data-state=review] { color: oklch(.62 .15 70); border-color: oklch(.62 .15 70 / .45); }
+.check-badge[data-state=problem] { color: oklch(.55 .2 25); border-color: oklch(.55 .2 25 / .45); }
+.check-badge[data-state=style] { color: var(--muted-foreground); }
+.sentence { cursor: pointer; border-radius: 3px; }
+.sentence:hover, .sentence[data-open=true] { background: var(--accent); }
+.sentence[data-status=weak] { text-decoration: underline dotted oklch(.62 .15 70); text-underline-offset: 3px; }
+.sentence[data-status=untraced] { text-decoration: underline wavy oklch(.55 .2 25); text-underline-offset: 3px; }
+.receipt-pop { margin: 8px 12px 12px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--muted); font-size: 12.5px; line-height: 1.6; display: grid; gap: 6px; }
+.receipt-pop p { margin: 0; }
+.receipt-src { font-size: 11px; font-weight: 600; color: var(--muted-foreground); margin-right: 6px; text-transform: uppercase; letter-spacing: .4px; }
+.checks-pop { margin: 10px 0 0; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); display: grid; gap: 8px; font-size: 12.5px; }
+.checks-pop.status-note { display: flex; align-items: center; gap: 6px; }
+.change-details { margin-top: 10px; font-size: 12.5px; }
+.change-details summary { cursor: pointer; font-weight: 600; }
+.extra-facts { margin: 4px 0 16px; font-size: 13px; }
+.extra-facts summary { cursor: pointer; color: var(--primary); font-weight: 600; }
+.extra-facts ul { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 4px; }
+.extra-facts li { display: flex; align-items: center; gap: 8px; }
+.extra-facts li span { flex: 1; }

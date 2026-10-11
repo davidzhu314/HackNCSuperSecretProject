@@ -147,6 +147,17 @@ export function lengthIssue(args: { step: LengthStep; original: number; target: 
   return null;
 }
 
+/** Rewrites that barely change the original (word-bigram overlap above this) get one retry. */
+export const MIN_CHANGE_OVERLAP = 0.8;
+
+/** Feedback for one retry when a rewrite is nearly the original; null when it changed enough. */
+export function changeIssue(original: string, rewrite: string): string | null {
+  const overlap = bigramOverlap(original, rewrite);
+  return overlap > MIN_CHANGE_OVERLAP
+    ? "it is nearly identical to the original; restructure it (strongest point first, cut filler, tighten) instead of changing a few words"
+    : null;
+}
+
 // ---------- deterministic style checks ----------
 
 const FIRST_PERSON = /\b(I|I'm|I've|I'd|I'll|me|my|mine|we|our|us)\b/;

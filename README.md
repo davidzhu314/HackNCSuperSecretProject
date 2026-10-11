@@ -6,7 +6,7 @@
 
 Personify helps you improve your LinkedIn or Hinge profile without inventing anything about yourself. You enter your profile (LinkedIn section by section, or import LinkedIn's "Save to PDF" export), confirm which facts about you are true, and get:
 
-1. **Audience feedback** from up to 3 of 8 simulated LinkedIn lenses (recruiters, hiring managers and technical leads, research and admissions reviewers, founders and industry peers), or 3 Hinge lenses. Every critique links to the exact sentence it is about.
+1. **Audience feedback** from any of 8 simulated LinkedIn lenses, plus up to 3 questions of your own, (recruiters, hiring managers and technical leads, research and admissions reviewers, founders and industry peers), or 3 Hinge lenses. Every critique links to the exact sentence it is about.
 2. **Rewrites (direct or narrative) that only use facts you confirmed**, checked by **FactCheck**, a deterministic layer that flags made-up numbers, names, and inflated verbs, plus a lint for AI clichés ("leverage", "delve", emoji bullets).
 
 Principle: improve expression, not invent identity.
@@ -15,7 +15,7 @@ Principle: improve expression, not invent identity.
 
 ### The flow
 1. **Home**: pick LinkedIn (city) or Hinge (town).
-2. **Studio**, six steps on the platform's scenery: your profile → consent → Identity DNA (tick true facts, choose where each is used) → audience lenses → Audience Clash → rewrite + FactCheck.
+2. **Studio** on the platform's scenery: your profile → consent → audience lenses → Audience Clash → rewrite + FactCheck. Hinge adds an Identity DNA step (tick true facts) after consent; LinkedIn skips it because the profile itself is the evidence, and facts that aren't on the profile can be added on the rewrite screen.
 3. **Use this version** on the rewrites you like (undoable), then **Copy updated profile**, **See it in your Identity Hub**, or take your facts to the other platform.
 4. **Identity Hub**: your photo and LinkedIn PDF, every confirmed fact with where it's used and found, and LinkedIn coverage before → after the rewrites you used.
 
@@ -51,7 +51,7 @@ When FactCheck finds nothing, the app says "No unsupported concrete claims detec
 | "FactCheck demo" (the "95% at Google" rewrite) | Cached, labeled "Intentional test case" |
 | Job-description targeting | Implemented (optional field) |
 | Hinge mode (prompt answers, rewritten answer by answer) | Implemented |
-| 8 LinkedIn audience lenses in 4 categories | Implemented |
+| 8 LinkedIn audience lenses in 4 categories (pick any; evaluated in parallel, one AI call per lens) plus up to 3 questions you type | Implemented |
 | LinkedIn by sections (headline, About, each entry), per-section rewrites with a style choice and a length slider (much shorter to much longer), "Rewrite all" (3 at a time) | Implemented, tested live. "Longer" only adds detail your sources contain; with nothing more to say, it stops short and says so |
 | Import LinkedIn's "Save to PDF" export (parsed in the browser) | Implemented, with a review banner for parser warnings |
 | Audience Clash on the annotated profile (reaction cards, filters, "Where they disagree", "Nobody could find") | Implemented (LinkedIn; Hinge uses the simpler grid) |

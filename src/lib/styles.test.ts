@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bigramOverlap, formatOf, lengthInstruction, lengthIssue, styleIssues, targetChars, STYLE_ORDER, STYLES, styleContrast } from "./styles";
+import { bigramOverlap, changeIssue, formatOf, lengthInstruction, lengthIssue, styleIssues, targetChars, STYLE_ORDER, STYLES, styleContrast } from "./styles";
 
 describe("formats", () => {
   it("maps LinkedIn sections to formats", () => {
@@ -89,5 +89,13 @@ describe("lengthIssue", () => {
 
   it("asks a 'longer' result that didn't grow to lengthen without new facts", () => {
     expect(lengthIssue({ step: "much_longer", original: 460, target: 690, actual: 461 })).toMatch(/no new facts/);
+  });
+});
+
+describe("changeIssue", () => {
+  it("flags a rewrite that is nearly the original, not a real rewrite", () => {
+    const original = "- Built a course planner in Python and React for a class project";
+    expect(changeIssue(original, "- Built a course planner in Python and React for a class project.")).toMatch(/nearly identical/);
+    expect(changeIssue(original, "- Course planner for a class project: built with Python and React")).toBeNull();
   });
 });

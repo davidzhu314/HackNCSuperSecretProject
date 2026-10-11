@@ -11,9 +11,13 @@ export const LIMITS = {
   maxFacts: 12,
   maxSegments: 250,
   segmentText: 600,
-  maxAudiences: 3,
+  maxAudiences: 8,
+  /** Questions the user types on the lens screen, besides the built-in ones. */
+  maxCustomQuestions: 3,
+  customQuestion: 120,
   maxTraits: 6,
-  maxCritiques: 40,
+  /** 8 lenses x (5 built-in + 3 custom questions). */
+  maxCritiques: 64,
   maxRewriteChars: 3000,
   /** LinkedIn's own field caps. */
   headlineChars: 220,
@@ -203,14 +207,27 @@ export type ExtractFactsResponse = z.infer<typeof ExtractFactsResponseSchema>;
 
 // ---------- API: POST /api/evaluate ----------
 
-export const EvaluateRequestSchema = z.object({
-  consent: z.literal(true),
-  platform: PlatformSchema,
-  segments: z.array(SegmentSchema).min(1).max(LIMITS.maxSegments),
-  audiences: z.array(z.string().min(1).max(60)).min(1).max(LIMITS.maxAudiences),
-  traits: z.array(z.string().min(1).max(60)).min(1).max(LIMITS.maxTraits),
-  jobDescription: z.string().max(LIMITS.jobDescription).optional(),
+/** A question the user typed ("Can they tell I lead teams?"). Untrusted text; critiques cite its id. */
+export const CustomQuestionSchema = z.object({
+  id: z.string().regex(/^q[1-9]$/),
+  text: z.string().trim().min(1).max(LIMITS.customQuestion),
 });
+export type CustomQuestion = z.infer<typeof CustomQuestionSchema>;
+
+export const EvaluateRequestSchema = z
+  .object({
+    consent: z.literal(true),
+    platform: PlatformSchema,
+    segments: z.array(SegmentSchema).min(1).max(LIMITS.maxSegments),
+    audiences: z.array(z.string().min(1).max(60)).min(1).max(LIMITS.maxAudiences),
+    traits: z.array(z.string().min(1).max(60)).max(LIMITS.maxTraits),
+    customQuestions: z.array(CustomQuestionSchema).max(LIMITS.maxCustomQuestions).optional(),
+    jobDescription: z.string().max(LIMITS.jobDescription).optional(),
+  })
+  .refine((r) => r.traits.length + (r.customQuestions?.length ?? 0) > 0, {
+    message: "Choose at least one question.",
+    path: ["traits"],
+  });
 export type EvaluateRequest = z.infer<typeof EvaluateRequestSchema>;
 
 export const EvaluateResponseSchema = z.object({

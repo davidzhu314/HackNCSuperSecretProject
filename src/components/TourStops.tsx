@@ -9,17 +9,22 @@ import { Button } from "@/components/ui/button";
 const ICONS = [FileText, LockKeyhole, Fingerprint, Users, Eye, Sparkles];
 
 export function TourStops(props: {
+  /** Labels of every step, indexed by step number. */
   steps: string[];
+  /** The step numbers this platform shows, in order (e.g. LinkedIn has no Identity DNA step). */
+  order?: number[];
   step: number;
   furthest: number;
   disabled: boolean;
   onSelect: (step: number) => void;
 }) {
   const { steps, step, furthest, disabled, onSelect } = props;
+  const order = props.order ?? steps.map((_, i) => i);
   return (
     <nav className="tour-stops" aria-label="Profile workflow">
       <ol>
-        {steps.map((label, index) => {
+        {order.map((index, position) => {
+          const label = steps[index];
           const Icon = ICONS[index] ?? FileText;
           const locked = index > furthest;
           return (
@@ -27,7 +32,7 @@ export function TourStops(props: {
               <Button
                 variant="hotspot"
                 size="icon"
-                aria-label={`${index + 1}. ${label}${locked ? " (locked)" : ""}`}
+                aria-label={`${position + 1}. ${label}${locked ? " (locked)" : ""}`}
                 aria-current={index === step ? "step" : undefined}
                 disabled={locked || disabled}
                 onClick={() => onSelect(index)}
@@ -36,7 +41,7 @@ export function TourStops(props: {
                 <span className="hotspot-orbit" aria-hidden="true" />
               </Button>
               <span className="hotspot-caption" aria-hidden="true">
-                <span>{String(index + 1).padStart(2, "0")}</span>
+                <span>{String(position + 1).padStart(2, "0")}</span>
                 {label}
               </span>
             </li>
