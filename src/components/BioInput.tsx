@@ -91,7 +91,7 @@ export function BioInput(props: {
                 />
               </details>
             )}
-            <QuickCheck segments={segments} group={config.group} fitText={bio} compact />
+            <QuickCheck segments={segments} group={config.group} fitText={bio} />
           </div>
         </div>
         <div className="perspective-panel">

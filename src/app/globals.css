@@ -672,10 +672,12 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .hub-root { --hub-bg: #fff; --hub-surface: #fff; --hub-ink: oklch(.22 .01 260); --hub-muted: oklch(.52 .01 260); --hub-line: oklch(.92 .004 260); --hub-wash: oklch(.975 .003 260); --hub-on-ink: #fff;
   --hub-texture: url(/textures/hub-waves-light.svg); /* wave ridges, from scripts/hub_textures.py */
   padding: 0; display: flex; flex-direction: column; min-height: 100svh; color: var(--hub-ink);
-  /* Fixed to the viewport so the ridges stay put while the cards scroll over them. Longhands on purpose: the
-     CSS build collapses a two-layer `background` shorthand of var()s into the color alone. */
-  background-color: var(--hub-bg); background-image: var(--hub-texture); background-position: center; background-size: cover;
-  background-repeat: no-repeat; background-attachment: fixed; }
+  position: relative; isolation: isolate; background-color: var(--hub-bg); }
+/* The ridges stay put while the cards scroll over them. A fixed layer of its own, not background-attachment:
+   fixed, which repaints the blurred SVG on every scroll frame (scrolling froze for up to ~0.5 s a frame).
+   Longhands on purpose: the CSS build collapses a `background` shorthand of var()s into the color alone. */
+.hub-root::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; will-change: transform;
+  background-image: var(--hub-texture); background-position: center; background-size: cover; background-repeat: no-repeat; }
 /* Dark Hub (HubThemeToggle sets data-hub-theme on <html>; with none set, the system setting decides, see the
    prefers-color-scheme block at the end). Also remaps the shared theme colors the
    Hub's cards, chips, and notes use, only inside the Hub. */
@@ -1025,14 +1027,7 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 
 /* ---------- Checks by code, not AI: quick check, where it fits, scorecard, consistency, benchmark ---------- */
 .quick-check { margin-top: 4px; }
-.quick-check-compact { padding-top: 10px; border-top: 1px solid var(--border); }
-.quick-check-summary { display: flex; align-items: center; gap: 8px; cursor: pointer; list-style: none; color: var(--muted-foreground); font-size: 12px; }
-.quick-check-summary::-webkit-details-marker { display: none; }
-.quick-check-summary > span:first-of-type { color: var(--foreground); font-weight: 600; }
-.quick-check-expanded { padding-top: 8px; }
-.quick-check-expanded > .section-heading { display: none; }
-.quick-check-tag { margin-left: 4px; padding: 2px 7px; border-radius: 999px; font-size: 10px; font-weight: 600; background: var(--secondary); color: var(--muted-foreground); }
-.quick-check-clean { display: flex; align-items: center; gap: 6px; margin: 8px 0 0; font-size: 12px; color: var(--success); }
+.quick-check-clean { margin: 8px 0 0; font-size: 12px; color: var(--muted-foreground); }
 .quick-check-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
 .quick-check-list li { display: grid; gap: 2px; padding: 9px 11px; background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--brand-solid, var(--primary)); border-radius: 6px; font-size: 12px; line-height: 1.5; }
 .quick-check-kind { font-size: 10.5px; font-weight: 700; color: var(--brand-solid, var(--primary)); }
@@ -1049,8 +1044,9 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .fit-logo[data-platform=github] { background: #1f2328; }
 .fit-logo[data-platform=tinder] { background: linear-gradient(45deg, #fd267a, #ff6036); }
 .fit-field { color: var(--muted-foreground); }
-.fit-count { font-variant-numeric: tabular-nums; color: var(--success); font-weight: 600; }
-.fit-list li[data-fits=false] .fit-count { color: var(--destructive); }
+.fit-count { font-variant-numeric: tabular-nums; color: var(--foreground); font-weight: 600; }
+.fit-status { margin-left: 6px; font-weight: 500; color: var(--muted-foreground); }
+.fit-list li[data-fits=false] .fit-count, .fit-list li[data-fits=false] .fit-status { color: var(--destructive); }
 .fit-cut { grid-column: 2 / -1; color: var(--muted-foreground); font-size: 11.5px; overflow-wrap: anywhere; }
 
 .scorecard { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 14px 0 4px; }
