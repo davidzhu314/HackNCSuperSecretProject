@@ -1,6 +1,6 @@
 # Personify (hackathon app)
 
-Start with [HANDOFF.md](HANDOFF.md) (current state and next steps), then the full spec: [SPEC.md](SPEC.md). Read [AGENTS.md](AGENTS.md) too: this Next.js version is newer than most training data. (The earlier SkinOS idea is archived in `archive/SKINOS-SPEC.md`; ignore it.)
+**Current goal: improve the rewrite writing quality. Start with [HANDOFF-WRITING.md](HANDOFF-WRITING.md).** Then [HANDOFF.md](HANDOFF.md) (team, deploy, gotchas; its state section is partly out of date), then the full spec: [SPEC.md](SPEC.md). Read [AGENTS.md](AGENTS.md) too: this Next.js version is newer than most training data. (The earlier SkinOS idea is archived in `archive/SKINOS-SPEC.md`; ignore it.)
 
 ## Idea
 **Personify** (earlier name: PERSONA) — "One identity. Every platform. Authentically you." Users enter a LinkedIn profile by sections (or import LinkedIn's PDF export) or Hinge answers, confirm a few true facts about themselves, pick simulated audiences, and get evidence-linked feedback plus rewrites grounded only in confirmed facts. A deterministic **FactCheck** layer flags invented numbers, entities, and inflated verbs. Principle: improve expression, not invent identity.
