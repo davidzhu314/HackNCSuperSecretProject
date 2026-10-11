@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { SYNTHETIC_LINKEDIN_LINES } from "./__fixtures__/linkedin-synthetic";
-import { cleanText, linesFromTextItems, parseLinkedInLines, type PdfTextItem } from "./linkedin-pdf";
+import { cleanText, languageName, linesFromTextItems, parseLinkedInLines, type PdfTextItem } from "./linkedin-pdf";
 import { rewritableSections, segmentProfile } from "./profile";
 import { LinkedInProfileSchema } from "./schemas";
 
@@ -82,11 +82,15 @@ describe("parseLinkedInLines (synthetic export)", () => {
     );
   });
 
-  it("keeps skills and honors, joining wrapped items, and skips other sidebar sections", () => {
+  it("keeps skills and honors, joining wrapped items", () => {
     expect(profile.skills).toEqual(["Robot Operating System (ROS)", "C++", "Finite Element Analysis"]);
     expect(profile.honors).toEqual(["Regional Robotics Challenge Finalist", "Dean's List"]);
-    expect(JSON.stringify(profile)).not.toContain("Spanish");
-    expect(notes).toContain('"Languages" isn\'t imported.');
+  });
+
+  it("imports languages by name, without the proficiency, and doesn't call them skipped", () => {
+    expect(profile.languages).toEqual(["Spanish"]);
+    expect(profile.skills).not.toContain("Spanish");
+    expect(notes.join(" ")).not.toContain("Languages");
   });
 
   it("parses an entry with a bullet list that continues across a page break", () => {
@@ -158,5 +162,13 @@ describe("parseLinkedInLines (not an export)", () => {
     const r = parseLinkedInLines([{ text: "Just a document", size: 12, x: 72, y: 700, page: 1 }]);
     expect(r.profile.experience).toEqual([]);
     expect(r.warnings).toEqual(['This doesn\'t look like a LinkedIn "Save to PDF" export. Enter your sections by hand instead.']);
+  });
+});
+
+describe("languageName", () => {
+  it("drops the proficiency in parentheses and keeps names without one", () => {
+    expect(languageName("Spanish (Native or Bilingual)")).toBe("Spanish");
+    expect(languageName("Mandarin  (Limited Working Proficiency) ")).toBe("Mandarin");
+    expect(languageName("Tagalog")).toBe("Tagalog");
   });
 });

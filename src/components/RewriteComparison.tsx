@@ -3,6 +3,7 @@
 import { Check, CircleAlert, Clipboard, Download, FileCheck, LoaderCircle, PenLine, ShieldCheck, Sparkles, TriangleAlert, Undo2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { ExtraFacts } from "@/components/ExtraFacts";
+import type { LieCheck } from "@/components/FactCheckDetail";
 import { Button } from "@/components/ui/button";
 import { checkRewrite } from "@/lib/fact-guard";
 import { scoreRewrite, type RewriteScorecard } from "@/lib/lint";
@@ -21,10 +22,12 @@ import {
 } from "@/lib/schemas";
 import { PLATFORM_CONFIGS } from "@/lib/rubrics";
 import { checkLength, checkStyle } from "@/lib/style-check";
+import { checkTinderLength, TINDER_ABOUT_PROMPT, tinderLimitFor } from "@/lib/tinder";
 import { findRepeatedPhrases, type QualityField } from "@/lib/profile-quality";
 import type { compareOverallTraitScores } from "@/lib/trait-scores";
-
 type ScoreComparison = ReturnType<typeof compareOverallTraitScores>;
+import { ProgressBar } from "@/components/ProgressBar";
+import { EXPECTED_MS } from "@/lib/progress";
 
 const RECEIPT_LABEL: Record<ReceiptStatus, string> = {
   traced: "Traced",
@@ -45,6 +48,8 @@ export function RewriteComparison(props: {
   original: string;
   segments: Segment[];
   confirmedFacts: IdentityFact[];
+  /** Tinder: the profile fields sent with the rewrite. Sources for FactCheck and receipts, not removable facts. */
+  fieldFacts?: IdentityFact[];
   result: RewriteResponse | null;
   goal: string;
   loading: boolean;
@@ -57,6 +62,7 @@ export function RewriteComparison(props: {
   textName: string;
   onAddFact: (text: string) => void;
   onRemoveFact: (id: string) => void;
+  lieCheck?: LieCheck;
   qualityFields?: QualityField[];
   qualityTargetKey?: string;
   use?: { current: string; applied: boolean; onUse: (text: string) => void; onUndo: () => void };
@@ -87,7 +93,8 @@ export function RewriteComparison(props: {
           {loading ? "Writing two versions..." : result ? "Rewrite again" : "Generate rewrites"}
         </Button>
       </div>
-      <ExtraFacts facts={confirmedFacts} what={props.textName} onAdd={props.onAddFact} onRemove={props.onRemoveFact} />
+      <ProgressBar active={loading} label="Writing two versions and running FactCheck…" expectedMs={EXPECTED_MS.rewrite} />
+      <ExtraFacts facts={confirmedFacts} what={props.textName} onAdd={props.onAddFact} onRemove={props.onRemoveFact} lieCheck={props.lieCheck} />
       <p className="empty-note">
         You’ll get two versions, a direct one and a narrative one, built only from your own words and any facts you add.
         Neither may add anything else.
@@ -118,7 +125,12 @@ export function RewriteComparison(props: {
           {/* Every version stays mounted so edits survive tab switches; keyed so a new result resets them. */}
           {variations.map((v) => (
             <div key={`${result.source}|${v.style}|${v.rewrite.content}`} hidden={v.style !== shown.style}>
-              <VariationResult {...props} variation={v} source={result.source} />
+              <VariationResult
+                {...props}
+                confirmedFacts={[...confirmedFacts, ...(props.fieldFacts ?? [])]}
+                variation={v}
+                source={result.source}
+              />
             </div>
           ))}
         </>
@@ -184,12 +196,26 @@ export function VariationResult(props: {
     if (!edited) return variation.styleWarnings;
     const config = PLATFORM_CONFIGS[rewrite.platform];
     // Prompt answers are edited as one text, one answer per blank-line block; the limit is per answer.
+    if (config.input === "tinder") return [...checkStyle(text), ...checkTinderLength(text.split(/\n\s*\n/), segments)];
     const pieces = config.input === "prompts" ? text.split(/\n\s*\n/) : [text];
     return [...checkStyle(text), ...checkLength(pieces, config.maxChars, config.label)];
-  }, [edited, text, variation, rewrite.platform]);
-  const qualityFields = useMemo(() => props.qualityFields?.map((field) => field.key === props.qualityTargetKey ? { ...field, text } : field) ?? (PLATFORM_CONFIGS[rewrite.platform].input === "prompts"
-    ? text.split(/\n\s*\n/).map((value, i) => ({ key: `answer-${i}`, label: `Answer ${i + 1}`, text: value, limit: PLATFORM_CONFIGS[rewrite.platform].maxChars }))
-    : [{ key: "profile", label: PLATFORM_CONFIGS[rewrite.platform].fieldLabel, text, limit: PLATFORM_CONFIGS[rewrite.platform].maxChars }]), [props.qualityFields, props.qualityTargetKey, rewrite.platform, text]);
+  }, [edited, text, variation, rewrite.platform, segments]);
+  const qualityFields = useMemo(() => {
+    if (props.qualityFields) return props.qualityFields.map((field) => (field.key === props.qualityTargetKey ? { ...field, text } : field));
+    const config = PLATFORM_CONFIGS[rewrite.platform];
+    if (config.input === "tinder") {
+      // Tinder: About me (if any), then one answer per prompt, each against its own limit.
+      let answer = 0;
+      return text.split(/\n\s*\n/).map((value, i) => {
+        const prompt = segments[i]?.prompt;
+        const label = prompt === TINDER_ABOUT_PROMPT ? config.fieldLabel : `Answer ${++answer}`;
+        return { key: `piece-${i}`, label, text: value, limit: tinderLimitFor(prompt) };
+      });
+    }
+    return config.input === "prompts"
+      ? text.split(/\n\s*\n/).map((value, i) => ({ key: `answer-${i}`, label: `Answer ${i + 1}`, text: value, limit: config.maxChars }))
+      : [{ key: "profile", label: config.fieldLabel, text, limit: config.maxChars }];
+  }, [props.qualityFields, props.qualityTargetKey, rewrite.platform, text, segments]);
   const repeated = useMemo(() => findRepeatedPhrases(qualityFields), [qualityFields]);
 
   const diff = useMemo(() => wordDiff(original, text), [original, text]);
@@ -394,7 +420,9 @@ export function VariationResult(props: {
               {receipts[openSentence].sources.length ? (
                 receipts[openSentence].sources.map((source) => (
                   <p key={`${source.kind}|${source.id}`}>
-                    <span className="receipt-src">{source.kind === "segment" ? "Your profile" : "Your fact"}</span>
+                    <span className="receipt-src">
+                      {source.kind === "segment" ? "Your profile" : /^p\d$/.test(source.id) ? "Your profile field" : "Your fact"}
+                    </span>
                     {source.kind === "segment" && source.prompt && <strong className="source-prompt">{source.prompt}</strong>}
                     {source.text}
                   </p>

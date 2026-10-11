@@ -2,6 +2,17 @@
 
 Written 2026-10-11 for a future Claude session (current as of `main` 4c7ef0f). **Plan only: nothing here is implemented yet.** Read [CLAUDE.md](CLAUDE.md) (rules) and [AGENTS.md](AGENTS.md) (Next.js 16.4) first. [HANDOFF-WRITING.md](HANDOFF-WRITING.md) is the other queued task (rewrite quality). Ask the user which comes first.
 
+## Split for two people (2026-10-11)
+
+> **Done:** all three parts were built in one branch, `feat/tinder-profile`. What's left: Tinder's real option lists and prompt limits (assumed for now; see the step 0 decisions), and Tinder sample results (Tinder always runs live).
+
+The user moved this ahead of [HANDOFF-WRITING.md](HANDOFF-WRITING.md). The work is split so two sessions can run at once:
+1. [HANDOFF-TINDER-0-CONTRACT.md](HANDOFF-TINDER-0-CONTRACT.md): the open questions and the shared contract. One small PR; **it blocks both halves**.
+2. In parallel after that: [HANDOFF-TINDER-A.md](HANDOFF-TINDER-A.md) (data and AI) and [HANDOFF-TINDER-B.md](HANDOFF-TINDER-B.md) (UI). Their files don't overlap.
+3. Merge order: step 0, then A, then B (rebased onto main and switched from the mock to the live routes), then a joint live check. The user approves the deploy.
+
+This file stays the background and the design rules for all three.
+
 ## Goal
 
 Today the Tinder section is a single "About me" box. The user wants it to look like a real Tinder profile:

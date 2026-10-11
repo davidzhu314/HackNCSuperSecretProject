@@ -3,6 +3,7 @@
 import { Check, LoaderCircle, PenLine, Sparkles, TriangleAlert, Undo2 } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { ExtraFacts } from "@/components/ExtraFacts";
+import type { LieCheck } from "@/components/FactCheckDetail";
 import { VariationResult } from "@/components/RewriteComparison";
 import { Button } from "@/components/ui/button";
 import type {
@@ -16,8 +17,10 @@ import type {
 } from "@/lib/schemas";
 import { LENGTH_STEPS, STYLE_ORDER, STYLES, targetChars } from "@/lib/styles";
 import type { compareOverallTraitScores } from "@/lib/trait-scores";
-
 type ScoreComparison = ReturnType<typeof compareOverallTraitScores>;
+import { ProgressBar } from "@/components/ProgressBar";
+import { EXPECTED_MS, expectedBatchMs } from "@/lib/progress";
+import { PARALLEL_REWRITES } from "@/lib/run-limited";
 
 // LinkedIn rewrites, one card per section in LinkedIn order. Each card picks a style (Direct,
 // Narrative, Professional) and a length (slider), generates on demand, caches per style + length,
@@ -91,6 +94,7 @@ export function SectionRewrites(props: {
   confirmedFacts: IdentityFact[];
   onAddFact: (text: string) => void;
   onRemoveFact: (id: string) => void;
+  lieCheck?: LieCheck;
   goal: string;
   allStyle: SectionStyle;
   allLength: LengthStep;
@@ -120,8 +124,8 @@ export function SectionRewrites(props: {
   onScore: (key: string, text: string) => Promise<ScoreComparison>;
 }) {
   const { sections, states, sourcesFor, confirmedFacts, goal, allStyle, allLength, sampleMode, rewritingAll, focusKey } = props;
-              const { adversarial, adversarialOriginal, adversarialSegments } = props;
-  const { applied, currentText, onUse, onUndo, onAddFact, onRemoveFact } = props;
+  const { adversarial, adversarialOriginal, adversarialSegments } = props;
+  const { applied, currentText, onUse, onUndo, onAddFact, onRemoveFact, lieCheck } = props;
   const { onGoal, onStyle, onLength, onGenerate, onAllStyle, onAllLength, onRewriteAll, onAdversarial, onError } = props;
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -183,7 +187,12 @@ export function SectionRewrites(props: {
           {rewritingAll ? "Rewriting sections…" : "Rewrite all sections"}
         </Button>
       </div>
-      <ExtraFacts facts={confirmedFacts} what="profile" onAdd={onAddFact} onRemove={onRemoveFact} />
+      <ProgressBar
+        active={rewritingAll}
+        label={`Rewriting ${sections.length} sections, ${PARALLEL_REWRITES} at a time…`}
+        expectedMs={expectedBatchMs(sections.length, PARALLEL_REWRITES)}
+      />
+      <ExtraFacts facts={confirmedFacts} what="profile" onAdd={onAddFact} onRemove={onRemoveFact} lieCheck={lieCheck} />
       {sampleMode && <p className="empty-note">Sample results exist at the same length only; turn off sample mode to change the length.</p>}
 
       <div className="section-cards" ref={listRef}>
@@ -252,12 +261,15 @@ export function SectionRewrites(props: {
                     : ""}
                 </p>
               )}
-              {st.loading && (
-                <p className="loading-row" role="status">
-                  <LoaderCircle className="animate-spin" size={14} />
-                  Writing the {STYLES[st.loading.style].label.toLowerCase()} version ({lengthLabel(st.loading.length).toLowerCase()}) and running FactCheck…
-                </p>
-              )}
+              <ProgressBar
+                active={Boolean(st.loading)}
+                label={
+                  st.loading
+                    ? `Writing the ${STYLES[st.loading.style].label.toLowerCase()} version (${lengthLabel(st.loading.length).toLowerCase()}) and running FactCheck…`
+                    : ""
+                }
+                expectedMs={EXPECTED_MS.section}
+              />
               {st.error && !st.loading && (
                 <div className="flow-error section-error" role="alert">
                   <TriangleAlert />

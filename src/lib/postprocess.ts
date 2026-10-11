@@ -21,11 +21,12 @@ import {
   RewriteSectionResponseSchema,
 } from "./schemas";
 import type { z } from "zod";
-import type { ModelEvaluateSchema, ModelHingeRewriteSchema, ModelRewriteSchema, ModelSectionRewriteSchema } from "./schemas";
+import type { ModelEvaluateSchema, ModelHingeRewriteSchema, ModelRewriteSchema, ModelSectionRewriteSchema, ModelVerifyFactSchema, VerifyFactResponse } from "./schemas";
 import { splitSentences } from "./segments";
 import { PLATFORM_CONFIGS } from "./rubrics";
 import { checkLength, checkStyle } from "./style-check";
 import { countBullets, sectionCap, targetChars } from "./styles";
+import { checkTinderLength } from "./tinder";
 
 // Server-side cleanup of model output. The model is never trusted: ids are checked,
 // strings are clamped, and unrequested audience/trait combinations are dropped.
@@ -42,6 +43,41 @@ export function buildCandidateFacts(raw: string[]): (IdentityFact & { confirmed:
     if (out.length >= LIMITS.maxFacts) break;
   }
   return out;
+}
+
+/**
+ * Lie Checker: resolve the cited ids to the user's own text, flag unknown ones, clamp strings.
+ * A verdict that needs evidence ("consistent", "contradicts") but cites none that exists is
+ * downgraded to "not_mentioned": the model may not accuse, or vouch, without pointing at a line.
+ */
+export function buildFactVerdict(
+  raw: z.infer<typeof ModelVerifyFactSchema>,
+  ctx: { factId: string; segments: Segment[]; otherFacts: Pick<IdentityFact, "id" | "text">[] },
+): VerifyFactResponse {
+  const known = new Map<string, string>([
+    ...ctx.segments.map((s) => [s.id, s.text] as const),
+    ...ctx.otherFacts.map((f) => [f.id, f.text] as const),
+  ]);
+  const ids = [...new Set(raw.sourceIds)].filter((id) => id !== ctx.factId);
+  const evidence = ids.filter((id) => known.has(id)).map((id) => ({ id, text: known.get(id)! }));
+  const warnings: GuardWarning[] = ids
+    .filter((id) => !known.has(id))
+    .map((id) => ({
+      kind: "unverified_segment" as const,
+      text: id.slice(0, 40),
+      explanation: "The model cited a source that does not exist, so it was ignored.",
+    }));
+  const needsEvidence = raw.verdict === "consistent" || raw.verdict === "contradicts";
+  const verdict = needsEvidence && !evidence.length ? "not_mentioned" : raw.verdict;
+  const flagged = verdict === "exaggerated" || verdict === "contradicts";
+  return {
+    source: "live",
+    verdict,
+    reason: verdict === raw.verdict ? raw.reason.trim().slice(0, 500) : "Nothing in your profile or other facts mentions this.",
+    suggestion: flagged ? raw.suggestion.trim().slice(0, 300) : "",
+    evidence: flagged || verdict === "consistent" ? evidence : [],
+    warnings,
+  };
 }
 
 export function buildCritiques(
@@ -109,13 +145,15 @@ function finishVariation(
     throw new LlmError("invalid_model_output", "The AI returned an unusable rewrite. Please try again.");
   }
   const config = PLATFORM_CONFIGS[platform];
-  // Prompt platforms limit each answer; bio platforms limit the whole text.
+  // Prompt platforms limit each answer (Tinder: About me and answers differ); bio platforms the whole text.
   const pieces = parsed.data.answers ? parsed.data.answers.map((a) => a.text) : [parsed.data.content];
+  const lengthWarnings =
+    config.input === "tinder" ? checkTinderLength(pieces, segments) : checkLength(pieces, config.maxChars, config.label);
   return {
     style,
     rewrite: parsed.data,
     warnings: [...extraWarnings, ...checkRewrite({ rewrite: parsed.data, segments, facts: confirmedFacts })],
-    styleWarnings: [...checkStyle(parsed.data.content), ...checkLength(pieces, config.maxChars, config.label)],
+    styleWarnings: [...checkStyle(parsed.data.content), ...lengthWarnings],
   };
 }
 
@@ -144,7 +182,8 @@ export function buildHingeAnswers(
 ): { answers: HingeAnswer[]; content: string; warnings: GuardWarning[]; keptOriginal: Segment[] } {
   const byId = new Map<string, string>();
   for (const a of model.answers) {
-    const text = a.text.trim().slice(0, LIMITS.segmentText);
+    // Blank lines separate answers in the joined text, so none may appear inside one.
+    const text = a.text.replace(/\n\s*\n+/g, "\n").trim().slice(0, LIMITS.segmentText);
     if (text && !byId.has(a.segmentId)) byId.set(a.segmentId, text);
   }
   const warnings = checkSegmentCitations([...byId.keys()], segments);

@@ -28,6 +28,13 @@ export const LIMITS = {
   listItem: 120,
   /** Per-section rewrite output caps, by section type. */
   sectionRewriteChars: { headline: 220, about: 2600, entry: 2000 },
+  /** Tinder: About me is Tinder's 500. Prompt count and answer length are assumed (copied from Hinge). */
+  tinderAbout: 500,
+  maxTinderPrompts: 3,
+  tinderAnswer: 300,
+  /** Free-text Tinder fields (job title, company, school, city). */
+  tinderField: 100,
+  maxLanguages: 10,
 } as const;
 
 export const PlatformSchema = z.enum(["linkedin", "handshake", "instagram", "facebook", "hinge", "tinder"]);
@@ -39,9 +46,10 @@ export type PlatformGroup = z.infer<typeof PlatformGroupSchema>;
 
 /**
  * How the profile is entered: sections = LinkedIn's sectioned profile; prompts = prompt question +
- * answer pairs (Hinge); bio = one short text field (Handshake, Instagram, Facebook, X, Tinder).
+ * answer pairs (Hinge); bio = one short text field (Handshake, Instagram, Facebook); tinder = About
+ * me, prompt answers, and profile fields (TinderProfile).
  */
-export type InputShape = "sections" | "prompts" | "bio";
+export type InputShape = "sections" | "prompts" | "bio" | "tinder";
 
 /** Input split into numbered pieces server-side. The model cites ids, never quotes. */
 export const SegmentSchema = z.object({
@@ -159,6 +167,8 @@ const LinkedInProfileFieldsSchema = z.object({
   volunteering: entries,
   skills: listItems,
   honors: listItems,
+  /** From the PDF's Languages sidebar, names only. Not part of any LinkedIn rewrite; Tinder carries it over. */
+  languages: z.array(z.string().max(LIMITS.listItem)).max(LIMITS.maxLanguages).optional(),
 });
 export type LinkedInProfile = z.infer<typeof LinkedInProfileFieldsSchema>;
 
@@ -189,6 +199,86 @@ export const LinkedInProfileSchema = LinkedInProfileFieldsSchema
     { message: "Entry ids must be unique." },
   );
 
+// ---------- Tinder: About me, prompt answers, and profile fields ----------
+
+/**
+ * Profile field options, stored as their labels. Taken from Tinder's app as best known (unverified;
+ * Tinder changes them), except Going out, which is a neutral list. The user picks every value; the
+ * AI never fills, infers, or sees them (only TINDER_AI_FIELDS in tinder.ts reach a rewrite).
+ */
+export const TINDER_OPTIONS = {
+  openTo: ["Long-term partner", "Long-term, open to short", "Short-term, open to long", "Short-term fun", "New friends", "Still figuring it out"],
+  relationshipType: ["Monogamy", "Ethical non-monogamy", "Open relationship", "Polyamory", "Open to exploring"],
+  zodiac: ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"],
+  educationLevel: ["High school", "Trade school", "In college", "Bachelor's", "In grad school", "Master's", "PhD"],
+  children: ["I want children", "I don't want children", "I have children and want more", "I have children and don't want more", "Not sure yet"],
+  communicationStyle: ["Big-time texter", "Phone caller", "Video chatter", "Bad texter", "Better in person"],
+  loveStyle: ["Thoughtful gestures", "Presents", "Touch", "Compliments", "Time together"],
+  pets: ["Dog", "Cat", "Reptile", "Amphibian", "Bird", "Fish", "Turtle", "Hamster", "Rabbit", "Other", "Don't have but love", "Pet-free", "All the pets", "Want a pet", "Allergic to pets"],
+  drinking: ["Not for me", "Sober", "Sober curious", "On special occasions", "Socially on weekends", "Most nights"],
+  smoking: ["Non-smoker", "Social smoker", "Smoker when drinking", "Smoker", "Trying to quit"],
+  cannabis: ["Yes", "Occasionally", "Socially", "Never"],
+  workout: ["Every day", "Often", "Sometimes", "Never"],
+  socialMedia: ["Influencer status", "Socially active", "Passive scroller", "Off the grid"],
+  goingOut: ["Most weekends", "Now and then", "Rarely", "Staying in"],
+} as const;
+export type TinderChoiceField = keyof typeof TINDER_OPTIONS;
+
+const one = <T extends readonly [string, ...string[]]>(options: T) => z.enum(options).nullable();
+const many = <T extends readonly [string, ...string[]]>(options: T) => z.array(z.enum(options)).max(options.length);
+const freeText = z.string().max(LIMITS.tinderField);
+
+/** null (or an empty list) means left blank: nothing is shown for it. */
+export const TinderFieldsSchema = z.object({
+  // Work & education: typed or carried over from LinkedIn. The only fields a rewrite may use.
+  jobTitle: freeText,
+  company: freeText,
+  school: freeText,
+  languages: z.array(z.string().trim().min(1).max(LIMITS.listItem)).max(LIMITS.maxLanguages),
+  // Location: never sent.
+  livingIn: freeText,
+  // Everything below is never sent.
+  openTo: one(TINDER_OPTIONS.openTo),
+  relationshipType: many(TINDER_OPTIONS.relationshipType),
+  zodiac: one(TINDER_OPTIONS.zodiac),
+  educationLevel: one(TINDER_OPTIONS.educationLevel),
+  children: one(TINDER_OPTIONS.children),
+  communicationStyle: one(TINDER_OPTIONS.communicationStyle),
+  loveStyle: one(TINDER_OPTIONS.loveStyle),
+  pets: many(TINDER_OPTIONS.pets),
+  drinking: one(TINDER_OPTIONS.drinking),
+  smoking: one(TINDER_OPTIONS.smoking),
+  cannabis: one(TINDER_OPTIONS.cannabis),
+  workout: one(TINDER_OPTIONS.workout),
+  socialMedia: one(TINDER_OPTIONS.socialMedia),
+  goingOut: one(TINDER_OPTIONS.goingOut),
+});
+export type TinderFields = z.infer<typeof TinderFieldsSchema>;
+
+export const TinderPromptSchema = z.object({
+  prompt: z.string().min(1).max(200),
+  answer: z.string().max(LIMITS.tinderAnswer),
+});
+export type TinderPrompt = z.infer<typeof TinderPromptSchema>;
+
+export const TinderProfileSchema = z.object({
+  about: z.string().max(LIMITS.tinderAbout),
+  prompts: z.array(TinderPromptSchema).max(LIMITS.maxTinderPrompts),
+  fields: TinderFieldsSchema,
+});
+export type TinderProfile = z.infer<typeof TinderProfileSchema>;
+
+/**
+ * A Tinder profile field the user typed (job title, company, school, languages), sent with a rewrite
+ * as source text: the rewrite may mention it, and FactCheck counts it as the user's own words.
+ */
+export const FieldFactSchema = z.object({
+  id: z.string().regex(/^p[1-9]$/),
+  field: z.enum(["jobTitle", "company", "school", "languages"]),
+  text: z.string().min(1).max(LIMITS.factText),
+});
+export type FieldFact = z.infer<typeof FieldFactSchema>;
+
 /** One rewritable piece of a profile: the headline, About, or one entry's description. */
 export const RewritableSectionSchema = z.object({
   /** "headline" | "about" | an entry id ("exp2"). */
@@ -215,6 +305,38 @@ export const ExtractFactsResponseSchema = z.object({
   facts: z.array(IdentityFactSchema.extend({ confirmed: z.literal(false) })).max(LIMITS.maxFacts),
 });
 export type ExtractFactsResponse = z.infer<typeof ExtractFactsResponseSchema>;
+
+// ---------- API: POST /api/facts/verify (Lie Checker) ----------
+// Checks one fact for consistency with the user's own profile and other facts. It can't know what's
+// true: "consistent" means nothing contradicts it, never "verified true".
+
+export const FactVerdictSchema = z.enum(["consistent", "not_mentioned", "exaggerated", "contradicts"]);
+export type FactVerdict = z.infer<typeof FactVerdictSchema>;
+
+const FactRefSchema = IdentityFactSchema.pick({ id: true, text: true });
+
+export const VerifyFactRequestSchema = z.object({
+  consent: z.literal(true),
+  platform: PlatformSchema,
+  fact: FactRefSchema,
+  /** May be empty: a fact can be checked against the other facts alone. */
+  segments: z.array(SegmentSchema).max(LIMITS.maxSegments),
+  otherFacts: z.array(FactRefSchema).max(LIMITS.maxFacts),
+});
+export type VerifyFactRequest = z.infer<typeof VerifyFactRequestSchema>;
+
+export const VerifyFactResponseSchema = z.object({
+  source: ResultSourceSchema,
+  verdict: FactVerdictSchema,
+  reason: z.string().max(500),
+  /** How to make the fact match the user's own words. Empty unless the verdict is a flag. */
+  suggestion: z.string().max(300),
+  /** Cited profile segments or facts, resolved server-side. Quotes never come from the model. */
+  evidence: z.array(z.object({ id: z.string(), text: z.string() })),
+  /** Cited ids that don't exist (dropped from `evidence`). */
+  warnings: z.array(GuardWarningSchema),
+});
+export type VerifyFactResponse = z.infer<typeof VerifyFactResponseSchema>;
 
 // ---------- API: POST /api/evaluate ----------
 
@@ -260,6 +382,8 @@ export const RewriteRequestSchema = z.object({
   segments: z.array(SegmentSchema).min(1).max(LIMITS.maxSegments),
   /** Only confirmed facts are accepted; the route rejects anything else. */
   facts: z.array(IdentityFactSchema.extend({ confirmed: z.literal(true) })).max(LIMITS.maxFacts),
+  /** Tinder only: the profile fields a rewrite may mention. Location and lifestyle answers have no slot here. */
+  fieldFacts: z.array(FieldFactSchema).max(4).optional(),
   audiences: z.array(z.string().min(1).max(60)).max(LIMITS.maxAudiences),
   goal: z.string().max(300).optional(),
   tone: RewriteToneSchema.default("balanced"),
@@ -379,6 +503,13 @@ export type PlatformConfig = {
 
 export const ModelExtractSchema = z.object({
   facts: z.array(z.string()),
+});
+
+export const ModelVerifyFactSchema = z.object({
+  verdict: FactVerdictSchema,
+  sourceIds: z.array(z.string()),
+  reason: z.string(),
+  suggestion: z.string(),
 });
 
 export const ModelEvaluateSchema = z.object({

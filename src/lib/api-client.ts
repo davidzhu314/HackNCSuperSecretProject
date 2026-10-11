@@ -10,7 +10,9 @@ import {
   SAMPLE_PROFILE_EVALUATE,
   SAMPLE_REWRITE,
   SAMPLE_SECTION_REWRITES,
+  SAMPLE_TINDER_ADVERSARIAL_CONTENT,
 } from "./demo-data";
+import { checkTinderLength, fieldFactsAsFacts } from "./tinder";
 import { sectionOfSegment } from "./profile";
 import {
   ApiErrorSchema,
@@ -18,6 +20,7 @@ import {
   ExtractFactsResponseSchema,
   RewriteResponseSchema,
   RewriteSectionResponseSchema,
+  VerifyFactResponseSchema,
   type ApiError,
   type EvaluateRequest,
   type EvaluateResponse,
@@ -27,6 +30,8 @@ import {
   type RewriteResponse,
   type RewriteSectionRequest,
   type RewriteSectionResponse,
+  type VerifyFactRequest,
+  type VerifyFactResponse,
 } from "./schemas";
 import type { z } from "zod";
 
@@ -65,15 +70,17 @@ export function errorMessage(err: unknown): string {
   return FRIENDLY.network_error;
 }
 
-async function post<T>(path: string, body: unknown, schema: z.ZodType<T>): Promise<T> {
+async function post<T>(path: string, body: unknown, schema: z.ZodType<T>, signal?: AbortSignal): Promise<T> {
   let res: Response;
   try {
     res = await fetch(path, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
+      signal,
     });
-  } catch {
+  } catch (err) {
+    if (signal?.aborted) throw err;
     throw new ClientApiError("network_error", FRIENDLY.network_error);
   }
   const json: unknown = await res.json().catch(() => null);
@@ -118,7 +125,13 @@ export async function rewriteProfile(
     await pause();
     if (req.platform === "linkedin") return SAMPLE_ADVERSARIAL_REWRITE;
     const config = PLATFORM_CONFIGS[req.platform];
-    const content = req.platform === "hinge" ? SAMPLE_HINGE_ADVERSARIAL_CONTENT : SAMPLE_BIO_ADVERSARIAL_CONTENT[req.platform];
+    const content =
+      req.platform === "hinge"
+        ? SAMPLE_HINGE_ADVERSARIAL_CONTENT
+        : req.platform === "tinder"
+          ? SAMPLE_TINDER_ADVERSARIAL_CONTENT
+          : SAMPLE_BIO_ADVERSARIAL_CONTENT[req.platform];
+    const facts = [...req.facts, ...fieldFactsAsFacts(req.fieldFacts ?? [])];
     const rewrite = {
       platform: req.platform,
       content,
@@ -131,10 +144,12 @@ export async function rewriteProfile(
         {
           style: "direct",
           rewrite,
-          warnings: checkRewrite({ rewrite, segments: req.segments, facts: req.facts }),
+          warnings: checkRewrite({ rewrite, segments: req.segments, facts }),
           styleWarnings: [
             ...checkStyle(rewrite.content),
-            ...checkLength(config.input === "prompts" ? content.split(/\n\n+/) : [content], config.maxChars, config.label),
+            ...(config.input === "tinder"
+              ? checkTinderLength(content.split(/\n\n+/), req.segments)
+              : checkLength(config.input === "prompts" ? content.split(/\n\n+/) : [content], config.maxChars, config.label)),
           ],
         },
       ],
@@ -159,4 +174,9 @@ export async function rewriteSection(
     return cached;
   }
   return post("/api/rewrite-section", req, RewriteSectionResponseSchema);
+}
+
+/** Lie Checker: one fact against the profile and other facts. No sample mode: it always runs live, after consent. */
+export async function verifyFact(req: VerifyFactRequest, opts: { signal?: AbortSignal } = {}): Promise<VerifyFactResponse> {
+  return post("/api/facts/verify", req, VerifyFactResponseSchema, opts.signal);
 }
