@@ -1,11 +1,13 @@
 "use client";
 
-import { Check, CircleAlert, Clipboard, LoaderCircle, PenLine, ShieldCheck, Sparkles, TriangleAlert, Undo2 } from "lucide-react";
+import { Check, CircleAlert, Clipboard, Download, FileCheck, LoaderCircle, PenLine, ShieldCheck, Sparkles, TriangleAlert, Undo2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { ExtraFacts } from "@/components/ExtraFacts";
 import { Button } from "@/components/ui/button";
 import { checkRewrite } from "@/lib/fact-guard";
+import { scoreRewrite, type RewriteScorecard } from "@/lib/lint";
 import { WARNING_LABEL, wordDiff } from "@/lib/persona-ui";
+import { buildProofText } from "@/lib/proof";
 import { traceSentences, type ReceiptStatus } from "@/lib/provenance";
 import {
   LIMITS,
@@ -154,6 +156,8 @@ export function VariationResult(props: {
    * profile text now; `applied` says whether it is an accepted rewrite.
    */
   use?: { current: string; applied: boolean; onUse: (text: string) => void; onUndo: () => void };
+  /** What this text is (a LinkedIn section's label); defaults to the platform's field. For the export. */
+  section?: string;
 }) {
   const { original, segments, confirmedFacts, variation, source, onError, use } = props;
   const { rewrite } = variation;
@@ -226,6 +230,41 @@ export function VariationResult(props: {
   const usedFactIds = [...new Set(rewrite.usedFactIds)];
 
   const inUse = !!use?.applied && use.current.trim() === text.trim();
+
+  // Real counts, never a score: what changed between your text and this version.
+  const scorecard = useMemo(() => {
+    const factIds = new Set(receipts.flatMap((r) => r.sources.filter((src) => src.kind === "fact").map((src) => src.id)));
+    return scoreRewrite(original, text, factIds.size);
+  }, [original, text, receipts]);
+
+  // "Prove it": the text with a source for every sentence and the FactCheck result.
+  const proof = () =>
+    buildProofText({
+      platformLabel: PLATFORM_CONFIGS[rewrite.platform].label,
+      section: props.section ?? PLATFORM_CONFIGS[rewrite.platform].fieldLabel,
+      text,
+      segments,
+      facts: confirmedFacts,
+      warnings,
+    });
+  const [proofCopied, setProofCopied] = useState(false);
+  async function copyProof() {
+    try {
+      await navigator.clipboard.writeText(proof());
+      setProofCopied(true);
+    } catch {
+      onError("Clipboard access is unavailable. Use Download instead.");
+    }
+  }
+  function downloadProof() {
+    const url = URL.createObjectURL(new Blob([proof()], { type: "text/plain;charset=utf-8" }));
+    const a = document.createElement("a");
+    const name = `${PLATFORM_CONFIGS[rewrite.platform].label}-${props.section ?? PLATFORM_CONFIGS[rewrite.platform].fieldLabel}`;
+    a.href = url;
+    a.download = `personify-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-with-sources.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   async function copy() {
     try {
@@ -385,6 +424,7 @@ export function VariationResult(props: {
           No unsupported concrete claims detected.
         </p>
       )}
+      <Scorecard card={scorecard} />
       <details className="change-details">
         <summary>What changed</summary>
         <ul className="change-list">
@@ -409,6 +449,13 @@ export function VariationResult(props: {
               Undo
             </Button>
           )}
+          <Button variant="ghost" onClick={() => void copyProof()} title="The text with a source for every sentence and the FactCheck result">
+            {proofCopied ? <Check /> : <FileCheck />}
+            {proofCopied ? "Copied with sources" : "Copy with sources"}
+          </Button>
+          <Button variant="ghost" size="icon" onClick={downloadProof} aria-label="Download with sources" title="Download with sources">
+            <Download />
+          </Button>
           <Button variant={use ? "glass" : "aero"} onClick={() => void copy()}>
             {copied ? <Check /> : <Clipboard />}
             {copied ? "Copied" : warnings.length ? "Copy anyway" : "Copy"}
@@ -422,5 +469,31 @@ export function VariationResult(props: {
         </div>
       </div>
     </>
+  );
+}
+
+/** Before → after counts for one rewrite. Counted by code from the two texts; never a score. */
+function Scorecard({ card }: { card: RewriteScorecard }) {
+  const items = [
+    { label: "Buzzwords", before: card.buzzwordsBefore, after: card.buzzwordsAfter, better: card.buzzwordsAfter < card.buzzwordsBefore },
+    { label: "Specifics", before: card.specificsBefore, after: card.specificsAfter, better: card.specificsAfter > card.specificsBefore },
+    { label: "Characters", before: card.charsBefore, after: card.charsAfter, better: false },
+  ];
+  return (
+    <div className="scorecard" aria-label="Before and after, counted by code">
+      {items.map((item) => (
+        <span key={item.label} className="scorecard-item" data-better={item.better}>
+          <span className="scorecard-label">{item.label}</span>
+          <span className="scorecard-value">
+            {item.before.toLocaleString()} → {item.after.toLocaleString()}
+          </span>
+        </span>
+      ))}
+      <span className="scorecard-item">
+        <span className="scorecard-label">Your facts used</span>
+        <span className="scorecard-value">{card.factsUsed}</span>
+      </span>
+      <span className="scorecard-note">Counted by code, not AI</span>
+    </div>
   );
 }

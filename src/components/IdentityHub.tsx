@@ -1,9 +1,10 @@
 "use client";
 
-import { ArrowUpRight, Check, CircleAlert, FileUp, Fingerprint, IdCard, ImagePlus, LoaderCircle, Sparkles, Trash2 } from "lucide-react";
+import { ArrowUpRight, Check, CircleAlert, FileUp, Fingerprint, IdCard, ImagePlus, LoaderCircle, ShieldCheck, Sparkles, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { BrandMark } from "@/components/Chrome";
+import { findContradictions, platformsWithText, type ProfileTexts } from "@/lib/consistency";
 import { Button } from "@/components/ui/button";
 import { DEMO_LINKEDIN_FACTS, DEMO_LINKEDIN_PROFILE } from "@/lib/demo-data";
 import { PLATFORMS, platformsOf, togglePlatform, type FactPlatforms } from "@/lib/fact-platforms";
@@ -210,6 +211,8 @@ export function IdentityHub() {
         ))}
       </div>
 
+      <ConsistencyCard linkedin={linkedin} hinge={session.hinge} bios={session.bios} />
+
       <FactsCard facts={confirmed} linkedin={linkedin} hinge={session.hinge} factPlatforms={session.factPlatforms} />
 
       {own && linkedin ? (
@@ -254,6 +257,68 @@ function BioSource({ platform, bio }: { platform: Platform; bio: string }) {
           {length ? "Review in studio" : "Open studio"} <ArrowUpRight />
         </Button>
       </div>
+    </section>
+  );
+}
+
+/**
+ * Consistency across platforms: claims with one true value (your role at a place, school,
+ * graduation year, year in school, years of experience) that two platforms state differently.
+ * Deterministic patterns over your own text, in this tab only.
+ */
+function ConsistencyCard(props: ProfileTexts) {
+  const checked = platformsWithText(props);
+  const contradictions = findContradictions(props);
+  return (
+    <section className="hub-card hub-consistency" aria-labelledby="consistency-h">
+      <div className="results-heading">
+        <h2 id="consistency-h" className="section-heading">
+          <ShieldCheck />
+          Consistency across platforms
+        </h2>
+        <span className="empty-note">Checked by code, not AI</span>
+      </div>
+      {checked.length < 2 ? (
+        <p className="empty-note">
+          Add text on at least two platforms and this checks they don’t contradict each other: your role at a place,
+          school, graduation year, year in school, and years of experience.
+        </p>
+      ) : !contradictions.length ? (
+        <p className="status-note">
+          <Check size={14} />
+          No contradictions detected across {checked.length} platforms ({checked.map((p) => PLATFORM_CONFIGS[p].label).join(", ")}).
+        </p>
+      ) : (
+        <>
+          <p className="empty-note">
+            {contradictions.length} {contradictions.length === 1 ? "thing differs" : "things differ"} between your
+            platforms. One identity: make them agree.
+          </p>
+          <ul className="consistency-list">
+            {contradictions.map((c) => (
+              <li key={c.label}>
+                <strong>{c.label}</strong>
+                <ul>
+                  {c.mentions.map((m, i) => (
+                    <li key={`${m.platform}-${i}`}>
+                      <span className="consistency-platform" data-platform={m.platform}>
+                        <BrandMark platform={m.platform} />
+                        {PLATFORM_CONFIGS[m.platform].label}
+                      </span>
+                      <span className="consistency-value">{m.value}</span>
+                      <q>{m.quote}</q>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      <p className="empty-note hub-fine-print">
+        Pattern-based: it compares a few claims with one true value and can miss differences worded in other ways.{" "}
+        <Link href="/factcheck">How reliable is FactCheck? See the benchmark</Link>
+      </p>
     </section>
   );
 }

@@ -1,9 +1,12 @@
 "use client";
 
 import { ArrowRight, FileText, Fingerprint, LockKeyhole, Sparkles } from "lucide-react";
+import { useMemo } from "react";
+import { QuickCheck } from "@/components/QuickCheck";
 import { Button } from "@/components/ui/button";
 import { PLATFORM_CONFIGS } from "@/lib/rubrics";
 import { LIMITS, type Platform } from "@/lib/schemas";
+import { segmentBio } from "@/lib/segments";
 
 // Bio platforms (Handshake, Instagram, Facebook, X, Tinder): one text field, counted against the
 // platform's own limit. (LinkedIn uses LinkedInEditor; Hinge uses ProfileInput.)
@@ -30,6 +33,7 @@ export function BioInput(props: {
   const length = [...bio].length;
   // A draft may run over while you write; the rewrite is held to the limit.
   const over = config.maxChars !== undefined && length > config.maxChars;
+  const segments = useMemo(() => segmentBio(bio), [bio]);
 
   return (
     <section className="flow-section fade-in">
@@ -110,6 +114,7 @@ export function BioInput(props: {
               </Button>
             </>
           )}
+          <QuickCheck segments={segments} group={config.group} fitText={bio} />
           <p className="flow-description">
             {config.maxChars
               ? `${config.label} allows ${config.maxChars} characters here. Paste what you have; the rewrite will fit it.`
