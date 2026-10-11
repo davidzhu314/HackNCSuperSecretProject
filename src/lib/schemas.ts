@@ -527,10 +527,12 @@ export type PlatformConfig = {
   maxChars?: number;
   /** Professional platforms accept an optional job description to target. */
   jobDescription: boolean;
-  /** LinkedIn only: lens categories, in display order. */
+  /** Lens categories, in display order (every platform has 8 lenses in 4). */
   categories?: { id: string; label: string }[];
+  /** The lenses selected by default: one from each of three categories, so the feedback differs. */
+  defaultAudiences?: string[];
   /**
-   * `category` is a categories[].id (LinkedIn only). `description` is the full lens definition the
+   * `category` is a categories[].id. `description` is the full lens definition the
    * model reads; `summary` is a one-line version for the picker (falls back to `description`).
    */
   audiences: { id: string; label: string; description: string; summary?: string; category?: string }[];

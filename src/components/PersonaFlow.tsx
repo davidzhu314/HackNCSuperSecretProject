@@ -40,7 +40,7 @@ import { emptyHingePairs, factTextSchema, HINGE_PROMPTS, mergeFacts, MAX_HINGE_A
 import { emptyLinkedInProfile, factCheckSegments, findSection, profileCharCount, rewritableSections, segmentProfile } from "@/lib/profile";
 import { changedSections, profileAsText, sectionText, withSectionText } from "@/lib/profile-edits";
 import { cleanProfile, importProfileFile } from "@/lib/profile-import";
-import { DEFAULT_LINKEDIN_AUDIENCES, PLATFORM_CONFIGS, PLATFORM_GROUPS } from "@/lib/rubrics";
+import { PLATFORM_CONFIGS, PLATFORM_GROUPS } from "@/lib/rubrics";
 import { PARALLEL_REWRITES, runLimited } from "@/lib/run-limited";
 import { EXPECTED_MS } from "@/lib/progress";
 import { ProgressBar } from "@/components/ProgressBar";
@@ -115,7 +115,7 @@ const isDemoTinder = (t: TinderProfile) => JSON.stringify(t) === JSON.stringify(
 const DEMO_PROFILE_JSON = JSON.stringify(DEMO_LINKEDIN_PROFILE);
 
 const defaultAudiences = (p: Platform): string[] =>
-  p === "linkedin" ? [...DEFAULT_LINKEDIN_AUDIENCES] : PLATFORM_CONFIGS[p].audiences.map((a) => a.id);
+  PLATFORM_CONFIGS[p].defaultAudiences ?? PLATFORM_CONFIGS[p].audiences.map((a) => a.id);
 const defaultTraits = (p: Platform) => PLATFORM_CONFIGS[p].traits.slice(0, 3).map((t) => t.id);
 
 /** What the extracted facts were found in, so extraction reruns only when the text changes. */

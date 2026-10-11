@@ -28,6 +28,20 @@ describe("platform configs", () => {
     }
   });
 
+  it("gives every platform 8 lenses in 4 categories of 2, with 3 defaults from different categories", () => {
+    for (const config of Object.values(PLATFORM_CONFIGS)) {
+      expect(config.audiences, config.id).toHaveLength(8);
+      expect(config.categories, config.id).toHaveLength(4);
+      for (const cat of config.categories!) {
+        expect(config.audiences.filter((a) => a.category === cat.id), `${config.id} ${cat.id}`).toHaveLength(2);
+      }
+      const defaults = config.defaultAudiences!.map((id) => config.audiences.find((a) => a.id === id));
+      expect(defaults.every(Boolean), config.id).toBe(true);
+      expect(new Set(defaults.map((a) => a!.category)).size, config.id).toBe(3);
+      for (const a of config.audiences) expect(a.summary, `${config.id} ${a.id}`).toBeTruthy();
+    }
+  });
+
   it("gives every bio platform a character limit, and job targeting only to professional ones", () => {
     for (const config of Object.values(PLATFORM_CONFIGS)) {
       if (config.input === "bio") expect(config.maxChars).toBeGreaterThan(0);
