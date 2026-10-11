@@ -114,7 +114,7 @@
 .tour-root .profile-panel { border-color: var(--brand-line); }
 .tour-root .panel-header { background: var(--brand-fill); color: var(--brand-ink); border-bottom: 0; }
 .tour-root .panel-header .section-heading, .tour-root .panel-header .section-heading > svg, .tour-root .panel-header .empty-note,
-.tour-root .panel-header .section-subtitle, .tour-root .panel-header .panel-tools button { color: inherit; }
+.tour-root .panel-header .section-subtitle, .tour-root .panel-header .panel-tools button:not(.check-badge) { color: inherit; }
 .tour-root :is(.editor-box, .section-card, .clash-section, .identity-row) { border-color: var(--brand-line); box-shadow: inset 4px 0 0 var(--brand-solid); }
 .tour-root .section-card[data-focused=true] { box-shadow: inset 4px 0 0 var(--brand-solid), 0 0 0 1px var(--brand-solid); }
 .tour-root .audience-option[data-selected=true] { border-color: var(--brand-solid); box-shadow: inset 4px 0 0 var(--brand-solid); }

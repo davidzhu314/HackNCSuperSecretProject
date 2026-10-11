@@ -73,7 +73,18 @@ const MULTIPLIERS: Record<string, number> = {
   thousand: 1e3, million: 1e6, billion: 1e9,
 };
 
-export type NumberMention = { key: string; text: string };
+/** `unit`: a time unit right after the number ("10 years" -> "year"), so durations are compared with their unit. */
+export type NumberMention = { key: string; text: string; unit?: string };
+
+const TIME_UNIT = /^\s*\+?\s*-?\s*(years?|yrs?|months?|mos?|weeks?|days?|hours?|hrs?)\b/i;
+const UNIT_NAME: Record<string, string> = { yr: "year", mo: "month", hr: "hour" };
+/** "years" / "yrs" -> "year"; undefined when no time unit follows. */
+function timeUnit(after: string): string | undefined {
+  const m = after.match(TIME_UNIT);
+  if (!m) return undefined;
+  const singular = m[1].toLowerCase().replace(/s$/, "");
+  return UNIT_NAME[singular] ?? singular;
+}
 
 /** Extract numbers as normalized keys ("95%", "2000000", "10x"). "95 percent" == "95%", "two hundred" == "200". */
 export function extractNumbers(text: string): NumberMention[] {
@@ -91,7 +102,8 @@ export function extractNumbers(text: string): NumberMention[] {
     else if (unit === "b") value *= 1e9;
     else if (unit === "%" || unit === "percent") suffix = "%";
     else if (unit === "x") suffix = "x";
-    out.push({ key: `${value}${suffix}`, text: m[0].trim() });
+    const time = suffix ? undefined : timeUnit(text.slice((m.index ?? 0) + m[0].length));
+    out.push({ key: `${value}${suffix}`, text: m[0].trim(), ...(time ? { unit: time } : {}) });
   }
 
   // Number words. A bare "one" is ignored ("one of the"); it only counts inside "one hundred" etc.
@@ -120,23 +132,32 @@ export function extractNumbers(text: string): NumberMention[] {
     }
     const value = total + current;
     const isPercent = tokens[i] === "percent";
+    const unit = isPercent ? undefined : timeUnit(` ${tokens[i] ?? ""}`);
     out.push({
       key: `${value}${isPercent ? "%" : ""}`,
       text: tokens.slice(start, isPercent ? i + 1 : i).join(" "),
+      ...(unit ? { unit } : {}),
     });
   }
   return out;
 }
 
+/**
+ * A number must appear in the sources. A duration must appear with the same time unit: the "10" in
+ * "(1 year 10 months)" doesn't support "10 years".
+ */
 function checkNumbers(content: string, corpus: string): GuardWarning[] {
-  const supported = new Set(extractNumbers(corpus).map((n) => n.key));
+  const inCorpus = extractNumbers(corpus);
+  const supported = new Set(inCorpus.map((n) => n.key));
+  const durations = new Set(inCorpus.filter((n) => n.unit).map((n) => `${n.key} ${n.unit}`));
   return extractNumbers(content)
-    .filter((n) => !supported.has(n.key))
+    .filter((n) => (n.unit ? !durations.has(`${n.key} ${n.unit}`) : !supported.has(n.key)))
     .map((n) => ({
       kind: "unsupported_number" as const,
-      text: n.text,
-      explanation:
-        "This number or date does not appear in your original text or confirmed facts.",
+      text: n.unit ? `${n.text} ${n.unit}${n.key === "1" ? "" : "s"}` : n.text,
+      explanation: n.unit
+        ? `Your original text and confirmed facts don't state this length of time.`
+        : "This number or date does not appear in your original text or confirmed facts.",
     }));
 }
 
@@ -315,6 +336,49 @@ function checkVerbs(content: string, corpus: string): GuardWarning[] {
   return warnings;
 }
 
+// ---------- 3b. status and title words ----------
+
+/**
+ * Words that raise someone's rank or standing. Lowercase job titles slip past the entity check
+ * ("senior engineer", "head instructor"), and status claims ("expert", "the best") aren't verbs.
+ * Each is flagged only when the sources never use it; "led" in the sources supports "lead".
+ */
+const STATUS_WORDS: Record<string, string[]> = {
+  senior: ["senior"],
+  head: ["head"],
+  chief: ["chief"],
+  principal: ["principal"],
+  lead: ["lead", "led", "leader", "leading"],
+  expert: ["expert", "experts", "expertise"],
+  "award-winning": ["award-winning", "award", "awarded", "awards"],
+  best: ["best"],
+  "world-class": ["world-class"],
+  renowned: ["renowned"],
+  founder: ["founder", "co-founder", "cofounder", "founded"],
+  "co-founder": ["co-founder", "cofounder", "founder", "founded"],
+  director: ["director"],
+  manager: ["manager", "managed", "managing"],
+  president: ["president"],
+  captain: ["captain"],
+  champion: ["champion", "championship"],
+  certified: ["certified", "certification", "certificate"],
+};
+
+function checkStatusWords(content: string, corpus: string): GuardWarning[] {
+  const have = new Set((corpus.toLowerCase().match(/[a-z][a-z-]*/g) ?? []));
+  const warnings: GuardWarning[] = [];
+  for (const [word, supports] of Object.entries(STATUS_WORDS)) {
+    const m = content.match(new RegExp(`\\b${word}\\b`, "i"));
+    if (!m || supports.some((s) => have.has(s))) continue;
+    warnings.push({
+      kind: "inflated_verb",
+      text: m[0],
+      explanation: `"${m[0]}" raises your rank or standing, and your original text and confirmed facts never say it.`,
+    });
+  }
+  return warnings;
+}
+
 // ---------- 4. fact ids and loose claims ----------
 
 function checkFactIds(usedFactIds: string[], facts: IdentityFact[]): GuardWarning[] {
@@ -385,6 +449,7 @@ export function checkRewrite({ rewrite, segments, facts }: GuardInput): GuardWar
     ...checkNumbers(rewrite.content, corpus),
     ...checkEntities(rewrite.content, corpus),
     ...checkVerbs(rewrite.content, corpus),
+    ...checkStatusWords(rewrite.content, corpus),
     ...checkFactIds(rewrite.usedFactIds, facts),
     ...checkLooseClaims(rewrite.content, corpus),
   ]);
