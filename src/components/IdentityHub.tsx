@@ -12,8 +12,8 @@ import type { HingePair } from "@/lib/persona-ui";
 import { factCoverage, rewritableSections, segmentProfile } from "@/lib/profile";
 import { hingeFactIds } from "@/lib/profile-edits";
 import { cleanProfile, importProfileFile } from "@/lib/profile-import";
-import type { IdentityFact, LinkedInProfile } from "@/lib/schemas";
-import { PLATFORM_CONFIGS } from "@/lib/rubrics";
+import type { IdentityFact, LinkedInProfile, Platform } from "@/lib/schemas";
+import { PLATFORM_CONFIGS, PLATFORM_GROUPS } from "@/lib/rubrics";
 
 // The Identity Hub: one pool of source material and confirmed facts for every platform.
 // Everything here lives in this tab's memory (identity-session.ts) and is read in the browser;
@@ -32,6 +32,10 @@ export function IdentityHub() {
   const linkedinSections = linkedin ? rewritableSections(linkedin).length : 0;
   const hingeAnswers = session.hinge?.filter((p) => p.answer.trim()).length ?? 0;
   const confirmed = session.facts.filter((f) => f.confirmed && f.text.trim());
+  const added =
+    (linkedin ? 1 : 0) +
+    (hingeAnswers ? 1 : 0) +
+    PLATFORMS.filter((p) => PLATFORM_CONFIGS[p].input === "bio" && session.bios[p]?.trim()).length;
   const own = !!linkedin && segmentProfile(linkedin).length > 0 && confirmed.length > 0;
   // Before any "Use this version" rewrites; the demo is recognized by its original text.
   const before = session.linkedinOriginal ? cleanProfile(session.linkedinOriginal) : null;
@@ -86,15 +90,10 @@ export function IdentityHub() {
           )}
         </div>
         <div className="hub-persona-text">
-          <span className="eyebrow">
-            <Fingerprint size={13} />
-            Write once, show up everywhere
-          </span>
           <h1>Your Identity Hub</h1>
           <p className="empty-note">
-            {linkedin ? `LinkedIn: ${linkedinSections} sections` : "LinkedIn: not added"} ·{" "}
-            {hingeAnswers ? `Hinge: ${hingeAnswers} ${hingeAnswers === 1 ? "answer" : "answers"}` : "Hinge: not added"} ·{" "}
-            {confirmed.length} confirmed {confirmed.length === 1 ? "fact" : "facts"}
+            {added} of {PLATFORMS.length} platforms added · {confirmed.length} confirmed{" "}
+            {confirmed.length === 1 ? "fact" : "facts"}
           </p>
           <div className="hub-actions">
             <input
@@ -129,71 +128,86 @@ export function IdentityHub() {
         </p>
       )}
 
-      <div className="hub-grid">
-        <section className="hub-card hub-source" data-platform="linkedin" aria-labelledby="src-linkedin">
-          <div className="hub-source-head">
-            <span className="platform-icon">
-              <BrandMark platform="linkedin" />
-            </span>
-            <div>
-              <h2 id="src-linkedin">LinkedIn</h2>
-              <p className="empty-note">
-                {linkedin ? `${linkedinSections} sections` : "Not added yet."}
-              </p>
-            </div>
-          </div>
-          {!!session.linkedinImport?.warnings.length && (
-            <ul className="hub-warnings">
-              {session.linkedinImport.warnings.map((w) => (
-                <li key={w}>
-                  <CircleAlert size={13} aria-hidden="true" />
-                  {w}
-                </li>
-              ))}
-            </ul>
-          )}
-          <div className="hub-actions">
-            <input
-              ref={pdfInput}
-              type="file"
-              className="hidden"
-              accept=".pdf,.txt,.md,.json"
-              aria-label="Import a LinkedIn PDF"
-              onChange={(e) => void importPdf(e.target.files?.[0])}
-            />
-            <Button variant="glass" size="sm" disabled={importing} onClick={() => pdfInput.current?.click()}>
-              {importing ? <LoaderCircle className="animate-spin" /> : <FileUp />}
-              {linkedin ? "Replace with a PDF" : "Import PDF"}
-            </Button>
-            <Button variant="aero" size="sm" nativeButton={false} render={<Link href="/studio?platform=linkedin" />}>
-              {linkedin ? "Review in studio" : "Open studio"} <ArrowUpRight />
-            </Button>
-          </div>
-        </section>
-
-        <section className="hub-card hub-source" data-platform="hinge" aria-labelledby="src-hinge">
-          <div className="hub-source-head">
-            <span className="platform-icon">
-              <BrandMark platform="hinge" />
-            </span>
-            <div>
-              <h2 id="src-hinge">Hinge</h2>
-              <p className="empty-note">
-                {hingeAnswers
-                  ? `${hingeAnswers} prompt ${hingeAnswers === 1 ? "answer" : "answers"}`
-                  : "Not added yet. Up to three prompt answers."}
-              </p>
-            </div>
-          </div>
-          <p className="empty-note">
-            Facts you confirmed on LinkedIn come with you, so Hinge starts from the same true facts.
-          </p>
-          <div className="hub-actions">
-            <Button variant="aero" size="sm" nativeButton={false} render={<Link href="/studio?platform=hinge" />}>
-              {hingeAnswers ? "Review in studio" : "Open studio"} <ArrowUpRight />
-            </Button>
-          </div>
-        </section>
+      <div className="hub-groups">
+        {PLATFORM_GROUPS.map(({ group, label, platforms }) => (
+          <section key={group} className="hub-group" aria-labelledby={`group-${group}`}>
+            <h2 id={`group-${group}`} className="hub-group-label">
+              {label}
+            </h2>
+            {platforms.map((platform) => {
+              if (platform === "linkedin")
+                return (
+                <section key="linkedin" className="hub-card hub-source" data-platform="linkedin" aria-labelledby="src-linkedin">
+                  <div className="hub-source-head">
+                    <span className="platform-icon">
+                      <BrandMark platform="linkedin" />
+                    </span>
+                    <div>
+                      <h3 id="src-linkedin">LinkedIn</h3>
+                      <p className="empty-note">
+                        {linkedin ? `${linkedinSections} sections` : "Not added yet."}
+                      </p>
+                    </div>
+                  </div>
+                  {!!session.linkedinImport?.warnings.length && (
+                    <ul className="hub-warnings">
+                      {session.linkedinImport.warnings.map((w) => (
+                        <li key={w}>
+                          <CircleAlert size={13} aria-hidden="true" />
+                          {w}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <div className="hub-actions">
+                    <input
+                      ref={pdfInput}
+                      type="file"
+                      className="hidden"
+                      accept=".pdf,.txt,.md,.json"
+                      aria-label="Import a LinkedIn PDF"
+                      onChange={(e) => void importPdf(e.target.files?.[0])}
+                    />
+                    <Button variant="glass" size="sm" disabled={importing} onClick={() => pdfInput.current?.click()}>
+                      {importing ? <LoaderCircle className="animate-spin" /> : <FileUp />}
+                      {linkedin ? "Replace with a PDF" : "Import PDF"}
+                    </Button>
+                    <Button variant="aero" size="sm" nativeButton={false} render={<Link href="/studio?platform=linkedin" />}>
+                      {linkedin ? "Review in studio" : "Open studio"} <ArrowUpRight />
+                    </Button>
+                  </div>
+                </section>
+                );
+              if (platform === "hinge")
+                return (
+                <section key="hinge" className="hub-card hub-source" data-platform="hinge" aria-labelledby="src-hinge">
+                  <div className="hub-source-head">
+                    <span className="platform-icon">
+                      <BrandMark platform="hinge" />
+                    </span>
+                    <div>
+                      <h3 id="src-hinge">Hinge</h3>
+                      <p className="empty-note">
+                        {hingeAnswers
+                          ? `${hingeAnswers} prompt ${hingeAnswers === 1 ? "answer" : "answers"}`
+                          : "Not added yet. Up to three prompt answers."}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="empty-note">
+                    Facts you confirmed on LinkedIn come with you, so Hinge starts from the same true facts.
+                  </p>
+                  <div className="hub-actions">
+                    <Button variant="aero" size="sm" nativeButton={false} render={<Link href="/studio?platform=hinge" />}>
+                      {hingeAnswers ? "Review in studio" : "Open studio"} <ArrowUpRight />
+                    </Button>
+                  </div>
+                </section>
+                );
+              return <BioSource key={platform} platform={platform} bio={session.bios[platform] ?? ""} />;
+            })}
+          </section>
+        ))}
       </div>
 
       <FactsCard facts={confirmed} linkedin={linkedin} hinge={session.hinge} factPlatforms={session.factPlatforms} />
@@ -204,7 +218,7 @@ export function IdentityHub() {
         <Coverage profile={DEMO_LINKEDIN_PROFILE} facts={DEMO_LINKEDIN_FACTS.filter((f) => f.confirmed)} mode="example" />
       )}
 
-      {(linkedin || hingeAnswers > 0 || session.facts.length > 0 || session.photo) && (
+      {(added > 0 || session.facts.length > 0 || session.photo) && (
         <div className="hub-clear">
           <Button variant="ghost" size="sm" onClick={clearSession}>
             <Trash2 />
@@ -213,6 +227,34 @@ export function IdentityHub() {
         </div>
       )}
     </div>
+  );
+}
+
+/** A bio platform (Handshake, Instagram, Facebook, Tinder): the bio's length against the platform's limit. */
+function BioSource({ platform, bio }: { platform: Platform; bio: string }) {
+  const { label, maxChars, fieldLabel } = PLATFORM_CONFIGS[platform];
+  const length = bio.trim().length;
+  return (
+    <section className="hub-card hub-source" data-platform={platform} aria-labelledby={`src-${platform}`}>
+      <div className="hub-source-head">
+        <span className="platform-icon">
+          <BrandMark platform={platform} />
+        </span>
+        <div>
+          <h3 id={`src-${platform}`}>{label}</h3>
+          <p className="empty-note">
+            {length
+              ? `${fieldLabel}: ${length}${maxChars ? ` of ${maxChars}` : ""} characters`
+              : `Not added yet.${maxChars ? ` ${fieldLabel}, up to ${maxChars} characters.` : ""}`}
+          </p>
+        </div>
+      </div>
+      <div className="hub-actions">
+        <Button variant="aero" size="sm" nativeButton={false} render={<Link href={`/studio?platform=${platform}`} />}>
+          {length ? "Review in studio" : "Open studio"} <ArrowUpRight />
+        </Button>
+      </div>
+    </section>
   );
 }
 
