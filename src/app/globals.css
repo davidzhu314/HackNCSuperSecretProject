@@ -43,7 +43,10 @@
 }
 /* Studio themes, one per platform, in each company's own colors (approximate brand colors). They set
    the panel colors (buttons, highlights, borders, tints) and the step rail over the photo
-   (--tour-orange fills the active step, --tour-apricot is the light accent). */
+   (--tour-orange fills the active step, --tour-apricot is the light accent). The --brand-* colors
+   paint the studio panels on every step (rules under "Studio panels in brand colors"):
+   fill (solid or gradient) and ink for filled bars, solid for edges, tint for the workspace, line
+   for card borders. */
 .app-root[data-theme=linkedin] {
   --background: oklch(.97 .008 250); --foreground: oklch(.27 .03 250);
   --primary: #0a66c2; --secondary: oklch(.95 .025 250); --muted: oklch(.97 .01 250); --muted-foreground: oklch(.5 .03 250);
@@ -51,6 +54,7 @@
   --glass: oklch(.96 .02 250 / .95); --shadow-color: oklch(.35 .08 250 / .12); --deep-ocean: #004182;
   --button-gradient: linear-gradient(180deg, #2a7fd6, #0a66c2); --glass-gradient: linear-gradient(180deg, oklch(1 0 0 / .95), oklch(.97 .015 250 / .9));
   --tour-orange: #0a66c2; --tour-apricot: #70b5f9;
+  --brand-fill: #0a66c2; --brand-solid: #0a66c2; --brand-ink: #fff; --brand-tint: oklch(.92 .045 250); --brand-line: oklch(.76 .09 250);
 }
 .app-root[data-theme=handshake] {
   --background: oklch(.975 .02 125); --foreground: #0f2b1e;
@@ -59,6 +63,7 @@
   --glass: oklch(.97 .04 125 / .95); --shadow-color: oklch(.3 .05 150 / .14); --deep-ocean: #0f2b1e;
   --button-gradient: linear-gradient(180deg, #2c6447, #0f2b1e); --glass-gradient: linear-gradient(180deg, oklch(1 0 0 / .95), oklch(.97 .05 125 / .9));
   --tour-orange: #1e4d35; --tour-apricot: #d3fb52;
+  --brand-fill: #d3fb52; --brand-solid: #4c8a2e; --brand-ink: #0f2b1e; --brand-tint: oklch(.94 .1 125); --brand-line: oklch(.74 .13 135);
 }
 .app-root[data-theme=instagram] {
   --background: oklch(.975 .012 350); --foreground: oklch(.3 .04 340);
@@ -67,6 +72,7 @@
   --glass: oklch(.965 .025 350 / .95); --shadow-color: oklch(.38 .1 350 / .14); --deep-ocean: #833ab4;
   --button-gradient: linear-gradient(45deg, #f58529, #dd2a7b 45%, #8134af 80%, #515bd4); --glass-gradient: linear-gradient(180deg, oklch(1 0 0 / .95), oklch(.97 .02 350 / .9));
   --tour-orange: #dd2a7b; --tour-apricot: #fcaf45;
+  --brand-fill: linear-gradient(90deg, #f58529, #dd2a7b 45%, #8134af 80%, #515bd4); --brand-solid: #dd2a7b; --brand-ink: #fff; --brand-tint: oklch(.93 .045 350); --brand-line: oklch(.76 .11 350);
 }
 .app-root[data-theme=facebook] {
   --background: #f0f2f5; --foreground: #1c1e21;
@@ -75,6 +81,7 @@
   --glass: oklch(.97 .015 255 / .95); --shadow-color: oklch(.3 .05 255 / .12); --deep-ocean: #0047b3;
   --button-gradient: linear-gradient(180deg, #2b7bff, #0866ff); --glass-gradient: linear-gradient(180deg, oklch(1 0 0 / .95), oklch(.97 .012 255 / .9));
   --tour-orange: #0866ff; --tour-apricot: #6aa6ff;
+  --brand-fill: #0866ff; --brand-solid: #0866ff; --brand-ink: #fff; --brand-tint: #dfe9fb; --brand-line: #9dbcf5;
 }
 /* Hinge is black and white. */
 .app-root[data-theme=hinge] {
@@ -84,6 +91,7 @@
   --glass: oklch(.97 0 0 / .95); --shadow-color: oklch(0 0 0 / .14); --deep-ocean: #000;
   --button-gradient: linear-gradient(180deg, #2b2b2b, #000); --glass-gradient: linear-gradient(180deg, oklch(1 0 0 / .96), oklch(.97 0 0 / .92));
   --tour-orange: #111; --tour-apricot: #fff;
+  --brand-fill: #111; --brand-solid: #111; --brand-ink: #fff; --brand-tint: #e6e6e6; --brand-line: #9e9e9e;
 }
 .app-root[data-theme=tinder] {
   --background: oklch(.975 .012 20); --foreground: oklch(.3 .04 15);
@@ -92,10 +100,26 @@
   --glass: oklch(.965 .025 15 / .95); --shadow-color: oklch(.4 .12 15 / .15); --deep-ocean: #b3124a;
   --button-gradient: linear-gradient(45deg, #fd267a, #ff6036); --glass-gradient: linear-gradient(180deg, oklch(1 0 0 / .95), oklch(.97 .02 15 / .9));
   --tour-orange: #fd267a; --tour-apricot: #ff9a7a;
+  --brand-fill: linear-gradient(90deg, #fd267a, #ff6036); --brand-solid: #fd267a; --brand-ink: #fff; --brand-tint: oklch(.93 .045 15); --brand-line: oklch(.76 .12 15);
 }
 /* Light accents (Hinge white, Handshake lime) need a dark icon when a step is hovered. */
 .app-root[data-theme=hinge] .tour-hotspot:hover { color: #111; }
 .app-root[data-theme=handshake] .tour-hotspot:hover { color: #0f2b1e; }
+/* Studio panels in brand colors, on all six steps: a brand bar across the top of the workspace, a
+   tinted workspace with white cards, filled panel headers, and a brand edge on the other cards. */
+.tour-root .tour-workspace { background: var(--brand-tint); border-color: var(--brand-line); }
+.tour-root .tour-workspace::before { content: ''; display: block; height: 6px; border-radius: 5px 5px 0 0; background: var(--brand-fill); }
+.tour-root .flow-title { color: var(--foreground); }
+.tour-root .flow-title svg, .tour-root .section-heading > svg { color: var(--brand-solid); }
+.tour-root .profile-panel { border-color: var(--brand-line); }
+.tour-root .panel-header { background: var(--brand-fill); color: var(--brand-ink); border-bottom: 0; }
+.tour-root .panel-header .section-heading, .tour-root .panel-header .section-heading > svg, .tour-root .panel-header .empty-note,
+.tour-root .panel-header .section-subtitle, .tour-root .panel-header .panel-tools button { color: inherit; }
+.tour-root :is(.editor-box, .section-card, .clash-section, .identity-row) { border-color: var(--brand-line); box-shadow: inset 4px 0 0 var(--brand-solid); }
+.tour-root .section-card[data-focused=true] { box-shadow: inset 4px 0 0 var(--brand-solid), 0 0 0 1px var(--brand-solid); }
+.tour-root .audience-option[data-selected=true] { border-color: var(--brand-solid); box-shadow: inset 4px 0 0 var(--brand-solid); }
+.tour-root .action-band { border-top: 2px solid var(--brand-line); }
+.tour-root .source-panel { border-top-color: var(--brand-solid); }
 @layer base {
   * { border-color: var(--border); box-sizing: border-box; }
   body { margin: 0; background: var(--background); color: var(--foreground); font-family: var(--font-sans); font-size: 14px; letter-spacing: 0; }
