@@ -465,7 +465,7 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .cited-link:hover { border-color: var(--primary); }
 
 /* ---------- Scenic "tour" chrome (merged from the Lovable aero-persona-hub design) ----------
-   Home: the LinkedIn speaker / Hinge nightlife destinations. Studio: the platform's photo behind the
+   Home: one destination per group (speaker, nightlife, cafe). Studio: the platform's photo behind the
    page, hotspot pearls as the step rail, and the work itself in a wide light panel (not a
    drawer), so the section editor and annotated feedback keep their room. */
 :root {
@@ -508,12 +508,14 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .destination { position: relative; min-width: 0; min-height: 100svh; overflow: hidden; display: flex; align-items: center; }
 .destination:not(:last-child) { border-right: 1px solid var(--tour-edge); }
 .destination-photo { object-fit: cover; object-position: 40% center; transition: transform 1.4s ease; }
-.destination[data-destination=dating] .destination-photo { object-position: 65% center; }
-.destination-platforms { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
-.destination-platforms .tour-button { gap: 10px; }
+.destination[data-destination=social] .destination-photo { object-position: 65% center; }
+/* One column of equal-width buttons, as wide as the longest name. */
+.destination-platforms { list-style: none; margin: 0; padding: 0; display: grid; width: max-content; gap: 10px; }
+.destination-platforms .tour-button { gap: 10px; width: 100%; justify-content: flex-start; }
+.destination-platforms .tour-button > svg:last-child { margin-left: auto; padding-left: 8px; box-sizing: content-box; }
 .destination-platforms .destination-mark { width: 22px; height: 22px; font-size: 11px; }
 /* Platform buttons in each company's own colors (approximate brand colors, no logos). */
-.destination-platforms .tour-button[data-brand] { color: #fff; border-color: transparent; backdrop-filter: none; transition: filter .2s, transform .2s; }
+.destination-platforms .tour-button[data-brand] { color: #fff; border: 0; padding: 11px 19px; backdrop-filter: none; transition: filter .2s, transform .2s; }
 .destination-platforms .tour-button[data-brand]:hover { filter: brightness(1.12); transform: translateY(-1px); }
 .destination-platforms .tour-button[data-brand] .destination-mark { border-color: oklch(1 0 0 / .45); background: oklch(1 0 0 / .14); color: inherit; }
 .tour-button[data-brand=linkedin] { background: #0a66c2; }
@@ -548,7 +550,7 @@ h1 { font-size: 43px; line-height: 1.2; font-weight: 650; color: var(--deep-ocea
 .tour-root { padding: 0; min-height: 100svh; display: flex; flex-direction: column; }
 .scenic-backdrop { position: fixed; inset: 0; z-index: -1; overflow: hidden; background: var(--tour-ink); }
 .scenic-photo { object-fit: cover; animation: tour-arrival 1.2s ease-out; }
-.scenic-photo[data-platform=hinge], .scenic-photo[data-platform=tinder] { object-position: 55% center; }
+.scenic-photo[data-platform=instagram], .scenic-photo[data-platform=facebook] { object-position: 55% center; }
 .scenic-shade { position: absolute; inset: 0; background: var(--tour-photo-gradient); }
 .tour-platform-switch { display: flex; }
 .tour-platform-switch .tour-button { gap: 8px; border-color: transparent; background: transparent; backdrop-filter: none; padding: 10px 14px; }

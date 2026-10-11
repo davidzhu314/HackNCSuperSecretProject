@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { PLATFORM_GROUPS } from "@/lib/rubrics";
 import type { PlatformGroup } from "@/lib/schemas";
 
-// Home: the Lovable "destinations", one per platform group (professional speaker, social cafe,
-// dating nightlife), each listing its platforms and opening the studio on the one picked, then how
+// Home: the Lovable "destinations", one per platform group (professional speaker, social nightlife,
+// dating cafe), each listing its platforms and opening the studio on the one picked, then how
 // it works and the Identity Hub.
 
 const GROUP_CAPTION: Record<PlatformGroup, string> = {
