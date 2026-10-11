@@ -1,4 +1,4 @@
-import { LIMITS, type LengthStep, type LinkedInSectionKind, type SectionStyle } from "./schemas";
+import { LIMITS, type LengthStep, type LinkedInSectionKind, type PlatformGroup, type RewriteTone, type SectionStyle } from "./schemas";
 
 // Rewrite styles and lengths, defined by output FORMAT (one line, paragraphs, bullets, a paragraph)
 // rather than by LinkedIn field, so other professional platforms can reuse them by mapping their
@@ -204,4 +204,26 @@ export function bigramOverlap(a: string, b: string): number {
   let shared = 0;
   for (const g of A) if (B.has(g)) shared++;
   return shared / (A.size + B.size - shared);
+}
+
+// ---------- one-field and prompt platforms (tone + length) ----------
+
+const TEXT_RATIOS: Record<LengthStep, number> = { much_shorter: 0.5, shorter: 0.75, same: 1, longer: 1.4, much_longer: 1.8 };
+
+/** Target characters for a bio or one answer: relative to the original, never over the platform's limit. */
+export function textTarget(originalChars: number, step: LengthStep, cap: number): number {
+  if (step === "same") return Math.min(cap, originalChars);
+  const floor = Math.min(originalChars, 20);
+  return Math.min(cap, Math.max(floor, Math.round(originalChars * TEXT_RATIOS[step])));
+}
+
+/** The tone menu on every platform but LinkedIn (which picks a style per section). */
+export function toneOptions(group: PlatformGroup): { id: RewriteTone; label: string; summary: string }[] {
+  return [
+    { id: "closer_to_my_words", label: "Close to my words", summary: "The smallest edits that help; keeps your wording." },
+    { id: "balanced", label: "Balanced", summary: "Clearer and more specific, in your voice." },
+    group === "professional"
+      ? { id: "more_playful", label: "Warmer", summary: "A more personable phrasing, still professional." }
+      : { id: "more_playful", label: "More playful", summary: "Lighter phrasing of the same content." },
+  ];
 }

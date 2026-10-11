@@ -18,7 +18,8 @@ import type {
   DraftSlot,
   FieldFact,
 } from "./schemas";
-import { countBullets, formatOf, lengthInstruction, STYLES, styleContrast, targetChars, type TextFormat } from "./styles";
+import { countBullets, formatOf, LENGTH_STEPS, lengthInstruction, STYLES, styleContrast, targetChars, textTarget, type TextFormat } from "./styles";
+import { tinderLimitFor } from "./tinder";
 
 // Prompt builders. User text and job descriptions are untrusted data:
 // they are fenced and the model is told never to follow instructions inside them.
@@ -303,12 +304,15 @@ export function rewritePrompt(args: {
   facts: IdentityFact[];
   /** Tinder: the work fields the person filled in. Nothing else from the profile fields is ever passed. */
   fieldFacts?: FieldFact[];
+  /** One version in `tone` at `length` (the studio's controls), instead of two. */
+  single?: boolean;
+  length?: LengthStep;
   audiences: PlatformConfig["audiences"];
   goal?: string;
   tone: RewriteTone;
   jobDescription?: string;
 }) {
-  const { config, segments, facts, fieldFacts = [], audiences, goal, tone, jobDescription } = args;
+  const { config, segments, facts, fieldFacts = [], audiences, goal, tone, jobDescription, single = false, length = "same" } = args;
   const variations = VARIATIONS[config.group];
   const style = config.input === "sections" ? [LINKEDIN_STYLE] : config.group === "professional" ? [SUMMARY_STYLE] : [];
   return {
@@ -322,9 +326,9 @@ export function rewritePrompt(args: {
       "- For each version, list in usedFactIds the ids of the confirmed facts you drew on, and give changeSummary at most 3 brief, plain-language bullets about the most useful improvements. Skip minor wording changes.",
       "",
       CONCISE_NATURAL_COPY,
-      "Write two versions:",
-      `- ${variations.direct}`,
-      `- ${variations.narrative}`,
+      ...(single
+        ? ["Write one version, in the tone below.", textLengthRule(config, segments, length)]
+        : ["Write two versions:", `- ${variations.direct}`, `- ${variations.narrative}`]),
       ...PROFILE_COPY_RULES[config.group],
       ...rewriteFormat(config),
       ...style,
@@ -346,6 +350,26 @@ export function rewritePrompt(args: {
       .filter(Boolean)
       .join("\n"),
   };
+}
+
+/**
+ * The length the user picked, as targets: one for a bio, one per answer on prompt platforms (each
+ * relative to its own answer and capped at its limit). Never pad to reach it.
+ */
+function textLengthRule(config: PlatformConfig, segments: Segment[], step: LengthStep): string {
+  const label = LENGTH_STEPS.find((s) => s.id === step)!.label;
+  const never =
+    "Treat targets as guidance: shorter is fine when the sources don't support more, and never add facts, purposes, or filler to reach a length.";
+  if (config.input === "prompts" || config.input === "tinder") {
+    const targets = segments.map((s) => {
+      const cap = config.input === "tinder" ? tinderLimitFor(s.prompt) : (config.maxChars ?? LIMITS.segmentText);
+      return `[${s.id}] about ${textTarget([...s.text].length, step, cap)} characters (now ${[...s.text].length})`;
+    });
+    return `Selected length: ${label}. Target per answer: ${targets.join("; ")}. ${never}`;
+  }
+  const original = [...segments.map((s) => s.text).join(" ")].length;
+  const target = textTarget(original, step, config.maxChars ?? LIMITS.sectionText);
+  return `Selected length: ${label}. Aim for about ${target} characters (the original is ${original}). ${never}`;
 }
 
 // ---------- Draft: fill a platform's empty spots from the user's other profiles ----------

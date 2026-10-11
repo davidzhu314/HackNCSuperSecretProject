@@ -44,7 +44,7 @@ const lengthIndex = (length: LengthStep) => LENGTH_STEPS.findIndex((l) => l.id =
 const lengthLabel = (length: LengthStep) => LENGTH_STEPS[lengthIndex(length)].label;
 
 /** A 5-stop length slider. Dragging only moves it; letting go (or a key press) commits. */
-function LengthSlider(props: {
+export function LengthSlider(props: {
   id: string;
   value: LengthStep;
   disabled?: boolean;

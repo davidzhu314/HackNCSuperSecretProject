@@ -173,6 +173,26 @@ export function buildVariations(
   );
 }
 
+/** Single mode (one tone, one length): one version, with the same cleanup and checks. */
+export function buildOneVariation(
+  model: z.infer<typeof ModelRewriteSchema>["direct"],
+  platform: Platform,
+  segments: Segment[],
+  confirmedFacts: IdentityFact[],
+): RewriteVariation[] {
+  return [finishVariation("direct", platform, model, [], segments, confirmedFacts)];
+}
+
+/** Single mode on prompt platforms: one version of every answer. */
+export function buildOneHingeVariation(
+  model: z.infer<typeof ModelHingeRewriteSchema>["direct"],
+  segments: Segment[],
+  confirmedFacts: IdentityFact[],
+  platform: Platform,
+): RewriteVariation[] {
+  return [buildHingeVariations({ direct: model, narrative: model }, segments, confirmedFacts, platform)[0]];
+}
+
 /**
  * Hinge rewrite: exactly one answer per original segment, in original order. A missing answer
  * keeps the user's original text (and says so); answers for unknown segment ids are dropped and flagged.
