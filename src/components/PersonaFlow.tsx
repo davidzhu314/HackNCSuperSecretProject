@@ -17,6 +17,7 @@ import { RewriteComparison } from "@/components/RewriteComparison";
 import { resultKey, SectionRewrites, type SectionRewriteState } from "@/components/SectionRewrites";
 import { StudioFinish } from "@/components/StudioFinish";
 import { TourStops } from "@/components/TourStops";
+import { TraitScorecard } from "@/components/TraitScorecard";
 import { Button } from "@/components/ui/button";
 import { errorMessage, evaluateProfile, rewriteProfile, rewriteSection } from "@/lib/api-client";
 import { saveConsent, useStoredConsent, withdrawConsent } from "@/lib/consent";
@@ -157,6 +158,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
   const [customQuestions, setCustomQuestions] = useState<CustomQuestion[]>([]);
   const [evaluating, setEvaluating] = useState(false);
   const [evaluation, setEvaluation] = useState<EvaluateResponse | null>(null);
+  const [improvedEvaluation, setImprovedEvaluation] = useState<EvaluateResponse | null>(null);
   // The text the feedback was given on, so Audience Clash stays consistent after rewrites are used.
   const [evaluatedOn, setEvaluatedOn] = useState<{ profile: LinkedInProfile; segments: Segment[] } | null>(null);
 
@@ -258,6 +260,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
     setRewriting(false);
     setFurthest(INPUT);
     setEvaluation(null);
+    setImprovedEvaluation(null);
     setEvaluatedOn(null);
     setSingleApplied(null);
     setSinglePrevious(null);
@@ -310,11 +313,13 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
   /** "Use this version": put a section's rewrite into the profile. Results are kept. */
   function applyRewrite(key: string, text: string) {
     if (!original) setOriginal(profile);
+    setImprovedEvaluation(null);
     setProfile((p) => withSectionText(p, key, text));
   }
 
   function undoRewrite(key: string) {
     if (!original) return;
+    setImprovedEvaluation(null);
     const next = withSectionText(profile, key, sectionText(original, key) ?? "");
     setProfile(next);
     if (!changedSections(cleanProfile(original), cleanProfile(next)).length) setOriginal(null);
@@ -458,6 +463,7 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
     }
     const id = ++requestId.current;
     setRewriting(true);
+    setImprovedEvaluation(null);
     setError(null);
     try {
       const res = await rewriteProfile(
@@ -485,6 +491,29 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
     } finally {
       if (id === requestId.current) setRewriting(false);
     }
+  }
+
+  async function scoreImprovedDraft(): Promise<EvaluateResponse> {
+    let candidateSegments: Segment[];
+    if (platform === "linkedin") candidateSegments = segmentProfile(clean);
+    else if (config.input === "bio") candidateSegments = segmentBio(singleApplied ?? bio);
+    else {
+      const prompts = hinge.filter((pair) => pair.answer.trim());
+      const answers = singleApplied ? singleApplied.split(/\n\s*\n/).map((answer) => answer.trim()).filter(Boolean) : prompts.map((pair) => pair.answer.trim());
+      candidateSegments = segmentHinge(prompts.map((pair, index) => ({ prompt: pair.prompt, answer: answers[index] ?? "" })));
+    }
+    if (!candidateSegments.length) throw new Error("The selected draft has no text to score.");
+    const result = await evaluateProfile({
+      consent: true,
+      platform,
+      segments: candidateSegments,
+      audiences,
+      traits: evalTraits,
+      ...(customQuestions.length ? { customQuestions } : {}),
+      jobDescription: targetJob,
+    });
+    setImprovedEvaluation(result);
+    return result;
   }
 
   function patchSection(key: string, patch: Partial<SectionRewriteState>) {
@@ -868,9 +897,21 @@ export function PersonaFlow({ initialPlatform = "linkedin" }: { initialPlatform?
               use={{
                 current: singleApplied ?? textOriginal,
                 applied: singleApplied !== null,
-                onUse: (text) => { setSinglePrevious(singleApplied); setSingleApplied(text); },
-                onUndo: () => { setSingleApplied(singlePrevious); setSinglePrevious(null); },
+                onUse: (text) => { setImprovedEvaluation(null); setSinglePrevious(singleApplied); setSingleApplied(text); },
+                onUndo: () => { setImprovedEvaluation(null); setSingleApplied(singlePrevious); setSinglePrevious(null); },
               }}
+            />
+          )}
+          {step === REWRITE && evaluation && (
+            <TraitScorecard
+              baseline={evaluation}
+              improved={improvedEvaluation}
+              config={evalConfig}
+              audiences={audiences}
+              traits={evalTraits}
+              canScore={platform === "linkedin" ? applied.length > 0 : singleApplied !== null}
+              sampleMode={sample}
+              onScore={scoreImprovedDraft}
             />
           )}
           {step === REWRITE && (
